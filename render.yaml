@@ -17,6 +17,10 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
+      # Render's Node 22.6.0 build doesn't expose node:sqlite without this
+      # flag (confirmed by an actual failed deploy: ERR_UNKNOWN_BUILTIN_MODULE).
+      - key: NODE_OPTIONS
+        value: --experimental-sqlite
       - key: NEXTAUTH_URL
         sync: false
       - key: NEXTAUTH_SECRET
