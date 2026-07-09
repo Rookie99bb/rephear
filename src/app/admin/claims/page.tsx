@@ -58,7 +58,7 @@ export default function AdminClaimsPage({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <Avatar name={profile.name} size={32} />
+                    <Avatar name={profile.name} photoUrl={profile.photoUrl} size={32} />
                     <div>
                       <p className="text-sm font-medium text-ink">
                         Claim for{" "}

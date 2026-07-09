@@ -5,7 +5,6 @@ import { toProfile, type ProfileRow } from "./profiles";
 interface StatsRow extends ProfileRow {
   like_count: number;
   reputation_credits: number;
-  added_at: string;
 }
 
 function toEntry(row: StatsRow): LeaderboardEntry {
@@ -16,23 +15,22 @@ function toEntry(row: StatsRow): LeaderboardEntry {
   };
 }
 
-// One query gets both stats for every Nominee in a Ranking, plus when they
-// were added to it (added_at) — used only as a neutral tiebreaker so
-// ordering is deterministic without ever mixing the two ranking metrics.
+// One query gets both stats for every Nominee in a Ranking. Nominees
+// belong directly to a Ranking now (no join table), so this is a plain
+// filter on profiles.ranking_id.
 function getRankingStats(
   rankingId: string
 ): { entry: LeaderboardEntry; addedAt: string }[] {
   const rows = db
     .prepare(
-      `SELECT p.*, rp.created_at AS added_at,
+      `SELECT p.*,
         (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id) AS like_count,
         (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
        FROM profiles p
-       JOIN ranking_profiles rp ON rp.profile_id = p.id
-       WHERE rp.ranking_id = ? AND rp.deleted_at IS NULL`
+       WHERE p.ranking_id = ? AND p.deleted_at IS NULL`
     )
     .all(rankingId, rankingId, rankingId) as unknown as StatsRow[];
-  return rows.map((row) => ({ entry: toEntry(row), addedAt: row.added_at }));
+  return rows.map((row) => ({ entry: toEntry(row), addedAt: row.created_at }));
 }
 
 // Most Loved: sorted ONLY by Total Likes, descending. Never mixed with

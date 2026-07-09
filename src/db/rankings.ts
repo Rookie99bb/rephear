@@ -69,19 +69,24 @@ export function findRankingById(id: string): Ranking | null {
 // one table involved and a shared helper wouldn't earn its keep.
 const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL";
 
-export function listNewestRankings(limit = 20): Ranking[] {
+// city is optional — when given (the logged-in user's location), only
+// Rankings for that city are returned. Rankings are location-first: the
+// homepage and /rankings both default to the current user's city.
+export function listNewestRankings(limit = 20, city?: string): Ranking[] {
+  const cityClause = city ? "AND city = ?" : "";
   const rows = db
     .prepare(
-      `SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ORDER BY created_at DESC LIMIT ?`
+      `SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ${cityClause} ORDER BY created_at DESC LIMIT ?`
     )
-    .all(limit) as unknown as RankingRow[];
+    .all(...(city ? [city, limit] : [limit])) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
 
 // "Trending" for the MVP = Rankings with the most combined community
 // activity (likes + reputation credits) across all their nominees. No
 // separate analytics system needed — it's a derived read.
-export function listTrendingRankings(limit = 10): Ranking[] {
+export function listTrendingRankings(limit = 10, city?: string): Ranking[] {
+  const cityClause = city ? "AND r.city = ?" : "";
   const rows = db
     .prepare(
       `SELECT r.*,
@@ -89,11 +94,11 @@ export function listTrendingRankings(limit = 10): Ranking[] {
         (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id)
           AS activity_score
        FROM rankings r
-       WHERE r.${PUBLIC_WHERE}
+       WHERE r.${PUBLIC_WHERE} ${cityClause}
        ORDER BY activity_score DESC, r.created_at DESC
        LIMIT ?`
     )
-    .all(limit) as unknown as (RankingRow & { activity_score: number })[];
+    .all(...(city ? [city, limit] : [limit])) as unknown as (RankingRow & { activity_score: number })[];
   return rows.map(toRanking);
 }
 

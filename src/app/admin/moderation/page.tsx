@@ -1,5 +1,5 @@
 import { listAllRankingsForAdmin } from "@/db/rankings";
-import { listNomineesForRankingAdmin } from "@/db/rankingProfiles";
+import { listNomineesForRankingAdmin } from "@/db/profiles";
 import ModerationRankingRow from "@/components/ModerationRankingRow";
 
 export default function AdminModerationPage() {

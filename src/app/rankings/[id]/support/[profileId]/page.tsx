@@ -31,7 +31,7 @@ export default async function SupportPage({
       </Link>
 
       <div className="mt-4 flex items-center gap-3">
-        <Avatar name={profile.name} size={48} />
+        <Avatar name={profile.name} photoUrl={profile.photoUrl} size={48} />
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-ink">
             Support {profile.name}

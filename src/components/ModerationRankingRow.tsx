@@ -9,14 +9,14 @@ import {
   softDeleteNomineeAction,
   restoreNomineeAction,
 } from "@/lib/actions/moderation";
-import type { Ranking, NomineeAdminView } from "@/lib/types";
+import type { Ranking, Profile } from "@/lib/types";
 
 export default function ModerationRankingRow({
   ranking,
   nominees,
 }: {
   ranking: Ranking;
-  nominees: NomineeAdminView[];
+  nominees: Profile[];
 }) {
   const [pending, startTransition] = useTransition();
   const [hidden, setHidden] = useState(ranking.isHidden);
@@ -103,27 +103,23 @@ export default function ModerationRankingRow({
         <ul className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
           {nomineeState.map((nominee) => (
             <li
-              key={nominee.profile.id}
+              key={nominee.id}
               className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs ${
-                nominee.deleted
-                  ? "border-red-200 bg-red-50"
-                  : "border-border"
+                nominee.deleted ? "border-red-200 bg-red-50" : "border-border"
               }`}
             >
-              <span className="text-ink">{nominee.profile.name}</span>
+              <span className="text-ink">{nominee.name}</span>
               {nominee.deleted ? (
                 <button
                   disabled={pending}
                   onClick={() => {
                     setNomineeState((rows) =>
                       rows.map((r) =>
-                        r.profile.id === nominee.profile.id
-                          ? { ...r, deleted: false }
-                          : r
+                        r.id === nominee.id ? { ...r, deleted: false } : r
                       )
                     );
                     startTransition(async () => {
-                      await restoreNomineeAction(ranking.id, nominee.profile.id);
+                      await restoreNomineeAction(ranking.id, nominee.id);
                     });
                   }}
                   className="text-emerald-700 hover:underline"
@@ -136,19 +132,17 @@ export default function ModerationRankingRow({
                   onClick={() => {
                     if (
                       !confirm(
-                        `Remove ${nominee.profile.name} from this Ranking? Their Public Profile and history are kept; this can be restored later.`
+                        `Remove ${nominee.name} from this Ranking? This can be restored later.`
                       )
                     )
                       return;
                     setNomineeState((rows) =>
                       rows.map((r) =>
-                        r.profile.id === nominee.profile.id
-                          ? { ...r, deleted: true }
-                          : r
+                        r.id === nominee.id ? { ...r, deleted: true } : r
                       )
                     );
                     startTransition(async () => {
-                      await softDeleteNomineeAction(ranking.id, nominee.profile.id);
+                      await softDeleteNomineeAction(ranking.id, nominee.id);
                     });
                   }}
                   className="text-red-700 hover:underline"

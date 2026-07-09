@@ -26,6 +26,7 @@ export const RATE_LIMITS: Record<string, RateLimitRule> = {
   claimProfile: { limit: 3, windowMs: 24 * 60 * 60 * 1000 }, // 3 per day
   like: { limit: 30, windowMs: 60 * 1000 }, // 30 per minute
   support: { limit: 10, windowMs: 60 * 1000 }, // 10 per minute
+  nominate: { limit: 20, windowMs: 60 * 1000 }, // 20 per minute
 };
 
 // Returns true if the action is allowed (and records it), false if the

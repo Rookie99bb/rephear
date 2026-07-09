@@ -4,6 +4,7 @@ export interface User {
   passwordHash: string;
   name: string;
   createdAt: string;
+  location: string | null;
 }
 
 export interface Ranking {
@@ -20,33 +21,23 @@ export interface Ranking {
 
 export type ClaimStatus = "unclaimed" | "claimed";
 
+// A Profile IS a Nominee: it belongs to exactly one Ranking (rankingId).
+// There is no shared/reusable profile system — nominating the same
+// person in a different Ranking creates a separate Profile row.
 export interface Profile {
   id: string;
+  rankingId: string;
   name: string;
   bio: string;
+  photoUrl: string;
   avatarColor: string;
   claimStatus: ClaimStatus;
   claimedBy: string | null;
   claimedAt: string | null;
+  addedBy: string;
   createdAt: string;
   region: string;
   interests: string[];
-}
-
-export interface RankingProfile {
-  id: string;
-  rankingId: string;
-  profileId: string;
-  addedBy: string;
-  createdAt: string;
-  deletedAt: string | null;
-}
-
-// A Nominee as shown to admins: the Profile plus the state of its
-// Ranking<->Profile relationship (so soft-deleted Nominees can be found
-// and restored).
-export interface NomineeAdminView {
-  profile: Profile;
   deletedAt: string | null;
 }
 

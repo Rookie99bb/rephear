@@ -5,10 +5,16 @@ import {
   listPopularRegions,
 } from "@/db/rankings";
 import RankingCard from "@/components/RankingCard";
+import { getCurrentFullUser } from "@/lib/session";
 
-export default function HomePage() {
-  const trending = listTrendingRankings(4);
-  const newest = listNewestRankings(4);
+export default async function HomePage() {
+  const user = await getCurrentFullUser();
+  const city = user?.location ?? undefined;
+  const trending = listTrendingRankings(4, city);
+  const newest = listNewestRankings(4, city);
+  // Popular Regions intentionally stays unfiltered — it's how you
+  // discover/switch to a different location, complementing the
+  // location-filtered Trending/Newest sections above.
   const regions = listPopularRegions(6);
 
   if (trending.length === 0 && newest.length === 0) {
@@ -33,7 +39,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-12">
-      <Section title="Trending Rankings">
+      <Section title={city ? `Trending in ${city}` : "Trending Rankings"}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {trending.map((r) => (
             <RankingCard key={r.id} ranking={r} />
@@ -41,7 +47,7 @@ export default function HomePage() {
         </div>
       </Section>
 
-      <Section title="Newest Rankings">
+      <Section title={city ? `Newest in ${city}` : "Newest Rankings"}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {newest.map((r) => (
             <RankingCard key={r.id} ranking={r} />

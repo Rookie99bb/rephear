@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SessionProvider from "@/components/SessionProvider";
 import HeaderAuth from "@/components/HeaderAuth";
-import { getCurrentUser } from "@/lib/session";
+import LocationGate from "@/components/LocationGate";
+import { getCurrentFullUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 
 export const metadata: Metadata = {
@@ -18,8 +19,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentFullUser();
   const isAdmin = isAdminEmail(user?.email);
+  const needsLocation = !!user && !user.location;
 
   return (
     <html lang="en">
@@ -47,6 +49,11 @@ export default async function RootLayout({
                     Credits
                   </Link>
                 )}
+                {user && (
+                  <Link href="/settings" className="hover:text-ink">
+                    Settings
+                  </Link>
+                )}
                 {isAdmin && (
                   <Link href="/admin/claims" className="hover:text-ink">
                     Admin
@@ -56,7 +63,9 @@ export default async function RootLayout({
               </nav>
             </div>
           </header>
-          <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">{children}</main>
+          <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+            {needsLocation ? <LocationGate /> : children}
+          </main>
         </SessionProvider>
       </body>
     </html>

@@ -42,7 +42,7 @@ export default function LeaderboardTable({
                   href={`/profiles/${entry.profile.id}`}
                   className="flex flex-1 items-center gap-3 min-w-0"
                 >
-                  <Avatar name={entry.profile.name} size={32} />
+                  <Avatar name={entry.profile.name} photoUrl={entry.profile.photoUrl} size={32} />
                   <span className="truncate text-sm font-medium text-ink">
                     {entry.profile.name}
                   </span>

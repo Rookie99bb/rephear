@@ -39,10 +39,10 @@ export default async function ClaimProfilePage({
   if (pending) {
     return (
       <div className="mx-auto max-w-md text-center">
-        <p className="text-sm text-subtle">
+        <p className="text-sm font-medium text-amber-900">
           {pending.profileId === profile.id
-            ? "Your claim application for this profile is already pending review."
-            : "You already have a claim application pending review for another profile. You can only have one at a time."}
+            ? "Verification in progress"
+            : "You already have a claim pending review elsewhere — only one at a time is allowed."}
         </p>
         <Link
           href={`/profiles/${pending.profileId}`}
@@ -57,7 +57,7 @@ export default async function ClaimProfilePage({
   return (
     <div className="mx-auto max-w-lg">
       <div className="flex items-center gap-3">
-        <Avatar name={profile.name} size={40} />
+        <Avatar name={profile.name} photoUrl={profile.photoUrl} size={40} />
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-ink">
             Claim {profile.name}

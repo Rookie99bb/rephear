@@ -11,8 +11,8 @@ import {
 import {
   softDeleteNominee,
   restoreNominee,
-} from "@/db/rankingProfiles";
-import { findProfileById } from "@/db/profiles";
+  findProfileById,
+} from "@/db/profiles";
 import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
 import { getRequestContext } from "@/lib/requestContext";
 
@@ -113,12 +113,12 @@ export async function softDeleteNomineeAction(
   const profile = findProfileById(profileId);
   if (!profile) return { error: "Profile not found." };
 
-  softDeleteNominee(rankingId, profileId);
+  softDeleteNominee(profileId);
   recordAuditLog({
     actorUserId: admin.id,
     action: AUDIT_ACTIONS.NOMINEE_SOFT_DELETED,
-    targetType: "ranking_profile",
-    targetId: `${rankingId}:${profileId}`,
+    targetType: "profile",
+    targetId: profileId,
     details: { rankingId, profileId, profileName: profile.name },
     ...getRequestContext(),
   });
@@ -137,12 +137,12 @@ export async function restoreNomineeAction(
   const profile = findProfileById(profileId);
   if (!profile) return { error: "Profile not found." };
 
-  restoreNominee(rankingId, profileId);
+  restoreNominee(profileId);
   recordAuditLog({
     actorUserId: admin.id,
     action: AUDIT_ACTIONS.NOMINEE_RESTORED,
-    targetType: "ranking_profile",
-    targetId: `${rankingId}:${profileId}`,
+    targetType: "profile",
+    targetId: profileId,
     details: { rankingId, profileId, profileName: profile.name },
     ...getRequestContext(),
   });

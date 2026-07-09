@@ -6,7 +6,7 @@ import {
   listRankingsForProfile,
 } from "@/db/profiles";
 import Avatar from "@/components/Avatar";
-import UnclaimedNotice from "@/components/UnclaimedNotice";
+import ProfileVerificationStatus from "@/components/ProfileVerificationStatus";
 import { getCurrentUser } from "@/lib/session";
 import { findPendingRequestForUser } from "@/db/claimRequests";
 
@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
   return (
     <div className="mx-auto max-w-2xl">
       <div className="flex items-center gap-4">
-        <Avatar name={profile.name} size={64} />
+        <Avatar name={profile.name} photoUrl={profile.photoUrl} size={64} />
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-ink">
             {profile.name}
@@ -34,11 +34,6 @@ export default async function ProfilePage({ params }: { params: { id: string } }
           )}
           {profile.bio && (
             <p className="mt-1 text-sm text-subtle">{profile.bio}</p>
-          )}
-          {profile.claimStatus === "claimed" && (
-            <p className="mt-1 text-xs font-medium text-emerald-700">
-              ✓ Claimed Profile
-            </p>
           )}
         </div>
       </div>
@@ -56,16 +51,13 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         </div>
       )}
 
-      {profile.claimStatus === "unclaimed" && (
-        <div className="mt-6">
-          <UnclaimedNotice
-            profileId={profile.id}
-            loggedIn={!!user}
-            pendingForThisProfile={pendingRequest?.profileId === profile.id}
-            pendingElsewhere={!!pendingRequest && pendingRequest.profileId !== profile.id}
-          />
-        </div>
-      )}
+      <ProfileVerificationStatus
+        profileId={profile.id}
+        claimStatus={profile.claimStatus}
+        loggedIn={!!user}
+        hasPendingRequestForThisProfile={pendingRequest?.profileId === profile.id}
+        hasPendingRequestElsewhere={!!pendingRequest && pendingRequest.profileId !== profile.id}
+      />
 
       <div className="mt-8 flex gap-8 border-y border-border py-4">
         <Stat label="Total Likes" value={stats.totalLikes} />

@@ -1,25 +1,12 @@
 import { getCurrentUser } from "@/lib/session";
+import { isAdminEmail } from "@/lib/adminEmails";
 
-// Admins are identified by an allow-list of emails (ADMIN_EMAILS env var,
-// comma-separated) rather than a hardcoded account or a self-service role
-// field a user could set on themselves. Whoever controls the deployment's
-// environment variables controls who is an admin.
-function adminEmailSet(): Set<string> {
-  const raw = process.env.ADMIN_EMAILS || "";
-  return new Set(
-    raw
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean)
-  );
-}
-
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return adminEmailSet().has(email.toLowerCase());
-}
+export { isAdminEmail };
 
 // Returns the current user only if they are an admin, otherwise null.
+// Used in Server Components/Actions (Node runtime, has DB access) —
+// see src/middleware.ts for the Edge-runtime equivalent check that runs
+// before this ever gets a chance to.
 export async function getCurrentAdmin() {
   const user = await getCurrentUser();
   if (!user || !isAdminEmail(user.email)) return null;

@@ -14,7 +14,8 @@ export function runMigrations() {
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      location TEXT
     );
 
     -- Sprint 3: Rankings. One Ranking = one topic.
@@ -33,36 +34,31 @@ export function runMigrations() {
       deleted_at TEXT
     );
 
-    -- Sprint 4/5: Public Profiles + Nominees.
-    -- A profile is the ONE public identity for a nominee. It may
-    -- participate in many Rankings via ranking_profiles.
+    -- Nominees. A nominee belongs to exactly ONE Ranking — there is no
+    -- shared/reusable profile system. Nominating the same person in a
+    -- different Ranking creates an entirely separate row; the only thing
+    -- shared is the name they were given. Duplicate names within the same
+    -- Ranking are rejected (checked in code, backstopped by the UNIQUE
+    -- index below for safety under concurrent submissions).
+    -- deleted_at: soft delete. Likes/Payments/Credit Transactions
+    -- recorded against a nominee are NEVER touched by this — they stay
+    -- intact and reappear automatically if the nominee is restored.
     CREATE TABLE IF NOT EXISTS profiles (
       id TEXT PRIMARY KEY,
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
       name TEXT NOT NULL,
       bio TEXT NOT NULL DEFAULT '',
+      photo_url TEXT NOT NULL DEFAULT '',
       avatar_color TEXT NOT NULL DEFAULT '#111113',
       claim_status TEXT NOT NULL DEFAULT 'unclaimed', -- 'unclaimed' | 'claimed'
       claimed_by TEXT REFERENCES users(id),
       claimed_at TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      region TEXT NOT NULL DEFAULT '',
-      interests TEXT NOT NULL DEFAULT ''
-    );
-
-    -- A nominee is a Profile added to a specific Ranking.
-    -- deleted_at: soft delete of the Ranking<->Profile relationship only.
-    -- Removing a Nominee NEVER deletes the underlying Public Profile, and
-    -- NEVER touches Likes/Payments/Credit Transactions recorded against
-    -- this pairing — those stay intact and reappear automatically if the
-    -- Nominee is restored.
-    CREATE TABLE IF NOT EXISTS ranking_profiles (
-      id TEXT PRIMARY KEY,
-      ranking_id TEXT NOT NULL REFERENCES rankings(id),
-      profile_id TEXT NOT NULL REFERENCES profiles(id),
       added_by TEXT NOT NULL REFERENCES users(id),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      region TEXT NOT NULL DEFAULT '',
+      interests TEXT NOT NULL DEFAULT '',
       deleted_at TEXT,
-      UNIQUE (ranking_id, profile_id)
+      UNIQUE (ranking_id, name COLLATE NOCASE)
     );
 
     -- Sprint 6: Likes. One Like per user per nominee per Ranking.
@@ -167,8 +163,7 @@ export function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_claim_requests_applicant ON claim_requests(applicant_user_id);
     CREATE INDEX IF NOT EXISTS idx_claim_requests_status ON claim_requests(status);
 
-    CREATE INDEX IF NOT EXISTS idx_ranking_profiles_ranking ON ranking_profiles(ranking_id);
-    CREATE INDEX IF NOT EXISTS idx_ranking_profiles_profile ON ranking_profiles(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_profiles_ranking ON profiles(ranking_id);
     CREATE INDEX IF NOT EXISTS idx_likes_ranking_profile ON likes(ranking_id, profile_id);
     CREATE INDEX IF NOT EXISTS idx_credit_tx_ranking_profile ON credit_transactions(ranking_id, profile_id);
     CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
@@ -191,11 +186,6 @@ function addSoftDeleteColumnsIfMissing() {
   } catch {
     // Column already exists.
   }
-  try {
-    db.exec("ALTER TABLE ranking_profiles ADD COLUMN deleted_at TEXT;");
-  } catch {
-    // Column already exists.
-  }
 }
 
 function addProfileDetailColumnsIfMissing() {
@@ -211,6 +201,24 @@ function addProfileDetailColumnsIfMissing() {
   }
 }
 
+function addUserLocationColumnIfMissing() {
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN location TEXT;");
+  } catch {
+    // Column already exists.
+  }
+}
+
+// NOTE: profiles.ranking_id (NOT NULL) and the per-ranking-nominee model
+// it represents is a breaking schema change from the old shared/reusable
+// profile design. There is no safe automatic migration for existing rows
+// (a profile that used to belong to multiple Rankings has no single
+// correct new home), so this is intentionally NOT back-filled — the
+// CREATE TABLE above only takes effect for a fresh database. Any local
+// dev database created before this change should simply be deleted and
+// reseeded (`rm data/app.db*`), which is fine pre-launch with only demo
+// data in play.
+
 // Run once when this module is first imported on the server. This file
 // is imported by many server modules, including during `next build`'s
 // page-data-collection step, which runs several worker processes
@@ -220,4 +228,5 @@ runMigrations();
 addIsHiddenColumnIfMissing();
 addSoftDeleteColumnsIfMissing();
 addProfileDetailColumnsIfMissing();
+addUserLocationColumnIfMissing();
 seedIfEmpty();

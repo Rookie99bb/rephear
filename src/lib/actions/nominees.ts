@@ -2,17 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/session";
-import { createProfile, findProfileById } from "@/db/profiles";
-import { addNomineeToRanking } from "@/db/rankingProfiles";
+import { createProfile, findNomineeByRankingAndName } from "@/db/profiles";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 export interface ActionResult {
   error?: string;
 }
 
-// Registered users may add a Nominee to a Ranking. If an existing Public
-// Profile is selected (profileId present) it is reused; otherwise a brand
-// new Public Profile is created automatically — a nominee never needs an
-// account of their own.
+// Registered users may nominate someone in a Ranking. There is no shared
+// profile system — this always creates a brand new Nominee that exists
+// only inside this Ranking. The same name can appear in other Rankings
+// (those are separate Nominees), but not twice in this same one.
 export async function addNomineeAction(
   rankingId: string,
   _prev: ActionResult,
@@ -23,26 +23,23 @@ export async function addNomineeAction(
     return { error: "You must be logged in to add a Nominee." };
   }
 
-  const existingProfileId = String(formData.get("profileId") || "").trim();
   const name = String(formData.get("name") || "").trim();
   const bio = String(formData.get("bio") || "").trim();
+  const photoUrl = String(formData.get("photoUrl") || "").trim();
 
-  let profileId = existingProfileId;
-
-  if (existingProfileId) {
-    const existing = findProfileById(existingProfileId);
-    if (!existing) {
-      return { error: "That profile no longer exists." };
-    }
-  } else {
-    if (!name) {
-      return { error: "Enter the nominee's name." };
-    }
-    const profile = createProfile({ name, bio });
-    profileId = profile.id;
+  if (!name) {
+    return { error: "Enter the nominee's name." };
   }
 
-  addNomineeToRanking({ rankingId, profileId, addedBy: user.id });
+  if (findNomineeByRankingAndName(rankingId, name)) {
+    return { error: "This person has already been nominated in this ranking." };
+  }
+
+  if (!checkRateLimit(`nominee:${user.id}`, RATE_LIMITS.nominate)) {
+    return { error: "Too many nominations — please slow down and try again shortly." };
+  }
+
+  createProfile({ rankingId, name, bio, photoUrl, addedBy: user.id });
   revalidatePath(`/rankings/${rankingId}`);
   return {};
 }

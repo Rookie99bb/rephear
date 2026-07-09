@@ -3,7 +3,6 @@ import { db } from "./client";
 import { createUser, findUserByEmail } from "./users";
 import { createRanking } from "./rankings";
 import { createProfile, claimProfile } from "./profiles";
-import { addNomineeToRanking } from "./rankingProfiles";
 import { addLike } from "./likes";
 import { createPendingPayment, markPaymentCompleted } from "./payments";
 import { creditProfileForPayment } from "./creditTransactions";
@@ -13,6 +12,7 @@ import {
   rejectClaimRequest,
 } from "./claimRequests";
 import { CREDIT_PACKAGES } from "@/lib/creditPackages";
+import { LOCATIONS } from "@/lib/locations";
 
 const DEMO_PASSWORD = "password123";
 
@@ -163,27 +163,30 @@ const RANKINGS: RankingSeed[] = [
 // subjects of it). Also doubles as part of the liker/supporter pool and
 // as Ranking creators.
 const FEATURED_ACCOUNTS = [
-  { name: "Maya Chen", email: "maya@publicreputation.app" },
-  { name: "Yuna Park", email: "yuna@publicreputation.app" },
-  { name: "Liam O'Connell", email: "liam@publicreputation.app" },
-  { name: "Aisha Rahman", email: "aisha@publicreputation.app" },
-  { name: "Sofia Almeida", email: "sofia@publicreputation.app" },
-  { name: "Omar Al-Farsi", email: "omar@publicreputation.app" },
-  { name: "Noah Bennett", email: "noah@publicreputation.app" },
-  { name: "Kenji Watanabe", email: "kenji@publicreputation.app" },
+  { name: "Maya Chen", email: "maya@publicreputation.app", location: "London" },
+  { name: "Yuna Park", email: "yuna@publicreputation.app", location: "Seoul" },
+  { name: "Liam O'Connell", email: "liam@publicreputation.app", location: "San Francisco" },
+  { name: "Aisha Rahman", email: "aisha@publicreputation.app", location: "Dubai" },
+  { name: "Sofia Almeida", email: "sofia@publicreputation.app", location: "Paris" },
+  { name: "Omar Al-Farsi", email: "omar@publicreputation.app", location: "Abu Dhabi" },
+  { name: "Noah Bennett", email: "noah@publicreputation.app", location: "Sydney" },
+  { name: "Kenji Watanabe", email: "kenji@publicreputation.app", location: "Tokyo" },
 ];
 
 // 16 more community accounts with no Public Profile of their own — most
 // real users of a platform like this are consumers (liking, supporting,
 // creating Rankings) rather than nominees themselves.
-const SILENT_ACCOUNTS = [
+const SILENT_ACCOUNT_NAMES = [
   "Chris Yoon", "Lily Adams", "Marco Silva", "Nadia Hussain",
   "Owen Clarke", "Ayaan Malik", "Freddie Stone", "Nina Petrova",
   "Sam Osei", "Isla Campbell", "Diego Vargas", "Amelia Ross",
   "Felix Wagner", "Ruby Chen", "Theo Novak", "Hannah Cho",
-].map((name) => ({
+];
+
+const SILENT_ACCOUNTS = SILENT_ACCOUNT_NAMES.map((name, i) => ({
   name,
   email: `${name.toLowerCase().replace(/\s+/g, ".")}@publicreputation.app`,
+  location: LOCATIONS[i % LOCATIONS.length],
 }));
 
 // Dedicated accounts behind each non-"self" Claim story (a claimant is
@@ -247,13 +250,16 @@ function insertSeedData(): void {
   // --- Users -----------------------------------------------------------
   // Featured accounts "joined" earliest (founding community), staggered
   // by a few days each; silent accounts joined a bit later, also
-  // staggered — nobody has a created_at of exactly "now".
+  // staggered — nobody has a created_at of exactly "now". Every demo
+  // account already has a location set, so none of them hit the
+  // first-login location gate.
   const featuredUsers = FEATURED_ACCOUNTS.map((acc, i) =>
     findUserByEmail(acc.email) ??
     createUser({
       email: acc.email,
       passwordHash,
       name: acc.name,
+      location: acc.location,
       createdAt: daysAgo(350 - i * 2),
     })
   );
@@ -263,12 +269,13 @@ function insertSeedData(): void {
       email: acc.email,
       passwordHash,
       name: acc.name,
+      location: acc.location,
       createdAt: daysAgo(320 - i * 4),
     })
   );
   const communityPool = [...featuredUsers, ...silentUsers];
 
-  function claimantUser(name: string, joinedDaysAgo: number) {
+  function claimantUser(name: string, joinedDaysAgo: number, location: string) {
     const acc = CLAIMANT_ACCOUNTS[name];
     return (
       findUserByEmail(acc.email) ??
@@ -276,27 +283,26 @@ function insertSeedData(): void {
         email: acc.email,
         passwordHash,
         name: acc.name,
+        location,
         createdAt: daysAgo(joinedDaysAgo),
       })
     );
   }
 
-  // --- Profiles ----------------------------------------------------------
-  const profileByName = new Map<string, ReturnType<typeof createProfile>>();
-  PEOPLE.forEach((person) => {
-    const profile = createProfile({
-      name: person.name,
-      bio: person.bio,
-      region: person.region,
-      interests: person.interests,
-      createdAt: daysAgo(person.profileAgeDays),
-    });
-    profileByName.set(person.name, profile);
-  });
+  // A claim story (self/claimant/pending/rejected) is only ever attached
+  // to the FIRST Ranking a person appears in — every other appearance of
+  // that same name is just a plain, separate, unclaimed Nominee. There is
+  // no shared profile system, so "claiming" only ever claims one specific
+  // Nominee row, not some cross-Ranking identity.
+  const claimHandled = new Set<string>();
 
-  // --- Claim stories -------------------------------------------------
-  PEOPLE.forEach((person) => {
-    const profile = profileByName.get(person.name)!;
+  function applyClaimStory(
+    person: PersonSeed,
+    profile: ReturnType<typeof createProfile>,
+    rankingCity: string
+  ) {
+    if (!person.claim || claimHandled.has(person.name)) return;
+    claimHandled.add(person.name);
 
     if (person.claim === "self") {
       const account = featuredUsers.find((u) => u.name === person.name)!;
@@ -305,7 +311,7 @@ function insertSeedData(): void {
     }
 
     if (person.claim === "claimant") {
-      const account = claimantUser(person.name, person.profileAgeDays - 30);
+      const account = claimantUser(person.name, person.profileAgeDays - 30, rankingCity);
       const submittedDaysAgo = person.name === "Priya Nair" ? 45 : 18;
       const reviewedDaysAgo = person.name === "Priya Nair" ? 40 : 15;
       const req = createClaimRequest({
@@ -331,7 +337,7 @@ function insertSeedData(): void {
     }
 
     if (person.claim === "pending") {
-      const account = claimantUser(person.name, person.profileAgeDays - 20);
+      const account = claimantUser(person.name, person.profileAgeDays - 20, rankingCity);
       const submittedDaysAgo = person.name === "Ella Fischer" ? 2 : 5;
       createClaimRequest({
         applicantUserId: account.id,
@@ -340,7 +346,7 @@ function insertSeedData(): void {
         companyWebsite: "",
         socialMediaUrl: "",
         officialEmail: account.email,
-        personalStatement: `Hi, this is my profile — I'd love to get it verified.`,
+        personalStatement: "Hi, this is my profile — I'd love to get it verified.",
         additionalNotes: "",
         supportingFilePath: null,
         submittedAt: daysAgo(submittedDaysAgo),
@@ -349,7 +355,7 @@ function insertSeedData(): void {
     }
 
     if (person.claim === "rejected") {
-      const account = claimantUser(person.name, person.profileAgeDays - 40);
+      const account = claimantUser(person.name, person.profileAgeDays - 40, rankingCity);
       const submittedDaysAgo = person.name === "Arjun Mehta" ? 70 : 30;
       const reviewedDaysAgo = person.name === "Arjun Mehta" ? 65 : 28;
       const req = createClaimRequest({
@@ -372,9 +378,14 @@ function insertSeedData(): void {
       });
       return;
     }
-  });
+  }
 
   // --- Rankings, Nominees, Likes, and Support -------------------------
+  // Every Nominee is created directly inside its Ranking — there is no
+  // shared/reusable profile system. The same person's name can appear in
+  // several Rankings (see the overlap in PEOPLE/RANKINGS above), but each
+  // appearance is an entirely independent row with its own id, its own
+  // Likes, and its own Reputation Credits.
   RANKINGS.forEach((rankingSeed, rIndex) => {
     const creator = communityPool[rIndex % communityPool.length];
     const ranking = createRanking({
@@ -388,23 +399,24 @@ function insertSeedData(): void {
 
     rankingSeed.nominees.forEach((name, nIndex) => {
       const person = PEOPLE.find((p) => p.name === name)!;
-      const profile = profileByName.get(name)!;
       const adder = communityPool[(rIndex + nIndex) % communityPool.length];
 
-      // A Nominee can only join a Ranking after their Public Profile
-      // exists, and typically not on the exact day the Ranking was
-      // created either — clamp to whichever is closer to "now".
-      const addedDaysAgo = Math.min(
-        Math.max(rankingSeed.createdDaysAgo - nIndex * 4, 0),
-        person.profileAgeDays
-      );
+      // A Nominee's created_at IS "when they joined this Ranking" now
+      // (there's no separate join table) — pick a date after the
+      // Ranking existed but not necessarily "today".
+      const addedDaysAgo = Math.max(rankingSeed.createdDaysAgo - nIndex * 4, 0);
 
-      addNomineeToRanking({
+      const profile = createProfile({
         rankingId: ranking.id,
-        profileId: profile.id,
+        name: person.name,
+        bio: person.bio,
+        region: person.region,
+        interests: person.interests,
         addedBy: adder.id,
         createdAt: daysAgo(addedDaysAgo),
       });
+
+      applyClaimStory(person, profile, rankingSeed.city);
 
       // Likes: spread between when the Nominee joined and now. "Rising"
       // and "new" tiers compress their activity into the recent part of
