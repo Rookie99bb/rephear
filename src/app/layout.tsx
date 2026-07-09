@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 
 export const metadata: Metadata = {
-  title: "Public Reputation",
+  title: "RepHear",
   description:
     "An open public ranking platform where communities recognize and support people together.",
 };
@@ -31,7 +31,7 @@ export default async function RootLayout({
                 href="/"
                 className="text-[15px] font-semibold tracking-tight text-ink"
               >
-                Public Reputation
+                RepHear
               </Link>
               <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-subtle sm:gap-x-6">
                 <Link href="/rankings" className="hover:text-ink">

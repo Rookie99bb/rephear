@@ -1,4 +1,4 @@
-# Public Reputation (MVP)
+# RepHear (MVP)
 
 An open public ranking platform. Communities create Rankings, nominate people, and build public reputation through Likes and Reputation Credits.
 
