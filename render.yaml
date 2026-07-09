@@ -3,17 +3,15 @@
 # "sync: false" are secrets Render will prompt you to fill in yourself
 # instead of storing them here.
 #
-# NOTE: this uses the free plan for speed (no persistent disk — Render's
-# free tier doesn't support disks at all, and the service spins down
-# after 15 min idle, resetting the SQLite file back to the seeded demo
-# data on the next wake-up). Fine for a quick demo. For real persistence
-# later, change `plan: free` to `plan: starter` and uncomment the `disk`
-# block below.
+# NOTE: Starter plan + a 1GB persistent disk mounted at /data. SQLite's
+# file lives under DATA_DIR (see src/db/client.ts), which is pointed at
+# the disk's mount path below so it survives restarts and redeploys
+# instead of resetting to seeded demo data every time.
 services:
   - type: web
     name: public-reputation
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -21,6 +19,8 @@ services:
       # flag (confirmed by an actual failed deploy: ERR_UNKNOWN_BUILTIN_MODULE).
       - key: NODE_OPTIONS
         value: --experimental-sqlite
+      - key: DATA_DIR
+        value: /data
       - key: NEXTAUTH_URL
         sync: false
       - key: NEXTAUTH_SECRET
@@ -31,7 +31,7 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
-    # disk:
-    #   name: data
-    #   mountPath: /data
-    #   sizeGB: 1
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
