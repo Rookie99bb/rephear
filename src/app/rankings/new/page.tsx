@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { createRankingAction, type ActionResult } from "@/lib/actions/rankings";
+import { LOCATIONS, LOCATION_INFO } from "@/lib/locations";
 
 const initialState: ActionResult = {};
 
@@ -27,26 +28,27 @@ export default function NewRankingPage() {
             className="rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
           />
         </label>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-ink">Country</span>
-            <input
-              name="country"
-              required
-              placeholder="United Kingdom"
-              className="rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-ink">City</span>
-            <input
-              name="city"
-              required
-              placeholder="London"
-              className="rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
-            />
-          </label>
-        </div>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-ink">City</span>
+          <select
+            name="city"
+            required
+            defaultValue=""
+            className="rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
+          >
+            <option value="" disabled>
+              Choose a city
+            </option>
+            {LOCATIONS.map((city) => (
+              <option key={city} value={city}>
+                {LOCATION_INFO[city].flag} {city}, {LOCATION_INFO[city].country}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-subtle">
+            Country is set automatically from the city you pick.
+          </span>
+        </label>
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium text-ink">Description</span>
           <textarea

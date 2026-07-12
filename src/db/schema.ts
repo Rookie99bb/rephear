@@ -1,5 +1,6 @@
 import { db } from "./client";
 import { seedIfEmpty } from "./seedData";
+import { getCountryForCity } from "@/lib/locations";
 
 // SQLite has very limited ALTER TABLE support, so the full table set for
 // the MVP is defined here up front (all statements are idempotent). Each
@@ -209,6 +210,24 @@ function addUserLocationColumnIfMissing() {
   }
 }
 
+// rankings.country used to be free text, which let inconsistent values
+// pile up (e.g. "GB" vs "United Kingdom" for the same city, or "Europe"/
+// "Middle East" used as a stand-in for an actual country). Country is now
+// always DERIVED from city (see src/lib/locations.ts), so this brings any
+// existing rows in line with that — idempotent, safe to run every start.
+function normalizeRankingCountries() {
+  const rows = db
+    .prepare("SELECT id, city, country FROM rankings")
+    .all() as unknown as { id: string; city: string; country: string }[];
+  const update = db.prepare("UPDATE rankings SET country = ? WHERE id = ?");
+  for (const row of rows) {
+    const canonical = getCountryForCity(row.city);
+    if (canonical && canonical !== row.country) {
+      update.run(canonical, row.id);
+    }
+  }
+}
+
 // NOTE: profiles.ranking_id (NOT NULL) and the per-ranking-nominee model
 // it represents is a breaking schema change from the old shared/reusable
 // profile design. There is no safe automatic migration for existing rows
@@ -230,3 +249,4 @@ addSoftDeleteColumnsIfMissing();
 addProfileDetailColumnsIfMissing();
 addUserLocationColumnIfMissing();
 seedIfEmpty();
+normalizeRankingCountries();

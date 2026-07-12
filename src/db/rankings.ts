@@ -102,6 +102,34 @@ export function listTrendingRankings(limit = 10, city?: string): Ranking[] {
   return rows.map(toRanking);
 }
 
+// Same "trending" scoring as listTrendingRankings, but scoped to a whole
+// country instead of one city — used for the homepage's "Popular in
+// {country}" tier. excludeCity lets the homepage skip Rankings already
+// shown in the city-level tier above it, so the two sections don't repeat
+// each other.
+export function listTrendingRankingsForCountry(
+  limit: number,
+  country: string,
+  excludeCity?: string
+): Ranking[] {
+  const excludeClause = excludeCity ? "AND r.city != ?" : "";
+  const rows = db
+    .prepare(
+      `SELECT r.*,
+        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
+        (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id)
+          AS activity_score
+       FROM rankings r
+       WHERE r.${PUBLIC_WHERE} AND r.country = ? ${excludeClause}
+       ORDER BY activity_score DESC, r.created_at DESC
+       LIMIT ?`
+    )
+    .all(
+      ...(excludeCity ? [country, excludeCity, limit] : [country, limit])
+    ) as unknown as (RankingRow & { activity_score: number })[];
+  return rows.map(toRanking);
+}
+
 export interface RegionCount {
   country: string;
   city: string;

@@ -2,22 +2,38 @@ import Link from "next/link";
 import {
   listNewestRankings,
   listTrendingRankings,
+  listTrendingRankingsForCountry,
   listPopularRegions,
 } from "@/db/rankings";
 import RankingCard from "@/components/RankingCard";
+import CountryFlagBar from "@/components/CountryFlagBar";
 import { getCurrentFullUser } from "@/lib/session";
+import { getCountryForCity } from "@/lib/locations";
 
 export default async function HomePage() {
   const user = await getCurrentFullUser();
   const city = user?.location ?? undefined;
-  const trending = listTrendingRankings(4, city);
+  const country = city ? getCountryForCity(city) : undefined;
+
+  // Priority order matches how location-first browsing should feel: your
+  // city first, then the rest of your country, and only then the global
+  // list. countryTrending excludes the user's own city so it never just
+  // repeats the section above it.
+  // city-only when we actually have one — otherwise this would just
+  // duplicate globalTrending below while rendering a broken
+  // "Trending in undefined" title.
+  const cityTrending = city ? listTrendingRankings(4, city) : [];
+  const countryTrending = country
+    ? listTrendingRankingsForCountry(4, country, city)
+    : [];
+  const globalTrending = listTrendingRankings(4);
   const newest = listNewestRankings(4, city);
   // Popular Regions intentionally stays unfiltered — it's how you
   // discover/switch to a different location, complementing the
-  // location-filtered Trending/Newest sections above.
+  // location-filtered sections above.
   const regions = listPopularRegions(6);
 
-  if (trending.length === 0 && newest.length === 0) {
+  if (globalTrending.length === 0 && newest.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
@@ -39,9 +55,31 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-12">
-      <Section title={city ? `Trending in ${city}` : "Trending Rankings"}>
+      <CountryFlagBar currentCountry={country} />
+
+      {cityTrending.length > 0 && (
+        <Section title={`Trending in ${city}`}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {cityTrending.map((r) => (
+              <RankingCard key={r.id} ranking={r} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {countryTrending.length > 0 && (
+        <Section title={`Popular in ${country}`}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {countryTrending.map((r) => (
+              <RankingCard key={r.id} ranking={r} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      <Section title="Global Trending">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {trending.map((r) => (
+          {globalTrending.map((r) => (
             <RankingCard key={r.id} ranking={r} />
           ))}
         </div>

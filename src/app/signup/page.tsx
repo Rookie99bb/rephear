@@ -29,7 +29,13 @@ export default function SignupPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="mb-6 text-xl font-semibold tracking-tight text-ink">
+      {/* Core value statement — the reason this product exists. Kept as
+          the most visually prominent text on the signup page, ahead of
+          the practical "create your account" instruction. */}
+      <p className="mb-2 text-2xl font-semibold leading-snug tracking-tight text-ink">
+        Recognition belongs to everyone.
+      </p>
+      <h1 className="mb-6 text-sm font-medium text-subtle">
         Create your account
       </h1>
       <form action={handleSubmit} className="flex flex-col gap-4">
