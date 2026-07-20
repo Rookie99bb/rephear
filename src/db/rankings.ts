@@ -154,6 +154,28 @@ export function listPopularRegions(limit = 8): RegionCount[] {
   }));
 }
 
+// Free-text search across Ranking titles and descriptions (case- and
+// accent-insensitive via LIKE, since SQLite's LIKE is already
+// case-insensitive for ASCII). Deliberately global — ignores the
+// location-first default so a search always looks across every open
+// country, not just the user's own city.
+export function searchRankings(query: string, limit = 40): Ranking[] {
+  // Escape LIKE's own wildcard characters in the user's input so
+  // searching for e.g. "50%" or "a_b" behaves as a literal search
+  // instead of an unintended wildcard match.
+  const escaped = query.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+  const like = `%${escaped}%`;
+  const rows = db
+    .prepare(
+      `SELECT * FROM rankings
+       WHERE ${PUBLIC_WHERE} AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
+       ORDER BY created_at DESC
+       LIMIT ?`
+    )
+    .all(like, like, limit) as unknown as RankingRow[];
+  return rows.map(toRanking);
+}
+
 export function listAllRankings(): Ranking[] {
   const rows = db
     .prepare(`SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ORDER BY created_at DESC`)

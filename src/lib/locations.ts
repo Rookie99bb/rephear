@@ -1,26 +1,31 @@
 // Fixed list of selectable locations. Location is a city, matching
 // Ranking.city, so choosing one always corresponds to real Rankings.
+//
+// Currently open countries: United Kingdom, United States, Canada only.
+// Adding a new country back later just means adding its cities here and
+// to CITY_COUNTRY below — nothing else references a hardcoded country
+// list, since country is always derived from city.
 export const LOCATIONS = [
   "London",
+  "Manchester",
+  "Birmingham",
+  "Oxford",
+  "Cambridge",
+  "Edinburgh",
   "New York",
   "Los Angeles",
   "San Francisco",
   "Austin",
   "Miami",
+  "Chicago",
+  "Dallas",
+  "Houston",
+  "Boston",
+  "Washington DC",
+  "Atlanta",
+  "Philadelphia",
   "Toronto",
   "Vancouver",
-  "Paris",
-  "Berlin",
-  "Sydney",
-  "Melbourne",
-  "Tokyo",
-  "Osaka",
-  "Seoul",
-  "Busan",
-  "Singapore",
-  "Manchester",
-  "Dubai",
-  "Abu Dhabi",
 ] as const;
 
 export type Location = (typeof LOCATIONS)[number];
@@ -50,24 +55,24 @@ function flagFromCountryCode(countryCode: string): string {
 const CITY_COUNTRY: Record<Location, { country: string; countryCode: string }> = {
   London: { country: "United Kingdom", countryCode: "GB" },
   Manchester: { country: "United Kingdom", countryCode: "GB" },
+  Birmingham: { country: "United Kingdom", countryCode: "GB" },
+  Oxford: { country: "United Kingdom", countryCode: "GB" },
+  Cambridge: { country: "United Kingdom", countryCode: "GB" },
+  Edinburgh: { country: "United Kingdom", countryCode: "GB" },
   "New York": { country: "United States", countryCode: "US" },
   "Los Angeles": { country: "United States", countryCode: "US" },
   "San Francisco": { country: "United States", countryCode: "US" },
   Austin: { country: "United States", countryCode: "US" },
   Miami: { country: "United States", countryCode: "US" },
+  Chicago: { country: "United States", countryCode: "US" },
+  Dallas: { country: "United States", countryCode: "US" },
+  Houston: { country: "United States", countryCode: "US" },
+  Boston: { country: "United States", countryCode: "US" },
+  "Washington DC": { country: "United States", countryCode: "US" },
+  Atlanta: { country: "United States", countryCode: "US" },
+  Philadelphia: { country: "United States", countryCode: "US" },
   Toronto: { country: "Canada", countryCode: "CA" },
   Vancouver: { country: "Canada", countryCode: "CA" },
-  Paris: { country: "France", countryCode: "FR" },
-  Berlin: { country: "Germany", countryCode: "DE" },
-  Sydney: { country: "Australia", countryCode: "AU" },
-  Melbourne: { country: "Australia", countryCode: "AU" },
-  Tokyo: { country: "Japan", countryCode: "JP" },
-  Osaka: { country: "Japan", countryCode: "JP" },
-  Seoul: { country: "South Korea", countryCode: "KR" },
-  Busan: { country: "South Korea", countryCode: "KR" },
-  Singapore: { country: "Singapore", countryCode: "SG" },
-  Dubai: { country: "United Arab Emirates", countryCode: "AE" },
-  "Abu Dhabi": { country: "United Arab Emirates", countryCode: "AE" },
 };
 
 export const LOCATION_INFO: Record<Location, LocationInfo> = Object.fromEntries(

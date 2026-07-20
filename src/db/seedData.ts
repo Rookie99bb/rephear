@@ -12,7 +12,7 @@ import {
   rejectClaimRequest,
 } from "./claimRequests";
 import { CREDIT_PACKAGES } from "@/lib/creditPackages";
-import { LOCATIONS } from "@/lib/locations";
+import { LOCATIONS, getCountryForCity } from "@/lib/locations";
 
 const DEMO_PASSWORD = "password123";
 
@@ -85,11 +85,16 @@ interface PersonSeed {
   claim?: ClaimStory;
 }
 
-// The 27 people below intentionally overlap across multiple Rankings
-// (see RANKINGS further down) — e.g. Maya Chen shows up in Most Popular
-// Person, Most Charismatic, Most Influential Person, and Community
-// Builder, the same way one well-liked person in a real community tends
-// to show up across several lists at once.
+// The 20 people below intentionally overlap across multiple Rankings
+// (see RANKINGS further down) — e.g. Zara Ahmed shows up in Most Popular
+// Person and Best Team Player, the same way one well-liked person in a
+// real community tends to show up across several lists at once.
+//
+// Only UK/US/Canada are currently "open" (have selectable cities and
+// Rankings) — see src/lib/locations.ts. People originally written for
+// other regions (Sofia Almeida, Ines Moreau, Daniel Kim, Jisoo Han,
+// Arjun Mehta, Lukas Weber, Freya Nielsen) were removed along with their
+// Rankings rather than left as orphaned, unused seed rows.
 const PEOPLE: PersonSeed[] = [
   { name: "Maya Chen", region: "United Kingdom", bio: "Runs three student societies and still replies to every DM within the hour.", interests: ["Community organizing", "Tea", "Podcasts"], tier: "star", profileAgeDays: 340, claim: "self" },
   { name: "Yuna Park", region: "South Korea", bio: "Choreographs dance covers that somehow go viral every single time.", interests: ["Dance", "K-pop", "Fashion"], tier: "star", profileAgeDays: 345, claim: "self" },
@@ -99,9 +104,6 @@ const PEOPLE: PersonSeed[] = [
   { name: "Aisha Rahman", region: "Middle East", bio: "Makes ordinary streets look like film sets, one frame at a time.", interests: ["Photography", "Film", "Coffee"], tier: "star", profileAgeDays: 305, claim: "self" },
   { name: "Marcus Reid", region: "United States", bio: "Never repeats an outfit and somehow always looks effortless.", interests: ["Fashion", "Sneakers", "Skateboarding"], tier: "rising", profileAgeDays: 305, claim: undefined },
   { name: "Chloe Bennett", region: "Europe", bio: "Redesigned her entire friend group's portfolios for fun, unasked.", interests: ["Graphic design", "Typography", "Cats"], tier: "rising", profileAgeDays: 305, claim: undefined },
-  { name: "Sofia Almeida", region: "Europe", bio: "Sings in three languages and never once forgets a lyric.", interests: ["Singing", "Songwriting", "Travel"], tier: "star", profileAgeDays: 295, claim: "self" },
-  { name: "Ines Moreau", region: "Europe", bio: "Sketches everyone she meets — most people find out weeks later.", interests: ["Illustration", "Journaling", "Museums"], tier: "quiet", profileAgeDays: 295, claim: undefined },
-  { name: "Daniel Kim", region: "South Korea", bio: "Local theatre's most requested lead, three years running.", interests: ["Acting", "Theatre", "Hiking"], tier: "rising", profileAgeDays: 295, claim: "pending" },
   { name: "Omar Al-Farsi", region: "Middle East", bio: "Volunteers every weekend and never mentions it unless asked.", interests: ["Volunteering", "Football", "Cooking"], tier: "quiet", profileAgeDays: 310, claim: "self" },
   { name: "Grace Thompson", region: "Canada", bio: "Organizes the neighborhood cleanup every month, rain or shine.", interests: ["Volunteering", "Gardening", "Cycling"], tier: "quiet", profileAgeDays: 275, claim: undefined },
   { name: "Ravi Patel", region: "Canada", bio: "The teammate who passes the ball when everyone expects him to shoot.", interests: ["Basketball", "Team sports", "Chess"], tier: "rising", profileAgeDays: 275, claim: undefined },
@@ -111,66 +113,51 @@ const PEOPLE: PersonSeed[] = [
   { name: "Tyler Brooks", region: "United States", bio: "Fastest sprint time on record, still humble about it.", interests: ["Track", "Fitness", "Gaming"], tier: "rising", profileAgeDays: 265, claim: undefined },
   { name: "Mia Rossi", region: "United States", bio: "Can make an entire lecture hall laugh with one raised eyebrow.", interests: ["Comedy", "Fashion", "Travel"], tier: "rising", profileAgeDays: 265, claim: undefined },
   { name: "Noah Bennett", region: "Australia", bio: "The guy who remembers everyone's birthday, completely unprompted.", interests: ["Surfing", "Event planning", "Vinyl records"], tier: "star", profileAgeDays: 280, claim: "self" },
-  { name: "Jisoo Han", region: "South Korea", bio: "Writes a new song every time something big happens in her life.", interests: ["Music production", "Piano", "Poetry"], tier: "quiet", profileAgeDays: 235, claim: "claimant" },
   { name: "Wei Lin", region: "Singapore", bio: "The unofficial IT support for their entire friend group.", interests: ["Coding", "Robotics", "Badminton"], tier: "rising", profileAgeDays: 225, claim: undefined },
-  { name: "Arjun Mehta", region: "Singapore", bio: "Explains a hard concept so well you forget it was ever confusing.", interests: ["Physics", "Debate", "Cricket"], tier: "quiet", profileAgeDays: 225, claim: "rejected" },
   { name: "Tom Whitfield", region: "United Kingdom", bio: "Never the loudest on the pitch, always the most reliable.", interests: ["Rugby", "Fitness", "History podcasts"], tier: "quiet", profileAgeDays: 215, claim: "rejected" },
   { name: "Kenji Watanabe", region: "Japan", bio: "Quiet, but everyone asks him for advice before a big decision.", interests: ["Chess", "Manga", "Cycling"], tier: "quiet", profileAgeDays: 320, claim: "self" },
   { name: "Hana Kobayashi", region: "Japan", bio: "Turns lecture notes into illustrated study guides people actually want to read.", interests: ["Illustration", "Study techniques", "Tea ceremony"], tier: "rising", profileAgeDays: 205, claim: undefined },
-  { name: "Lukas Weber", region: "Europe", bio: "Just joined and already redesigning things nobody asked him to.", interests: ["Product design", "Typography", "Cycling"], tier: "new", profileAgeDays: 6, claim: undefined },
-  { name: "Freya Nielsen", region: "Europe", bio: "New here, and already vouched for by three different friend groups.", interests: ["Volleyball", "Baking"], tier: "new", profileAgeDays: 4, claim: undefined },
   { name: "Ben Carter", region: "Canada", bio: "Just showed up and is already turning heads on the field.", interests: ["Soccer", "Fitness"], tier: "new", profileAgeDays: 5, claim: undefined },
 ];
 
 interface RankingSeed {
   title: string;
-  country: (typeof REGIONS)[number];
   city: string;
   description: string;
   createdDaysAgo: number;
   nominees: string[];
 }
 
-// 20 Rankings across every Region, deliberately mixing styles
-// (popularity / appearance / personality / talent / leadership /
-// community) instead of repeating "Most X" everywhere.
+// 8 Rankings across the UK, US, and Canada — the only countries
+// currently open (see src/lib/locations.ts). country is never stored
+// here: it's always derived from city at insert time below, so there's
+// no free-text country field to go stale or drift out of sync with the
+// fixed city list.
 const RANKINGS: RankingSeed[] = [
-  { title: "Most Popular Person", country: "United Kingdom", city: "London", description: "The people this community can't stop talking about.", createdDaysAgo: 330, nominees: ["Maya Chen", "Yuna Park", "Liam O'Connell", "Ethan Brooks", "Zara Ahmed"] },
-  { title: "Best Personal Style", country: "United States", city: "Los Angeles", description: "Effortless, distinctive, always photographed.", createdDaysAgo: 300, nominees: ["Yuna Park", "Aisha Rahman", "Marcus Reid", "Chloe Bennett"] },
-  { title: "Most Attractive Person", country: "Europe", city: "Paris", description: "The community's picks, no filters needed.", createdDaysAgo: 290, nominees: ["Sofia Almeida", "Marcus Reid", "Ines Moreau", "Daniel Kim"] },
-  { title: "Kindest Person", country: "Canada", city: "Toronto", description: "Small acts, noticed and remembered.", createdDaysAgo: 270, nominees: ["Omar Al-Farsi", "Grace Thompson", "Ravi Patel", "Ella Fischer"] },
-  { title: "Funniest Person", country: "United States", city: "Austin", description: "Guaranteed to make the group chat worse (better).", createdDaysAgo: 260, nominees: ["Jake Sullivan", "Priya Nair", "Tyler Brooks", "Mia Rossi"] },
-  { title: "Most Friendly", country: "Australia", city: "Sydney", description: "Approachable, warm, easy to talk to.", createdDaysAgo: 250, nominees: ["Noah Bennett", "Ella Fischer", "Ravi Patel", "Grace Thompson", "Freya Nielsen"] },
-  { title: "Most Charismatic", country: "South Korea", city: "Seoul", description: "Walks into a room and the energy shifts.", createdDaysAgo: 230, nominees: ["Maya Chen", "Daniel Kim", "Yuna Park", "Jisoo Han"] },
-  { title: "Most Helpful Person", country: "Singapore", city: "Singapore", description: "The first name that comes up when someone needs a hand.", createdDaysAgo: 220, nominees: ["Omar Al-Farsi", "Wei Lin", "Grace Thompson", "Arjun Mehta"] },
-  { title: "Best Team Player", country: "United Kingdom", city: "Manchester", description: "Makes everyone around them better.", createdDaysAgo: 210, nominees: ["Noah Bennett", "Tom Whitfield", "Ravi Patel", "Zara Ahmed"] },
-  { title: "Smartest Person", country: "Japan", city: "Tokyo", description: "The one everyone double-checks their answer with.", createdDaysAgo: 200, nominees: ["Kenji Watanabe", "Hana Kobayashi", "Arjun Mehta", "Ines Moreau"] },
-  { title: "Best Programmer", country: "United States", city: "San Francisco", description: "Ships more before breakfast than most people ship all week.", createdDaysAgo: 190, nominees: ["Liam O'Connell", "Kenji Watanabe", "Wei Lin", "Priya Nair"] },
-  { title: "Best Designer", country: "Europe", city: "Berlin", description: "Makes everything they touch look intentional.", createdDaysAgo: 170, nominees: ["Chloe Bennett", "Ines Moreau", "Marcus Reid", "Lukas Weber"] },
-  { title: "Best Photographer", country: "Australia", city: "Melbourne", description: "Finds a frame worth keeping in almost anything.", createdDaysAgo: 150, nominees: ["Aisha Rahman", "Jake Sullivan", "Ella Fischer"] },
-  { title: "Best Musician", country: "South Korea", city: "Busan", description: "The voices and hands this community keeps coming back to.", createdDaysAgo: 140, nominees: ["Sofia Almeida", "Yuna Park", "Jisoo Han", "Daniel Kim"] },
-  { title: "Best Athlete", country: "United States", city: "Miami", description: "Records, rivalries, and Sunday morning practice.", createdDaysAgo: 120, nominees: ["Tyler Brooks", "Zara Ahmed", "Tom Whitfield", "Mia Rossi", "Ben Carter"] },
-  { title: "Most Creative Person", country: "Canada", city: "Vancouver", description: "Sees a different version of things than everyone else.", createdDaysAgo: 100, nominees: ["Liam O'Connell", "Chloe Bennett", "Hana Kobayashi", "Jake Sullivan"] },
-  { title: "Most Influential Person", country: "Middle East", city: "Dubai", description: "One post from them and the whole community reacts.", createdDaysAgo: 80, nominees: ["Maya Chen", "Omar Al-Farsi", "Arjun Mehta"] },
-  { title: "Rising Leader", country: "Singapore", city: "Singapore", description: "New to leading, already trusted with a lot.", createdDaysAgo: 60, nominees: ["Liam O'Connell", "Wei Lin", "Priya Nair", "Ravi Patel"] },
-  { title: "Community Builder", country: "Middle East", city: "Abu Dhabi", description: "Turned strangers into a community worth showing up for.", createdDaysAgo: 40, nominees: ["Maya Chen", "Noah Bennett", "Omar Al-Farsi", "Grace Thompson"] },
-  { title: "Most Inspiring Person", country: "Japan", city: "Osaka", description: "The story people bring up when they need motivation.", createdDaysAgo: 20, nominees: ["Aisha Rahman", "Sofia Almeida", "Kenji Watanabe", "Hana Kobayashi"] },
+  { title: "Most Popular Person", city: "London", description: "The people this community can't stop talking about.", createdDaysAgo: 330, nominees: ["Maya Chen", "Yuna Park", "Liam O'Connell", "Ethan Brooks", "Zara Ahmed"] },
+  { title: "Best Personal Style", city: "Los Angeles", description: "Effortless, distinctive, always photographed.", createdDaysAgo: 300, nominees: ["Yuna Park", "Aisha Rahman", "Marcus Reid", "Chloe Bennett"] },
+  { title: "Kindest Person", city: "Toronto", description: "Small acts, noticed and remembered.", createdDaysAgo: 270, nominees: ["Omar Al-Farsi", "Grace Thompson", "Ravi Patel", "Ella Fischer"] },
+  { title: "Funniest Person", city: "Austin", description: "Guaranteed to make the group chat worse (better).", createdDaysAgo: 260, nominees: ["Jake Sullivan", "Priya Nair", "Tyler Brooks", "Mia Rossi"] },
+  { title: "Best Team Player", city: "Manchester", description: "Makes everyone around them better.", createdDaysAgo: 210, nominees: ["Noah Bennett", "Tom Whitfield", "Ravi Patel", "Zara Ahmed"] },
+  { title: "Best Programmer", city: "San Francisco", description: "Ships more before breakfast than most people ship all week.", createdDaysAgo: 190, nominees: ["Liam O'Connell", "Kenji Watanabe", "Wei Lin", "Priya Nair"] },
+  { title: "Best Athlete", city: "Miami", description: "Records, rivalries, and Sunday morning practice.", createdDaysAgo: 120, nominees: ["Tyler Brooks", "Zara Ahmed", "Tom Whitfield", "Mia Rossi", "Ben Carter"] },
+  { title: "Most Creative Person", city: "Vancouver", description: "Sees a different version of things than everyone else.", createdDaysAgo: 100, nominees: ["Liam O'Connell", "Chloe Bennett", "Hana Kobayashi", "Jake Sullivan"] },
 ];
 
-// 8 "featured" community members who each have their own claimed Public
+// 7 "featured" community members who each have their own claimed Public
 // Profile (they're both platform users AND well-known nominees — the
 // same way a real early community mixes creators of content with
 // subjects of it). Also doubles as part of the liker/supporter pool and
-// as Ranking creators.
+// as Ranking creators. Locations are all supported cities — each one
+// matches a city this person actually appears as a nominee in above.
 const FEATURED_ACCOUNTS = [
   { name: "Maya Chen", email: "maya@publicreputation.app", location: "London" },
-  { name: "Yuna Park", email: "yuna@publicreputation.app", location: "Seoul" },
+  { name: "Yuna Park", email: "yuna@publicreputation.app", location: "London" },
   { name: "Liam O'Connell", email: "liam@publicreputation.app", location: "San Francisco" },
-  { name: "Aisha Rahman", email: "aisha@publicreputation.app", location: "Dubai" },
-  { name: "Sofia Almeida", email: "sofia@publicreputation.app", location: "Paris" },
-  { name: "Omar Al-Farsi", email: "omar@publicreputation.app", location: "Abu Dhabi" },
-  { name: "Noah Bennett", email: "noah@publicreputation.app", location: "Sydney" },
-  { name: "Kenji Watanabe", email: "kenji@publicreputation.app", location: "Tokyo" },
+  { name: "Aisha Rahman", email: "aisha@publicreputation.app", location: "Los Angeles" },
+  { name: "Omar Al-Farsi", email: "omar@publicreputation.app", location: "Toronto" },
+  { name: "Noah Bennett", email: "noah@publicreputation.app", location: "Manchester" },
+  { name: "Kenji Watanabe", email: "kenji@publicreputation.app", location: "San Francisco" },
 ];
 
 // 16 more community accounts with no Public Profile of their own — most
@@ -191,12 +178,10 @@ const SILENT_ACCOUNTS = SILENT_ACCOUNT_NAMES.map((name, i) => ({
 
 // Dedicated accounts behind each non-"self" Claim story (a claimant is
 // presumed to be signing up as themselves to claim their own profile).
+// One example of each story type (pending/claimant/rejected) remains.
 const CLAIMANT_ACCOUNTS: Record<string, { name: string; email: string }> = {
-  "Daniel Kim": { name: "Daniel Kim", email: "daniel.kim@mail.com" },
   "Ella Fischer": { name: "Ella Fischer", email: "ella.fischer@mail.com" },
   "Priya Nair": { name: "Priya Nair", email: "priya.nair@mail.com" },
-  "Jisoo Han": { name: "Jisoo Han", email: "jisoo.han@mail.com" },
-  "Arjun Mehta": { name: "Arjun Mehta", email: "arjun.mehta@mail.com" },
   "Tom Whitfield": { name: "Tom Whitfield", email: "tom.whitfield@mail.com" },
 };
 
@@ -390,7 +375,7 @@ function insertSeedData(): void {
     const creator = communityPool[rIndex % communityPool.length];
     const ranking = createRanking({
       title: rankingSeed.title,
-      country: rankingSeed.country,
+      country: getCountryForCity(rankingSeed.city)!,
       city: rankingSeed.city,
       description: rankingSeed.description,
       createdBy: creator.id,

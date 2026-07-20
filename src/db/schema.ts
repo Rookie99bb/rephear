@@ -1,6 +1,6 @@
 import { db } from "./client";
 import { seedIfEmpty } from "./seedData";
-import { getCountryForCity } from "@/lib/locations";
+import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite has very limited ALTER TABLE support, so the full table set for
 // the MVP is defined here up front (all statements are idempotent). Each
@@ -228,6 +228,26 @@ function normalizeRankingCountries() {
   }
 }
 
+// Only UK/US/Canada are currently "open" (see src/lib/locations.ts). Any
+// existing Ranking whose city fell out of the supported list is soft
+// deleted here — not hard-deleted, so nothing is lost and it can be
+// restored from the admin moderation panel if a country reopens later.
+// Idempotent: softDeleteRanking() only touches rows with deleted_at IS
+// NULL, so running this on every start is a no-op after the first pass.
+function hideRankingsOutsideSupportedLocations() {
+  const rows = db
+    .prepare("SELECT id, city FROM rankings WHERE deleted_at IS NULL")
+    .all() as unknown as { id: string; city: string }[];
+  const softDelete = db.prepare(
+    "UPDATE rankings SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
+  );
+  for (const row of rows) {
+    if (!isValidLocation(row.city)) {
+      softDelete.run(row.id);
+    }
+  }
+}
+
 // NOTE: profiles.ranking_id (NOT NULL) and the per-ranking-nominee model
 // it represents is a breaking schema change from the old shared/reusable
 // profile design. There is no safe automatic migration for existing rows
@@ -250,3 +270,4 @@ addProfileDetailColumnsIfMissing();
 addUserLocationColumnIfMissing();
 seedIfEmpty();
 normalizeRankingCountries();
+hideRankingsOutsideSupportedLocations();
