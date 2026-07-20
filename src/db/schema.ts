@@ -210,6 +210,18 @@ function addUserLocationColumnIfMissing() {
   }
 }
 
+// Tracks when a user last received the daily "updates on Rankings you
+// voted on" digest email (see src/db/digest.ts). NULL means "never
+// sent" — the first digest for a user then covers activity since
+// created_at, so nothing from before they joined shows up.
+function addLastDigestSentAtColumnIfMissing() {
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN last_digest_sent_at TEXT;");
+  } catch {
+    // Column already exists.
+  }
+}
+
 // rankings.country used to be free text, which let inconsistent values
 // pile up (e.g. "GB" vs "United Kingdom" for the same city, or "Europe"/
 // "Middle East" used as a stand-in for an actual country). Country is now
@@ -268,6 +280,7 @@ addIsHiddenColumnIfMissing();
 addSoftDeleteColumnsIfMissing();
 addProfileDetailColumnsIfMissing();
 addUserLocationColumnIfMissing();
+addLastDigestSentAtColumnIfMissing();
 seedIfEmpty();
 normalizeRankingCountries();
 hideRankingsOutsideSupportedLocations();

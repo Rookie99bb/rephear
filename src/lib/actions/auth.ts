@@ -2,6 +2,8 @@
 
 import bcrypt from "bcryptjs";
 import { createUser, findUserByEmail } from "@/db/users";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail } from "@/emails/welcome";
 
 export interface ActionResult {
   error?: string;
@@ -32,6 +34,13 @@ export async function signupAction(
 
   const passwordHash = await bcrypt.hash(password, 10);
   createUser({ email, passwordHash, name });
+
+  // Fire-and-forget: a slow/failed email must never block signup. If
+  // RESEND_API_KEY isn't configured yet, sendEmail() just logs and no-ops.
+  const { subject, html } = welcomeEmail(name);
+  sendEmail({ to: email, subject, html }).catch((err) =>
+    console.error("[signup] Failed to send welcome email:", err)
+  );
 
   return {};
 }

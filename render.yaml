@@ -31,6 +31,18 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
+      # Welcome email (on signup) and the daily "voting update" digest
+      # (src/app/api/cron/digest) both no-op with a log line until this
+      # is set — see src/lib/email.ts. Get it from resend.com after
+      # verifying the rephear.com domain there.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: "RepHear <hello@rephear.com>"
+      # Shared secret the daily digest scheduler sends as
+      # "Authorization: Bearer <value>" to /api/cron/digest.
+      - key: CRON_SECRET
+        generateValue: true
     disk:
       name: data
       mountPath: /data
