@@ -2,8 +2,18 @@ import { listAllRankingsForAdmin } from "@/db/rankings";
 import { listNomineesForRankingAdmin } from "@/db/profiles";
 import ModerationRankingRow from "@/components/ModerationRankingRow";
 
-export default function AdminModerationPage() {
-  const rankings = listAllRankingsForAdmin();
+export default async function AdminModerationPage() {
+  const rankings = await listAllRankingsForAdmin();
+
+  // Resolve every Ranking's Nominees up front — .map() inside the JSX
+  // below can't itself be async.
+  const nomineesByRanking = new Map<
+    string,
+    Awaited<ReturnType<typeof listNomineesForRankingAdmin>>
+  >();
+  for (const ranking of rankings) {
+    nomineesByRanking.set(ranking.id, await listNomineesForRankingAdmin(ranking.id));
+  }
 
   return (
     <div>
@@ -18,7 +28,7 @@ export default function AdminModerationPage() {
             <ModerationRankingRow
               key={ranking.id}
               ranking={ranking}
-              nominees={listNomineesForRankingAdmin(ranking.id)}
+              nominees={nomineesByRanking.get(ranking.id) ?? []}
             />
           ))}
         </ul>
