@@ -22,16 +22,16 @@ export default async function HomePage() {
   // city-only when we actually have one — otherwise this would just
   // duplicate globalTrending below while rendering a broken
   // "Trending in undefined" title.
-  const cityTrending = city ? listTrendingRankings(4, city) : [];
+  const cityTrending = city ? await listTrendingRankings(4, city) : [];
   const countryTrending = country
-    ? listTrendingRankingsForCountry(4, country, city)
+    ? await listTrendingRankingsForCountry(4, country, city)
     : [];
-  const globalTrending = listTrendingRankings(4);
-  const newest = listNewestRankings(4, city);
+  const globalTrending = await listTrendingRankings(4);
+  const newest = await listNewestRankings(4, city);
   // Popular Regions intentionally stays unfiltered — it's how you
   // discover/switch to a different location, complementing the
   // location-filtered sections above.
-  const regions = listPopularRegions(6);
+  const regions = await listPopularRegions(6);
 
   if (globalTrending.length === 0 && newest.length === 0) {
     return (
