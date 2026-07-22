@@ -40,7 +40,7 @@ function toPayment(row: PaymentRow): Payment {
 // created — *before* the user has paid — so every attempt is recorded,
 // not just successful ones.
 // createdAt is an optional override used only by the demo seed data.
-export function createPendingPayment(params: {
+export async function createPendingPayment(params: {
   userId: string;
   rankingId: string;
   profileId: string;
@@ -50,59 +50,63 @@ export function createPendingPayment(params: {
   currency: string;
   stripeCheckoutSessionId: string;
   createdAt?: string;
-}): Payment {
+}): Promise<Payment> {
   const id = newId();
-  db.prepare(
-    `INSERT INTO payments
+  await db
+    .prepare(
+      `INSERT INTO payments
       (id, user_id, ranking_id, profile_id, package_id, credits, amount_cents, currency, stripe_checkout_session_id, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', COALESCE(?, datetime('now')))`
-  ).run(
-    id,
-    params.userId,
-    params.rankingId,
-    params.profileId,
-    params.packageId,
-    params.credits,
-    params.amountCents,
-    params.currency,
-    params.stripeCheckoutSessionId,
-    params.createdAt ?? null
-  );
-  return findPaymentById(id)!;
+    )
+    .run(
+      id,
+      params.userId,
+      params.rankingId,
+      params.profileId,
+      params.packageId,
+      params.credits,
+      params.amountCents,
+      params.currency,
+      params.stripeCheckoutSessionId,
+      params.createdAt ?? null
+    );
+  return (await findPaymentById(id))!;
 }
 
-export function findPaymentById(id: string): Payment | null {
-  const row = db
+export async function findPaymentById(id: string): Promise<Payment | null> {
+  const row = (await db
     .prepare("SELECT * FROM payments WHERE id = ?")
-    .get(id) as unknown as PaymentRow | undefined;
+    .get(id)) as unknown as PaymentRow | undefined;
   return row ? toPayment(row) : null;
 }
 
-export function findPaymentBySessionId(sessionId: string): Payment | null {
-  const row = db
+export async function findPaymentBySessionId(sessionId: string): Promise<Payment | null> {
+  const row = (await db
     .prepare("SELECT * FROM payments WHERE stripe_checkout_session_id = ?")
-    .get(sessionId) as unknown as PaymentRow | undefined;
+    .get(sessionId)) as unknown as PaymentRow | undefined;
   return row ? toPayment(row) : null;
 }
 
 // completedAt is an optional override used only by the demo seed data.
-export function markPaymentCompleted(
+export async function markPaymentCompleted(
   paymentId: string,
   stripePaymentIntentId: string | null,
   completedAt?: string
-): void {
-  db.prepare(
-    `UPDATE payments
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE payments
      SET status = 'completed', stripe_payment_intent_id = ?, completed_at = COALESCE(?, datetime('now'))
      WHERE id = ? AND status != 'completed'`
-  ).run(stripePaymentIntentId, completedAt ?? null, paymentId);
+    )
+    .run(stripePaymentIntentId, completedAt ?? null, paymentId);
 }
 
-export function markPaymentStatus(
+export async function markPaymentStatus(
   paymentId: string,
   status: Extract<PaymentStatus, "failed" | "cancelled">
-): void {
-  db.prepare(
-    `UPDATE payments SET status = ? WHERE id = ? AND status = 'pending'`
-  ).run(status, paymentId);
+): Promise<void> {
+  await db
+    .prepare(`UPDATE payments SET status = ? WHERE id = ? AND status = 'pending'`)
+    .run(status, paymentId);
 }

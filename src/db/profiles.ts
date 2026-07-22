@@ -47,7 +47,7 @@ export function toProfile(row: ProfileRow): Profile {
 // the caller (see findNomineeByRankingAndName) before this is invoked;
 // the UNIQUE(ranking_id, name) index backstops that under a race.
 // createdAt is an optional override used only by the demo seed data.
-export function createProfile(params: {
+export async function createProfile(params: {
   rankingId: string;
   name: string;
   bio?: string;
@@ -56,62 +56,66 @@ export function createProfile(params: {
   interests?: string[];
   addedBy: string;
   createdAt?: string;
-}): Profile {
+}): Promise<Profile> {
   const id = newId();
   const name = params.name.trim();
   const interests = (params.interests ?? []).join(", ");
-  db.prepare(
-    `INSERT INTO profiles
+  await db
+    .prepare(
+      `INSERT INTO profiles
       (id, ranking_id, name, bio, photo_url, avatar_color, region, interests, added_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
-  ).run(
-    id,
-    params.rankingId,
-    name,
-    (params.bio ?? "").trim(),
-    (params.photoUrl ?? "").trim(),
-    colorForName(name),
-    (params.region ?? "").trim(),
-    interests,
-    params.addedBy,
-    params.createdAt ?? null
-  );
-  return findProfileById(id)!;
+    )
+    .run(
+      id,
+      params.rankingId,
+      name,
+      (params.bio ?? "").trim(),
+      (params.photoUrl ?? "").trim(),
+      colorForName(name),
+      (params.region ?? "").trim(),
+      interests,
+      params.addedBy,
+      params.createdAt ?? null
+    );
+  return (await findProfileById(id))!;
 }
 
-export function findProfileById(id: string): Profile | null {
-  const row = db
+export async function findProfileById(id: string): Promise<Profile | null> {
+  const row = (await db
     .prepare("SELECT * FROM profiles WHERE id = ?")
-    .get(id) as unknown as ProfileRow | undefined;
+    .get(id)) as unknown as ProfileRow | undefined;
   return row ? toProfile(row) : null;
 }
 
 // Case-insensitive exact-name match within one Ranking. Used to enforce
 // "one profile = one entry per Ranking" before creating a new Nominee —
 // this is NOT a cross-Ranking profile search/reuse feature.
-export function findNomineeByRankingAndName(
+export async function findNomineeByRankingAndName(
   rankingId: string,
   name: string
-): Profile | null {
-  const row = db
+): Promise<Profile | null> {
+  const row = (await db
     .prepare(
       "SELECT * FROM profiles WHERE ranking_id = ? AND name = ? COLLATE NOCASE AND deleted_at IS NULL"
     )
-    .get(rankingId, name.trim()) as unknown as ProfileRow | undefined;
+    .get(rankingId, name.trim())) as unknown as ProfileRow | undefined;
   return row ? toProfile(row) : null;
 }
 
-export function claimProfile(
+export async function claimProfile(
   profileId: string,
   userId: string,
   claimedAt?: string
-): Profile {
-  db.prepare(
-    `UPDATE profiles
+): Promise<Profile> {
+  await db
+    .prepare(
+      `UPDATE profiles
      SET claim_status = 'claimed', claimed_by = ?, claimed_at = COALESCE(?, datetime('now'))
      WHERE id = ?`
-  ).run(userId, claimedAt ?? null, profileId);
-  return findProfileById(profileId)!;
+    )
+    .run(userId, claimedAt ?? null, profileId);
+  return (await findProfileById(profileId))!;
 }
 
 export interface ProfileStats {
@@ -119,15 +123,15 @@ export interface ProfileStats {
   totalReputationCredits: number;
 }
 
-export function getProfileStats(profileId: string): ProfileStats {
-  const likeRow = db
+export async function getProfileStats(profileId: string): Promise<ProfileStats> {
+  const likeRow = (await db
     .prepare("SELECT COUNT(*) AS c FROM likes WHERE profile_id = ?")
-    .get(profileId) as unknown as { c: number };
-  const creditRow = db
+    .get(profileId)) as unknown as { c: number };
+  const creditRow = (await db
     .prepare(
       "SELECT COALESCE(SUM(credits), 0) AS c FROM credit_transactions WHERE profile_id = ?"
     )
-    .get(profileId) as unknown as { c: number };
+    .get(profileId)) as unknown as { c: number };
   return {
     totalLikes: likeRow.c,
     totalReputationCredits: creditRow.c,
@@ -137,42 +141,44 @@ export function getProfileStats(profileId: string): ProfileStats {
 // A Nominee belongs to exactly one Ranking, so this is always 0 or 1
 // Ranking — kept as an array for compatibility with the Public Profile
 // page, which used to show multiple.
-export function listRankingsForProfile(profileId: string): Ranking[] {
-  const profile = findProfileById(profileId);
+export async function listRankingsForProfile(profileId: string): Promise<Ranking[]> {
+  const profile = await findProfileById(profileId);
   if (!profile) return [];
-  const ranking = findRankingById(profile.rankingId);
+  const ranking = await findRankingById(profile.rankingId);
   if (!ranking || ranking.isHidden || ranking.deletedAt) return [];
   return [ranking];
 }
 
 // Public-facing: only active (not soft-deleted) Nominees for one Ranking.
-export function listNomineesForRanking(rankingId: string): Profile[] {
-  const rows = db
+export async function listNomineesForRanking(rankingId: string): Promise<Profile[]> {
+  const rows = (await db
     .prepare(
       "SELECT * FROM profiles WHERE ranking_id = ? AND deleted_at IS NULL ORDER BY created_at ASC"
     )
-    .all(rankingId) as unknown as ProfileRow[];
+    .all(rankingId)) as unknown as ProfileRow[];
   return rows.map(toProfile);
 }
 
 // Admin moderation view: includes soft-deleted Nominees too (deletedAt is
 // already part of Profile), so an admin can find and restore them.
-export function listNomineesForRankingAdmin(rankingId: string): Profile[] {
-  const rows = db
+export async function listNomineesForRankingAdmin(rankingId: string): Promise<Profile[]> {
+  const rows = (await db
     .prepare("SELECT * FROM profiles WHERE ranking_id = ? ORDER BY created_at ASC")
-    .all(rankingId) as unknown as ProfileRow[];
+    .all(rankingId)) as unknown as ProfileRow[];
   return rows.map(toProfile);
 }
 
 // Soft delete only. The underlying row (and every Like/Payment/Credit
 // Transaction tied to it) is never removed — it simply stops being
 // joined into public reads and reappears automatically on restore.
-export function softDeleteNominee(profileId: string): void {
-  db.prepare(
-    "UPDATE profiles SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
-  ).run(profileId);
+export async function softDeleteNominee(profileId: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE profiles SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
+    )
+    .run(profileId);
 }
 
-export function restoreNominee(profileId: string): void {
-  db.prepare("UPDATE profiles SET deleted_at = NULL WHERE id = ?").run(profileId);
+export async function restoreNominee(profileId: string): Promise<void> {
+  await db.prepare("UPDATE profiles SET deleted_at = NULL WHERE id = ?").run(profileId);
 }

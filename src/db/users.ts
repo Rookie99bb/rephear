@@ -22,54 +22,56 @@ function toUser(row: UserRow): User {
   };
 }
 
-export function findUserByEmail(email: string): User | null {
-  const row = db
+export async function findUserByEmail(email: string): Promise<User | null> {
+  const row = (await db
     .prepare("SELECT * FROM users WHERE email = ?")
-    .get(email.toLowerCase().trim()) as unknown as UserRow | undefined;
+    .get(email.toLowerCase().trim())) as unknown as UserRow | undefined;
   return row ? toUser(row) : null;
 }
 
-export function findUserById(id: string): User | null {
-  const row = db
+export async function findUserById(id: string): Promise<User | null> {
+  const row = (await db
     .prepare("SELECT * FROM users WHERE id = ?")
-    .get(id) as unknown as UserRow | undefined;
+    .get(id)) as unknown as UserRow | undefined;
   return row ? toUser(row) : null;
 }
 
 // createdAt/location are optional overrides used only by the demo seed data.
-export function createUser(params: {
+export async function createUser(params: {
   email: string;
   passwordHash: string;
   name: string;
   createdAt?: string;
   location?: string;
-}): User {
+}): Promise<User> {
   const id = newId();
   const email = params.email.toLowerCase().trim();
-  db.prepare(
-    "INSERT INTO users (id, email, password_hash, name, created_at, location) VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?)"
-  ).run(
-    id,
-    email,
-    params.passwordHash,
-    params.name.trim(),
-    params.createdAt ?? null,
-    params.location ?? null
-  );
-  return findUserById(id)!;
+  await db
+    .prepare(
+      "INSERT INTO users (id, email, password_hash, name, created_at, location) VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?)"
+    )
+    .run(
+      id,
+      email,
+      params.passwordHash,
+      params.name.trim(),
+      params.createdAt ?? null,
+      params.location ?? null
+    );
+  return (await findUserById(id))!;
 }
 
 // Users choose their location at signup/first login (see LocationGate)
 // and can change it any time from Settings.
-export function setUserLocation(userId: string, location: string): void {
-  db.prepare("UPDATE users SET location = ? WHERE id = ?").run(location, userId);
+export async function setUserLocation(userId: string, location: string): Promise<void> {
+  await db.prepare("UPDATE users SET location = ? WHERE id = ?").run(location, userId);
 }
 
 // Used by the forgot-password flow once a reset code has been verified
 // (see src/lib/actions/passwordReset.ts). passwordHash is already hashed
 // by the caller, this never touches a plaintext password.
-export function updateUserPassword(userId: string, passwordHash: string): void {
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
+export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+  await db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
     passwordHash,
     userId
   );

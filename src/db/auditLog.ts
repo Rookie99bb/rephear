@@ -53,7 +53,7 @@ export const AUDIT_ACTIONS = {
 // update/delete function. Even if one were added by mistake, the
 // audit_logs_no_update / audit_logs_no_delete triggers in schema.ts make
 // the database itself reject it.
-export function recordAuditLog(params: {
+export async function recordAuditLog(params: {
   actorUserId: string;
   action: string;
   targetType: string;
@@ -61,21 +61,23 @@ export function recordAuditLog(params: {
   details?: Record<string, unknown>;
   ipAddress?: string | null;
   userAgent?: string | null;
-}): void {
-  db.prepare(
-    `INSERT INTO audit_logs
+}): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO audit_logs
       (id, actor_user_id, action, target_type, target_id, details, ip_address, user_agent)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    newId(),
-    params.actorUserId,
-    params.action,
-    params.targetType,
-    params.targetId,
-    JSON.stringify(params.details ?? {}),
-    params.ipAddress ?? null,
-    params.userAgent ?? null
-  );
+    )
+    .run(
+      newId(),
+      params.actorUserId,
+      params.action,
+      params.targetType,
+      params.targetId,
+      JSON.stringify(params.details ?? {}),
+      params.ipAddress ?? null,
+      params.userAgent ?? null
+    );
 }
 
 export interface AuditLogFilters {
@@ -86,7 +88,7 @@ export interface AuditLogFilters {
   limit?: number;
 }
 
-export function listAuditLogs(filters: AuditLogFilters = {}): AuditLog[] {
+export async function listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLog[]> {
   const clauses: string[] = [];
   const values: (string | number)[] = [];
 
@@ -111,19 +113,19 @@ export function listAuditLogs(filters: AuditLogFilters = {}): AuditLog[] {
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const limit = filters.limit ?? 200;
 
-  const rows = db
+  const rows = (await db
     .prepare(
       `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ?`
     )
-    .all(...values, limit) as unknown as AuditLogRow[];
+    .all(...values, limit)) as unknown as AuditLogRow[];
   return rows.map(toAuditLog);
 }
 
 // Distinct action values seen so far — powers the admin filter dropdown
 // without hardcoding a list that could drift from what's actually logged.
-export function listDistinctAuditActions(): string[] {
-  const rows = db
+export async function listDistinctAuditActions(): Promise<string[]> {
+  const rows = (await db
     .prepare("SELECT DISTINCT action FROM audit_logs ORDER BY action ASC")
-    .all() as unknown as { action: string }[];
+    .all()) as unknown as { action: string }[];
   return rows.map((r) => r.action);
 }

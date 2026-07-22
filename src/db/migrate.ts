@@ -1,4 +1,5 @@
-import { runMigrations } from "./schema";
+import { ensureMigrated } from "./schema";
 
-runMigrations();
-console.log("Migrations applied.");
+ensureMigrated().then(() => {
+  console.log("Migrations applied.");
+});

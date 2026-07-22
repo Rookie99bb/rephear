@@ -1,14 +1,19 @@
-import { db } from "./client";
+import { rawClient, setMigrating } from "./client";
 import { seedIfEmpty } from "./seedData";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
-// SQLite has very limited ALTER TABLE support, so the full table set for
-// the MVP is defined here up front (all statements are idempotent). Each
-// table is only *used* once its corresponding sprint is implemented, see
-// the comments below.
+// SQLite (and Turso/libSQL, which speaks the same dialect) has very
+// limited ALTER TABLE support, so the full table set for the MVP is
+// defined here up front (all statements are idempotent). Each table is
+// only *used* once its corresponding sprint is implemented, see the
+// comments below.
+//
+// Everything in this file talks to `rawClient` directly (not the guarded
+// `db` export from ./client) — this file IS what makes `db` safe to use
+// everywhere else, so it can't wait on its own readiness check.
 
-export function runMigrations() {
-db.exec(`
+async function runMigrations() {
+  await rawClient.executeMultiple(`
 -- Sprint 2: Authentication
 CREATE TABLE IF NOT EXISTS users (
 id TEXT PRIMARY KEY,
@@ -204,69 +209,101 @@ consumed_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_codes_user ON password_reset_codes(user_id);
+
+-- Guards seedIfEmpty() against two (or more) processes/instances racing
+-- to seed the same fresh Turso database at once (e.g. Next.js's
+-- parallel build workers, or two server instances cold-starting at the
+-- same time). Whoever's INSERT OR IGNORE actually inserts row id=1 is
+-- the one process that proceeds to seed; everyone else backs off. See
+-- seedIfEmpty() in src/db/seedData.ts.
+CREATE TABLE IF NOT EXISTS seed_lock (
+id INTEGER PRIMARY KEY CHECK (id = 1),
+locked_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 }
 
-function addIsHiddenColumnIfMissing() {
-try {
-db.exec("ALTER TABLE rankings ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;");
-} catch {
-// Column already exists, nothing to do.
-}
+async function addIsHiddenColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE rankings ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;",
+      args: [],
+    });
+  } catch {
+    // Column already exists, nothing to do.
+  }
 }
 
 // Defensive ALTER TABLEs for any pre-existing local DB created before
 // soft delete existed. Same guarded pattern as addIsHiddenColumnIfMissing.
-function addSoftDeleteColumnsIfMissing() {
-try {
-db.exec("ALTER TABLE rankings ADD COLUMN deleted_at TEXT;");
-} catch {
-// Column already exists.
-}
+async function addSoftDeleteColumnsIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE rankings ADD COLUMN deleted_at TEXT;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
 }
 
-function addProfileDetailColumnsIfMissing() {
-try {
-db.exec("ALTER TABLE profiles ADD COLUMN region TEXT NOT NULL DEFAULT '';");
-} catch {
-// Column already exists.
-}
-try {
-db.exec("ALTER TABLE profiles ADD COLUMN interests TEXT NOT NULL DEFAULT '';");
-} catch {
-// Column already exists.
-}
+async function addProfileDetailColumnsIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE profiles ADD COLUMN region TEXT NOT NULL DEFAULT '';",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE profiles ADD COLUMN interests TEXT NOT NULL DEFAULT '';",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
 }
 
 // Defensive ALTER TABLE for any pre-existing local/production DB created
 // before Share-to-unlock-another-Like existed. New rows get count=1 via
 // the CREATE TABLE default; this just backfills the column itself.
-function addLikesCountColumnIfMissing() {
-try {
-db.exec("ALTER TABLE likes ADD COLUMN count INTEGER NOT NULL DEFAULT 1;");
-} catch {
-// Column already exists.
-}
+async function addLikesCountColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE likes ADD COLUMN count INTEGER NOT NULL DEFAULT 1;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
 }
 
-function addUserLocationColumnIfMissing() {
-try {
-db.exec("ALTER TABLE users ADD COLUMN location TEXT;");
-} catch {
-// Column already exists.
-}
+async function addUserLocationColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE users ADD COLUMN location TEXT;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
 }
 
 // Tracks when a user last received the daily "updates on Rankings you
 // voted on" digest email (see src/db/digest.ts). NULL means "never
 // sent", the first digest for a user then covers activity since
 // created_at, so nothing from before they joined shows up.
-function addLastDigestSentAtColumnIfMissing() {
-try {
-db.exec("ALTER TABLE users ADD COLUMN last_digest_sent_at TEXT;");
-} catch {
-// Column already exists.
-}
+async function addLastDigestSentAtColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE users ADD COLUMN last_digest_sent_at TEXT;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
 }
 
 // rankings.country used to be free text, which let inconsistent values
@@ -274,37 +311,47 @@ db.exec("ALTER TABLE users ADD COLUMN last_digest_sent_at TEXT;");
 // "Middle East" used as a stand-in for an actual country). Country is now
 // always DERIVED from city (see src/lib/locations.ts), so this brings any
 // existing rows in line with that, idempotent, safe to run every start.
-function normalizeRankingCountries() {
-const rows = db
-.prepare("SELECT id, city, country FROM rankings")
-.all() as unknown as { id: string; city: string; country: string }[];
-const update = db.prepare("UPDATE rankings SET country = ? WHERE id = ?");
-for (const row of rows) {
-const canonical = getCountryForCity(row.city);
-if (canonical && canonical !== row.country) {
-update.run(canonical, row.id);
-}
-}
+async function normalizeRankingCountries() {
+  const result = await rawClient.execute({
+    sql: "SELECT id, city, country FROM rankings",
+    args: [],
+  });
+  const rows = result.rows as unknown as {
+    id: string;
+    city: string;
+    country: string;
+  }[];
+  for (const row of rows) {
+    const canonical = getCountryForCity(row.city);
+    if (canonical && canonical !== row.country) {
+      await rawClient.execute({
+        sql: "UPDATE rankings SET country = ? WHERE id = ?",
+        args: [canonical, row.id],
+      });
+    }
+  }
 }
 
 // Only UK/US/Canada are currently "open" (see src/lib/locations.ts). Any
 // existing Ranking whose city fell out of the supported list is soft
 // deleted here, not hard-deleted, so nothing is lost and it can be
 // restored from the admin moderation panel if a country reopens later.
-// Idempotent: softDeleteRanking() only touches rows with deleted_at IS
-// NULL, so running this on every start is a no-op after the first pass.
-function hideRankingsOutsideSupportedLocations() {
-const rows = db
-.prepare("SELECT id, city FROM rankings WHERE deleted_at IS NULL")
-.all() as unknown as { id: string; city: string }[];
-const softDelete = db.prepare(
-"UPDATE rankings SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
-);
-for (const row of rows) {
-if (!isValidLocation(row.city)) {
-softDelete.run(row.id);
-}
-}
+// Idempotent: only touches rows with deleted_at IS NULL, so running this
+// on every start is a no-op after the first pass.
+async function hideRankingsOutsideSupportedLocations() {
+  const result = await rawClient.execute({
+    sql: "SELECT id, city FROM rankings WHERE deleted_at IS NULL",
+    args: [],
+  });
+  const rows = result.rows as unknown as { id: string; city: string }[];
+  for (const row of rows) {
+    if (!isValidLocation(row.city)) {
+      await rawClient.execute({
+        sql: "UPDATE rankings SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
+        args: [row.id],
+      });
+    }
+  }
 }
 
 // NOTE: profiles.ranking_id (NOT NULL) and the per-ranking-nominee model
@@ -317,18 +364,25 @@ softDelete.run(row.id);
 // reseeded (rm data/app.db*), which is fine pre-launch with only demo
 // data in play.
 
-// Run once when this module is first imported on the server. This file
-// is imported by many server modules, including during next build's
-// page-data-collection step, which runs several worker processes
-// concurrently against the same SQLite file, seedIfEmpty() is written
-// to be safe under that concurrency (see its own comment).
-runMigrations();
-addIsHiddenColumnIfMissing();
-addSoftDeleteColumnsIfMissing();
-addProfileDetailColumnsIfMissing();
-addUserLocationColumnIfMissing();
-addLastDigestSentAtColumnIfMissing();
-addLikesCountColumnIfMissing();
-seedIfEmpty();
-normalizeRankingCountries();
-hideRankingsOutsideSupportedLocations();
+// Runs once per server process, the first time any db/*.ts function is
+// actually called (see ensureReady() in ./client) — NOT eagerly at
+// import time, since the underlying Turso client is async and there's
+// no synchronous equivalent of "run this at module load". Memoized by
+// ./client so repeated calls after the first are instant no-ops.
+export async function ensureMigrated(): Promise<void> {
+  setMigrating(true);
+  try {
+    await runMigrations();
+    await addIsHiddenColumnIfMissing();
+    await addSoftDeleteColumnsIfMissing();
+    await addProfileDetailColumnsIfMissing();
+    await addUserLocationColumnIfMissing();
+    await addLastDigestSentAtColumnIfMissing();
+    await addLikesCountColumnIfMissing();
+    await seedIfEmpty();
+    await normalizeRankingCountries();
+    await hideRankingsOutsideSupportedLocations();
+  } finally {
+    setMigrating(false);
+  }
+}

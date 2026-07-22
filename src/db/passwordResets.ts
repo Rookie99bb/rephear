@@ -2,12 +2,12 @@ import { db } from "./client";
 import { newId } from "@/lib/id";
 
 interface PasswordResetCodeRow {
-    id: string;
-    user_id: string;
-    code: string;
-    created_at: string;
-    expires_at: string;
-    consumed_at: string | null;
+  id: string;
+  user_id: string;
+  code: string;
+  created_at: string;
+  expires_at: string;
+  consumed_at: string | null;
 }
 
 // Generates a fresh 6-digit numeric code for this user and emails it (see
@@ -15,39 +15,45 @@ interface PasswordResetCodeRow {
 // this user is invalidated first, so only the most recently requested
 // code can ever succeed - an old code sitting in a forgotten email tab
 // stops working the moment a new one is requested.
-export function createPasswordResetCode(userId: string): string {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+export async function createPasswordResetCode(userId: string): Promise<string> {
+  const code = String(Math.floor(100000 + Math.random() * 900000));
 
-    db.prepare(
-        "UPDATE password_reset_codes SET consumed_at = datetime('now') WHERE user_id = ? AND consumed_at IS NULL"
-    ).run(userId);
+  await db
+    .prepare(
+      "UPDATE password_reset_codes SET consumed_at = datetime('now') WHERE user_id = ? AND consumed_at IS NULL"
+    )
+    .run(userId);
 
-    db.prepare(
-        `INSERT INTO password_reset_codes (id, user_id, code, expires_at)
+  await db
+    .prepare(
+      `INSERT INTO password_reset_codes (id, user_id, code, expires_at)
                                  VALUES (?, ?, ?, datetime('now', '+10 minutes'))`
-    ).run(newId(), userId, code);
+    )
+    .run(newId(), userId, code);
 
-    return code;
+  return code;
 }
 
 // Checks whether `code` is a valid, unexpired, not-yet-used code for this
 // user, and if so consumes it (one-time use: calling this twice with the
 // same code returns false the second time). Returns false for any wrong,
 // expired, or already-used code without distinguishing which.
-export function consumePasswordResetCode(userId: string, code: string): boolean {
-    const row = db
-        .prepare(
-            `SELECT * FROM password_reset_codes
+export async function consumePasswordResetCode(userId: string, code: string): Promise<boolean> {
+  const row = (await db
+    .prepare(
+      `SELECT * FROM password_reset_codes
                                                         WHERE user_id = ? AND code = ? AND consumed_at IS NULL AND expires_at > datetime('now')
                                                                ORDER BY created_at DESC LIMIT 1`
-        )
-        .get(userId, code) as unknown as PasswordResetCodeRow | undefined;
+    )
+    .get(userId, code)) as unknown as PasswordResetCodeRow | undefined;
 
-    if (!row) return false;
+  if (!row) return false;
 
-    db.prepare(
-        "UPDATE password_reset_codes SET consumed_at = datetime('now') WHERE id = ?"
-    ).run(row.id);
+  await db
+    .prepare(
+      "UPDATE password_reset_codes SET consumed_at = datetime('now') WHERE id = ?"
+    )
+    .run(row.id);
 
-    return true;
+  return true;
 }

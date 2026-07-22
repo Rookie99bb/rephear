@@ -37,8 +37,8 @@ interface ReceivedRow {
 // credit_transactions) — nothing is ever computed or trusted from the
 // frontend, and there is no separate stored "balance" column to drift out
 // of sync with it.
-export function getCreditsHistoryForUser(userId: string): CreditsHistory {
-  const purchases = db
+export async function getCreditsHistoryForUser(userId: string): Promise<CreditsHistory> {
+  const purchases = (await db
     .prepare(
       `SELECT p.id, p.credits, p.completed_at, r.title AS ranking_title, pr.name AS profile_name
        FROM payments p
@@ -47,11 +47,11 @@ export function getCreditsHistoryForUser(userId: string): CreditsHistory {
        WHERE p.user_id = ? AND p.status = 'completed'
        ORDER BY p.completed_at ASC`
     )
-    .all(userId) as unknown as PurchaseRow[];
+    .all(userId)) as unknown as PurchaseRow[];
 
   // "Received" = credits earned by any Profile this user has claimed —
   // i.e. this user IS the nominee being supported.
-  const received = db
+  const received = (await db
     .prepare(
       `SELECT ct.id, ct.credits, ct.created_at, r.title AS ranking_title, pr.name AS profile_name
        FROM credit_transactions ct
@@ -60,7 +60,7 @@ export function getCreditsHistoryForUser(userId: string): CreditsHistory {
        WHERE pr.claimed_by = ?
        ORDER BY ct.created_at ASC`
     )
-    .all(userId) as unknown as ReceivedRow[];
+    .all(userId)) as unknown as ReceivedRow[];
 
   const totalPurchased = purchases.reduce((sum, p) => sum + p.credits, 0);
   const totalReceived = received.reduce((sum, r) => sum + r.credits, 0);

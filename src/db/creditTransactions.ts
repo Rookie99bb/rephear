@@ -7,15 +7,15 @@ import { newId } from "@/lib/id";
 // delivered/retried any number of times and credits are only ever
 // granted once (idempotent by construction).
 // createdAt is an optional override used only by the demo seed data.
-export function creditProfileForPayment(params: {
+export async function creditProfileForPayment(params: {
   profileId: string;
   rankingId: string;
   supporterUserId: string;
   paymentId: string;
   credits: number;
   createdAt?: string;
-}): boolean {
-  const result = db
+}): Promise<boolean> {
+  const result = await db
     .prepare(
       `INSERT OR IGNORE INTO credit_transactions
         (id, profile_id, ranking_id, supporter_user_id, payment_id, credits, created_at)

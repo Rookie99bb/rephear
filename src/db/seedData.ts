@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { db } from "./client";
+import { rawClient } from "./client";
 import { createUser, findUserByEmail } from "./users";
 import { createRanking } from "./rankings";
 import { createProfile, claimProfile } from "./profiles";
@@ -185,51 +185,54 @@ const CLAIMANT_ACCOUNTS: Record<string, { name: string; email: string }> = {
   "Tom Whitfield": { name: "Tom Whitfield", email: "tom.whitfield@mail.com" },
 };
 
-function isEmpty(): boolean {
-  const row = db.prepare("SELECT COUNT(*) AS c FROM rankings").get() as unknown as {
-    c: number;
-  };
+// Uses rawClient directly (not the guarded db wrapper) since this is
+// only ever called from within ensureMigrated() itself — see schema.ts.
+async function isEmpty(): Promise<boolean> {
+  const result = await rawClient.execute({
+    sql: "SELECT COUNT(*) AS c FROM rankings",
+    args: [],
+  });
+  const row = result.rows[0] as unknown as { c: number };
   return row.c === 0;
 }
 
-// Concurrency-safe: see the long comment on the exported seedIfEmpty()
-// below — this can be invoked from multiple processes at once (e.g.
-// Next.js's parallel build workers all import the schema module).
-// BEGIN IMMEDIATE grabs the write lock up front, and the emptiness check
-// is re-verified once inside it (double-checked locking) so only one
-// process ever actually inserts the seed data. Any failure here is
-// swallowed — seeding is best-effort and never allowed to crash the
-// caller (a build, a dev server, anything importing the schema).
-export function seedIfEmpty(): void {
-  if (!isEmpty()) return;
+// Atomically claims the right to seed: only the first caller (across
+// however many processes/instances are racing) gets `true` back, because
+// only one INSERT OR IGNORE can actually insert row id=1. Everyone else
+// gets `false` and skips seeding entirely.
+async function acquireSeedLock(): Promise<boolean> {
+  const result = await rawClient.execute({
+    sql: "INSERT OR IGNORE INTO seed_lock (id) VALUES (1)",
+    args: [],
+  });
+  return Number(result.rowsAffected) > 0;
+}
+
+// Called once per process from ensureMigrated() (see schema.ts), which
+// sets a "migrating" flag around this call so that the ordinary
+// data-layer functions used below (createUser, createRanking, etc. —
+// which all go through the guarded `db` export from ./client) don't
+// deadlock waiting on the very readiness check this function is part
+// of. Seeding is best-effort and never allowed to crash the caller (a
+// build, a dev server, anything importing the schema).
+export async function seedIfEmpty(): Promise<void> {
+  if (!(await isEmpty())) return;
+  if (!(await acquireSeedLock())) return; // another process is already seeding/seeded
 
   try {
-    db.exec("BEGIN IMMEDIATE");
-  } catch {
-    return; // Another process is already seeding — nothing to do.
-  }
-
-  try {
-    if (!isEmpty()) {
-      db.exec("COMMIT");
-      return;
-    }
-    insertSeedData();
-    db.exec("COMMIT");
+    // Re-check in case a concurrent process finished seeding between our
+    // first isEmpty() call and acquiring the lock just now.
+    if (!(await isEmpty())) return;
+    await insertSeedData();
   } catch (err) {
-    try {
-      db.exec("ROLLBACK");
-    } catch {
-      // ignore
-    }
     console.warn(
-      "Demo data seeding skipped (likely a concurrent process already seeded):",
+      "Demo data seeding failed:",
       err instanceof Error ? err.message : err
     );
   }
 }
 
-function insertSeedData(): void {
+async function insertSeedData(): Promise<void> {
   const passwordHash = bcrypt.hashSync(DEMO_PASSWORD, 10);
 
   // --- Users -----------------------------------------------------------
@@ -238,39 +241,52 @@ function insertSeedData(): void {
   // staggered — nobody has a created_at of exactly "now". Every demo
   // account already has a location set, so none of them hit the
   // first-login location gate.
-  const featuredUsers = FEATURED_ACCOUNTS.map((acc, i) =>
-    findUserByEmail(acc.email) ??
-    createUser({
-      email: acc.email,
-      passwordHash,
-      name: acc.name,
-      location: acc.location,
-      createdAt: daysAgo(350 - i * 2),
-    })
-  );
-  const silentUsers = SILENT_ACCOUNTS.map((acc, i) =>
-    findUserByEmail(acc.email) ??
-    createUser({
-      email: acc.email,
-      passwordHash,
-      name: acc.name,
-      location: acc.location,
-      createdAt: daysAgo(320 - i * 4),
-    })
-  );
+  const featuredUsers: Awaited<ReturnType<typeof createUser>>[] = [];
+  for (let i = 0; i < FEATURED_ACCOUNTS.length; i++) {
+    const acc = FEATURED_ACCOUNTS[i];
+    const existing = await findUserByEmail(acc.email);
+    featuredUsers.push(
+      existing ??
+        (await createUser({
+          email: acc.email,
+          passwordHash,
+          name: acc.name,
+          location: acc.location,
+          createdAt: daysAgo(350 - i * 2),
+        }))
+    );
+  }
+
+  const silentUsers: Awaited<ReturnType<typeof createUser>>[] = [];
+  for (let i = 0; i < SILENT_ACCOUNTS.length; i++) {
+    const acc = SILENT_ACCOUNTS[i];
+    const existing = await findUserByEmail(acc.email);
+    silentUsers.push(
+      existing ??
+        (await createUser({
+          email: acc.email,
+          passwordHash,
+          name: acc.name,
+          location: acc.location,
+          createdAt: daysAgo(320 - i * 4),
+        }))
+    );
+  }
+
   const communityPool = [...featuredUsers, ...silentUsers];
 
-  function claimantUser(name: string, joinedDaysAgo: number, location: string) {
+  async function claimantUser(name: string, joinedDaysAgo: number, location: string) {
     const acc = CLAIMANT_ACCOUNTS[name];
+    const existing = await findUserByEmail(acc.email);
     return (
-      findUserByEmail(acc.email) ??
-      createUser({
+      existing ??
+      (await createUser({
         email: acc.email,
         passwordHash,
         name: acc.name,
         location,
         createdAt: daysAgo(joinedDaysAgo),
-      })
+      }))
     );
   }
 
@@ -281,9 +297,9 @@ function insertSeedData(): void {
   // Nominee row, not some cross-Ranking identity.
   const claimHandled = new Set<string>();
 
-  function applyClaimStory(
+  async function applyClaimStory(
     person: PersonSeed,
-    profile: ReturnType<typeof createProfile>,
+    profile: Awaited<ReturnType<typeof createProfile>>,
     rankingCity: string
   ) {
     if (!person.claim || claimHandled.has(person.name)) return;
@@ -291,15 +307,15 @@ function insertSeedData(): void {
 
     if (person.claim === "self") {
       const account = featuredUsers.find((u) => u.name === person.name)!;
-      claimProfile(profile.id, account.id, daysAgo(person.profileAgeDays - 3));
+      await claimProfile(profile.id, account.id, daysAgo(person.profileAgeDays - 3));
       return;
     }
 
     if (person.claim === "claimant") {
-      const account = claimantUser(person.name, person.profileAgeDays - 30, rankingCity);
+      const account = await claimantUser(person.name, person.profileAgeDays - 30, rankingCity);
       const submittedDaysAgo = person.name === "Priya Nair" ? 45 : 18;
       const reviewedDaysAgo = person.name === "Priya Nair" ? 40 : 15;
-      const req = createClaimRequest({
+      const req = await createClaimRequest({
         applicantUserId: account.id,
         profileId: profile.id,
         linkedinUrl: `https://linkedin.com/in/${account.email.split("@")[0]}`,
@@ -311,20 +327,20 @@ function insertSeedData(): void {
         supportingFilePath: null,
         submittedAt: daysAgo(submittedDaysAgo),
       });
-      approveClaimRequest({
+      await approveClaimRequest({
         id: req.id,
         reviewedBy: featuredUsers[0].id,
         adminComments: "Verified via LinkedIn and official email.",
         reviewedAt: daysAgo(reviewedDaysAgo),
       });
-      claimProfile(profile.id, account.id, daysAgo(reviewedDaysAgo));
+      await claimProfile(profile.id, account.id, daysAgo(reviewedDaysAgo));
       return;
     }
 
     if (person.claim === "pending") {
-      const account = claimantUser(person.name, person.profileAgeDays - 20, rankingCity);
+      const account = await claimantUser(person.name, person.profileAgeDays - 20, rankingCity);
       const submittedDaysAgo = person.name === "Ella Fischer" ? 2 : 5;
-      createClaimRequest({
+      await createClaimRequest({
         applicantUserId: account.id,
         profileId: profile.id,
         linkedinUrl: `https://linkedin.com/in/${account.email.split("@")[0]}`,
@@ -340,10 +356,10 @@ function insertSeedData(): void {
     }
 
     if (person.claim === "rejected") {
-      const account = claimantUser(person.name, person.profileAgeDays - 40, rankingCity);
+      const account = await claimantUser(person.name, person.profileAgeDays - 40, rankingCity);
       const submittedDaysAgo = person.name === "Arjun Mehta" ? 70 : 30;
       const reviewedDaysAgo = person.name === "Arjun Mehta" ? 65 : 28;
-      const req = createClaimRequest({
+      const req = await createClaimRequest({
         applicantUserId: account.id,
         profileId: profile.id,
         linkedinUrl: "",
@@ -355,7 +371,7 @@ function insertSeedData(): void {
         supportingFilePath: null,
         submittedAt: daysAgo(submittedDaysAgo),
       });
-      rejectClaimRequest({
+      await rejectClaimRequest({
         id: req.id,
         reviewedBy: featuredUsers[0].id,
         adminComments: "No verifiable evidence provided.",
@@ -371,9 +387,15 @@ function insertSeedData(): void {
   // several Rankings (see the overlap in PEOPLE/RANKINGS above), but each
   // appearance is an entirely independent row with its own id, its own
   // Likes, and its own Reputation Credits.
-  RANKINGS.forEach((rankingSeed, rIndex) => {
+  //
+  // Sequential for-loops (not .forEach/.map) throughout below: every
+  // step depends on await-ing the previous one (creating a Ranking
+  // before its Nominees, a Nominee before its Likes, etc.), and
+  // .forEach/.map don't wait for async callbacks to finish.
+  for (let rIndex = 0; rIndex < RANKINGS.length; rIndex++) {
+    const rankingSeed = RANKINGS[rIndex];
     const creator = communityPool[rIndex % communityPool.length];
-    const ranking = createRanking({
+    const ranking = await createRanking({
       title: rankingSeed.title,
       country: getCountryForCity(rankingSeed.city)!,
       city: rankingSeed.city,
@@ -382,7 +404,8 @@ function insertSeedData(): void {
       createdAt: daysAgo(rankingSeed.createdDaysAgo),
     });
 
-    rankingSeed.nominees.forEach((name, nIndex) => {
+    for (let nIndex = 0; nIndex < rankingSeed.nominees.length; nIndex++) {
+      const name = rankingSeed.nominees[nIndex];
       const person = PEOPLE.find((p) => p.name === name)!;
       const adder = communityPool[(rIndex + nIndex) % communityPool.length];
 
@@ -391,7 +414,7 @@ function insertSeedData(): void {
       // Ranking existed but not necessarily "today".
       const addedDaysAgo = Math.max(rankingSeed.createdDaysAgo - nIndex * 4, 0);
 
-      const profile = createProfile({
+      const profile = await createProfile({
         rankingId: ranking.id,
         name: person.name,
         bio: person.bio,
@@ -401,7 +424,7 @@ function insertSeedData(): void {
         createdAt: daysAgo(addedDaysAgo),
       });
 
-      applyClaimStory(person, profile, rankingSeed.city);
+      await applyClaimStory(person, profile, rankingSeed.city);
 
       // Likes: spread between when the Nominee joined and now. "Rising"
       // and "new" tiers compress their activity into the recent part of
@@ -419,7 +442,7 @@ function insertSeedData(): void {
           0,
           Math.round(addedDaysAgo * recencyScale * (1 - fraction))
         );
-        addLike({
+        await addLike({
           rankingId: ranking.id,
           profileId: profile.id,
           userId: liker.id,
@@ -442,7 +465,7 @@ function insertSeedData(): void {
           Math.round(addedDaysAgo * recencyScale * (1 - fraction))
         );
         const sessionId = `cs_seed_${rIndex}_${nIndex}_${i}`;
-        const payment = createPendingPayment({
+        const payment = await createPendingPayment({
           userId: supporter.id,
           rankingId: ranking.id,
           profileId: profile.id,
@@ -453,8 +476,8 @@ function insertSeedData(): void {
           stripeCheckoutSessionId: sessionId,
           createdAt: daysAgo(paymentDaysAgo),
         });
-        markPaymentCompleted(payment.id, `pi_seed_${sessionId}`, daysAgo(paymentDaysAgo));
-        creditProfileForPayment({
+        await markPaymentCompleted(payment.id, `pi_seed_${sessionId}`, daysAgo(paymentDaysAgo));
+        await creditProfileForPayment({
           profileId: profile.id,
           rankingId: ranking.id,
           supporterUserId: supporter.id,
@@ -463,6 +486,6 @@ function insertSeedData(): void {
           createdAt: daysAgo(paymentDaysAgo),
         });
       }
-    });
-  });
+    }
+  }
 }

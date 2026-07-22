@@ -1,6 +1,7 @@
-import { runMigrations } from "./schema";
-import { seedIfEmpty } from "./seedData";
+import { ensureMigrated } from "./schema";
 
-runMigrations();
-seedIfEmpty();
-console.log("Seed complete (no-op if the database already had data).");
+// ensureMigrated() already runs migrations then seedIfEmpty() in
+// sequence (see schema.ts), so this script just needs to trigger it.
+ensureMigrated().then(() => {
+  console.log("Seed complete (no-op if the database already had data).");
+});

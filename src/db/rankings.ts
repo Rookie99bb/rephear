@@ -29,37 +29,39 @@ function toRanking(row: RankingRow): Ranking {
 }
 
 // createdAt is an optional override used only by the demo seed data.
-export function createRanking(params: {
+export async function createRanking(params: {
   title: string;
   country: string;
   city: string;
   description: string;
   createdBy: string;
   createdAt?: string;
-}): Ranking {
+}): Promise<Ranking> {
   const id = newId();
-  db.prepare(
-    `INSERT INTO rankings (id, title, country, city, description, created_by, created_at)
+  await db
+    .prepare(
+      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
-  ).run(
-    id,
-    params.title.trim(),
-    params.country.trim(),
-    params.city.trim(),
-    params.description.trim(),
-    params.createdBy,
-    params.createdAt ?? null
-  );
-  return findRankingById(id)!;
+    )
+    .run(
+      id,
+      params.title.trim(),
+      params.country.trim(),
+      params.city.trim(),
+      params.description.trim(),
+      params.createdBy,
+      params.createdAt ?? null
+    );
+  return (await findRankingById(id))!;
 }
 
 // Returns a Ranking regardless of hidden/soft-deleted status — used both
 // by the public detail page (which itself decides whether to show a
 // hidden/deleted Ranking to non-admins) and by the admin moderation panel.
-export function findRankingById(id: string): Ranking | null {
-  const row = db
+export async function findRankingById(id: string): Promise<Ranking | null> {
+  const row = (await db
     .prepare("SELECT * FROM rankings WHERE id = ?")
-    .get(id) as unknown as RankingRow | undefined;
+    .get(id)) as unknown as RankingRow | undefined;
   return row ? toRanking(row) : null;
 }
 
@@ -72,22 +74,22 @@ const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL";
 // city is optional — when given (the logged-in user's location), only
 // Rankings for that city are returned. Rankings are location-first: the
 // homepage and /rankings both default to the current user's city.
-export function listNewestRankings(limit = 20, city?: string): Ranking[] {
+export async function listNewestRankings(limit = 20, city?: string): Promise<Ranking[]> {
   const cityClause = city ? "AND city = ?" : "";
-  const rows = db
+  const rows = (await db
     .prepare(
       `SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ${cityClause} ORDER BY created_at DESC LIMIT ?`
     )
-    .all(...(city ? [city, limit] : [limit])) as unknown as RankingRow[];
+    .all(...(city ? [city, limit] : [limit]))) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
 
 // "Trending" for the MVP = Rankings with the most combined community
 // activity (likes + reputation credits) across all their nominees. No
 // separate analytics system needed — it's a derived read.
-export function listTrendingRankings(limit = 10, city?: string): Ranking[] {
+export async function listTrendingRankings(limit = 10, city?: string): Promise<Ranking[]> {
   const cityClause = city ? "AND r.city = ?" : "";
-  const rows = db
+  const rows = (await db
     .prepare(
       `SELECT r.*,
         (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
@@ -98,7 +100,7 @@ export function listTrendingRankings(limit = 10, city?: string): Ranking[] {
        ORDER BY activity_score DESC, r.created_at DESC
        LIMIT ?`
     )
-    .all(...(city ? [city, limit] : [limit])) as unknown as (RankingRow & { activity_score: number })[];
+    .all(...(city ? [city, limit] : [limit]))) as unknown as (RankingRow & { activity_score: number })[];
   return rows.map(toRanking);
 }
 
@@ -107,13 +109,13 @@ export function listTrendingRankings(limit = 10, city?: string): Ranking[] {
 // {country}" tier. excludeCity lets the homepage skip Rankings already
 // shown in the city-level tier above it, so the two sections don't repeat
 // each other.
-export function listTrendingRankingsForCountry(
+export async function listTrendingRankingsForCountry(
   limit: number,
   country: string,
   excludeCity?: string
-): Ranking[] {
+): Promise<Ranking[]> {
   const excludeClause = excludeCity ? "AND r.city != ?" : "";
-  const rows = db
+  const rows = (await db
     .prepare(
       `SELECT r.*,
         (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
@@ -126,7 +128,7 @@ export function listTrendingRankingsForCountry(
     )
     .all(
       ...(excludeCity ? [country, excludeCity, limit] : [country, limit])
-    ) as unknown as (RankingRow & { activity_score: number })[];
+    )) as unknown as (RankingRow & { activity_score: number })[];
   return rows.map(toRanking);
 }
 
@@ -136,8 +138,8 @@ export interface RegionCount {
   rankingCount: number;
 }
 
-export function listPopularRegions(limit = 8): RegionCount[] {
-  const rows = db
+export async function listPopularRegions(limit = 8): Promise<RegionCount[]> {
+  const rows = (await db
     .prepare(
       `SELECT country, city, COUNT(*) AS ranking_count
        FROM rankings
@@ -146,7 +148,7 @@ export function listPopularRegions(limit = 8): RegionCount[] {
        ORDER BY ranking_count DESC
        LIMIT ?`
     )
-    .all(limit) as unknown as { country: string; city: string; ranking_count: number }[];
+    .all(limit)) as unknown as { country: string; city: string; ranking_count: number }[];
   return rows.map((r) => ({
     country: r.country,
     city: r.city,
@@ -159,43 +161,43 @@ export function listPopularRegions(limit = 8): RegionCount[] {
 // case-insensitive for ASCII). Deliberately global — ignores the
 // location-first default so a search always looks across every open
 // country, not just the user's own city.
-export function searchRankings(query: string, limit = 40): Ranking[] {
+export async function searchRankings(query: string, limit = 40): Promise<Ranking[]> {
   // Escape LIKE's own wildcard characters in the user's input so
   // searching for e.g. "50%" or "a_b" behaves as a literal search
   // instead of an unintended wildcard match.
   const escaped = query.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
   const like = `%${escaped}%`;
-  const rows = db
+  const rows = (await db
     .prepare(
       `SELECT * FROM rankings
        WHERE ${PUBLIC_WHERE} AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
        ORDER BY created_at DESC
        LIMIT ?`
     )
-    .all(like, like, limit) as unknown as RankingRow[];
+    .all(like, like, limit)) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
 
-export function listAllRankings(): Ranking[] {
-  const rows = db
+export async function listAllRankings(): Promise<Ranking[]> {
+  const rows = (await db
     .prepare(`SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ORDER BY created_at DESC`)
-    .all() as unknown as RankingRow[];
+    .all()) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
 
 // Unfiltered — includes hidden AND soft-deleted Rankings. Admin
 // moderation panel only, so admins can find and restore either.
-export function listAllRankingsForAdmin(): Ranking[] {
-  const rows = db
+export async function listAllRankingsForAdmin(): Promise<Ranking[]> {
+  const rows = (await db
     .prepare("SELECT * FROM rankings ORDER BY created_at DESC")
-    .all() as unknown as RankingRow[];
+    .all()) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
 
-export function searchRankingsByRegion(params: {
+export async function searchRankingsByRegion(params: {
   country?: string;
   city?: string;
-}): Ranking[] {
+}): Promise<Ranking[]> {
   const clauses: string[] = [PUBLIC_WHERE];
   const values: string[] = [];
   if (params.country) {
@@ -207,14 +209,14 @@ export function searchRankingsByRegion(params: {
     values.push(params.city);
   }
   const where = `WHERE ${clauses.join(" AND ")}`;
-  const rows = db
+  const rows = (await db
     .prepare(`SELECT * FROM rankings ${where} ORDER BY created_at DESC`)
-    .all(...values) as unknown as RankingRow[];
+    .all(...values)) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
 
-export function setRankingHidden(id: string, hidden: boolean): void {
-  db.prepare("UPDATE rankings SET is_hidden = ? WHERE id = ?").run(
+export async function setRankingHidden(id: string, hidden: boolean): Promise<void> {
+  await db.prepare("UPDATE rankings SET is_hidden = ? WHERE id = ?").run(
     hidden ? 1 : 0,
     id
   );
@@ -225,12 +227,14 @@ export function setRankingHidden(id: string, hidden: boolean): void {
 // Ranking are left completely intact — there is no cascade. Restoring
 // (below) makes them all visible again immediately, because they were
 // never actually removed.
-export function softDeleteRanking(id: string): void {
-  db.prepare(
-    "UPDATE rankings SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
-  ).run(id);
+export async function softDeleteRanking(id: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE rankings SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
+    )
+    .run(id);
 }
 
-export function restoreRanking(id: string): void {
-  db.prepare("UPDATE rankings SET deleted_at = NULL WHERE id = ?").run(id);
+export async function restoreRanking(id: string): Promise<void> {
+  await db.prepare("UPDATE rankings SET deleted_at = NULL WHERE id = ?").run(id);
 }
