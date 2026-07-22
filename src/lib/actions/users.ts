@@ -25,7 +25,7 @@ export async function setLocationAction(
     return { error: "Please choose a valid location." };
   }
 
-  setUserLocation(user.id, location);
+  await setUserLocation(user.id, location);
   revalidatePath("/");
   revalidatePath("/rankings");
   revalidatePath("/settings");

@@ -24,8 +24,8 @@ if (!checkRateLimit(`like:${user.id}`, RATE_LIMITS.like)) {
 return { error: "Too many Likes, please slow down and try again shortly." };
 }
 
-const currentCount = likeCountForUser(rankingId, profileId, user.id);
-const shares = shareCountForUser(rankingId, profileId, user.id);
+const currentCount = await likeCountForUser(rankingId, profileId, user.id);
+const shares = await shareCountForUser(rankingId, profileId, user.id);
 const allowedLikes = 1 + shares;
 
 if (currentCount >= allowedLikes) {
@@ -36,7 +36,7 @@ allowedLikes,
 };
 }
 
-incrementLike({ rankingId, profileId, userId: user.id });
+await incrementLike({ rankingId, profileId, userId: user.id });
 revalidatePath(`/rankings/${rankingId}`);
 return { likeCount: currentCount + 1, allowedLikes };
 }

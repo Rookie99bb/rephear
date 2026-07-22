@@ -28,12 +28,12 @@ export async function signupAction(
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
   }
-  if (findUserByEmail(email)) {
+  if (await findUserByEmail(email)) {
     return { error: "An account with that email already exists." };
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  createUser({ email, passwordHash, name });
+  await createUser({ email, passwordHash, name });
 
   // Fire-and-forget: a slow/failed email must never block signup. If
   // RESEND_API_KEY isn't configured yet, sendEmail() just logs and no-ops.

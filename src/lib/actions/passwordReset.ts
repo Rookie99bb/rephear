@@ -40,9 +40,9 @@ export async function requestPasswordResetAction(
         return { error: "Too many requests. Please try again later." };
     }
 
-    const user = findUserByEmail(email);
+    const user = await findUserByEmail(email);
     if (user) {
-        const code = createPasswordResetCode(user.id);
+        const code = await createPasswordResetCode(user.id);
         const { subject, html } = passwordResetEmail(user.name, code);
         sendEmail({ to: user.email, subject, html }).catch((err) =>
             console.error("[password-reset] Failed to send code email:", err)
@@ -86,13 +86,13 @@ export async function resetPasswordAction(
         return { error: "Too many attempts. Please try again later." };
     }
 
-    const user = findUserByEmail(email);
-    if (!user || !consumePasswordResetCode(user.id, code)) {
+    const user = await findUserByEmail(email);
+    if (!user || !(await consumePasswordResetCode(user.id, code))) {
         return { error: "That code is invalid or has expired." };
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    updateUserPassword(user.id, passwordHash);
+    await updateUserPassword(user.id, passwordHash);
 
     return {};
 }

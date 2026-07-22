@@ -22,7 +22,7 @@ if (!checkRateLimit(`share:${user.id}`, RATE_LIMITS.share)) {
 return { error: "Too many shares, please slow down and try again shortly." };
 }
 
-addShare({ rankingId, profileId, userId: user.id });
-const shares = shareCountForUser(rankingId, profileId, user.id);
+await addShare({ rankingId, profileId, userId: user.id });
+const shares = await shareCountForUser(rankingId, profileId, user.id);
 return { allowedLikes: 1 + shares };
 }

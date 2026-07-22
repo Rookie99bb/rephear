@@ -42,7 +42,7 @@ export async function createRankingAction(
   }
   const country = getCountryForCity(city)!;
 
-  const ranking = createRanking({
+  const ranking = await createRanking({
     title,
     country,
     city,

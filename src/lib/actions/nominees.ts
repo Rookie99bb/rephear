@@ -31,7 +31,7 @@ export async function addNomineeAction(
     return { error: "Enter the nominee's name." };
   }
 
-  if (findNomineeByRankingAndName(rankingId, name)) {
+  if (await findNomineeByRankingAndName(rankingId, name)) {
     return { error: "This person has already been nominated in this ranking." };
   }
 
@@ -39,7 +39,7 @@ export async function addNomineeAction(
     return { error: "Too many nominations — please slow down and try again shortly." };
   }
 
-  createProfile({ rankingId, name, bio, photoUrl, addedBy: user.id });
+  await createProfile({ rankingId, name, bio, photoUrl, addedBy: user.id });
   revalidatePath(`/rankings/${rankingId}`);
   return {};
 }

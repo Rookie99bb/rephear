@@ -41,7 +41,7 @@ export async function submitClaimRequestAction(
     };
   }
 
-  const profile = findProfileById(profileId);
+  const profile = await findProfileById(profileId);
   if (!profile) {
     return { error: "Profile not found." };
   }
@@ -49,7 +49,7 @@ export async function submitClaimRequestAction(
     return { error: "This profile has already been claimed." };
   }
 
-  if (findPendingRequestForUser(user.id)) {
+  if (await findPendingRequestForUser(user.id)) {
     return {
       error:
         "You already have a claim application pending review. You can only have one at a time.",
@@ -88,7 +88,7 @@ export async function submitClaimRequestAction(
     }
   }
 
-  const request = createClaimRequest({
+  const request = await createClaimRequest({
     applicantUserId: user.id,
     profileId,
     linkedinUrl,
@@ -101,7 +101,7 @@ export async function submitClaimRequestAction(
   });
 
   const ctx = getRequestContext();
-  recordAuditLog({
+  await recordAuditLog({
     actorUserId: user.id,
     action: AUDIT_ACTIONS.CLAIM_REQUEST_SUBMITTED,
     targetType: "claim_request",
@@ -132,7 +132,7 @@ export async function reviewClaimRequestAction(
     return { error: "Forbidden." };
   }
 
-  const request = findClaimRequestById(requestId);
+  const request = await findClaimRequestById(requestId);
   if (!request) {
     return { error: "Claim request not found." };
   }
@@ -144,18 +144,18 @@ export async function reviewClaimRequestAction(
   const ctx = getRequestContext();
 
   if (decision === "approve") {
-    approveClaimRequest({
+    await approveClaimRequest({
       id: requestId,
       reviewedBy: admin.id,
       adminComments,
     });
-    claimProfile(request.profileId, request.applicantUserId);
-    rejectOtherPendingRequestsForProfile({
+    await claimProfile(request.profileId, request.applicantUserId);
+    await rejectOtherPendingRequestsForProfile({
       profileId: request.profileId,
       exceptRequestId: requestId,
       reviewedBy: admin.id,
     });
-    recordAuditLog({
+    await recordAuditLog({
       actorUserId: admin.id,
       action: AUDIT_ACTIONS.CLAIM_APPROVED,
       targetType: "claim_request",
@@ -168,12 +168,12 @@ export async function reviewClaimRequestAction(
       ...ctx,
     });
   } else {
-    rejectClaimRequest({
+    await rejectClaimRequest({
       id: requestId,
       reviewedBy: admin.id,
       adminComments,
     });
-    recordAuditLog({
+    await recordAuditLog({
       actorUserId: admin.id,
       action: AUDIT_ACTIONS.CLAIM_REJECTED,
       targetType: "claim_request",

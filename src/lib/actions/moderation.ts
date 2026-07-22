@@ -36,11 +36,11 @@ export async function softDeleteRankingAction(
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Forbidden." };
 
-  const ranking = findRankingById(rankingId);
+  const ranking = await findRankingById(rankingId);
   if (!ranking) return { error: "Ranking not found." };
 
-  softDeleteRanking(rankingId);
-  recordAuditLog({
+  await softDeleteRanking(rankingId);
+  await recordAuditLog({
     actorUserId: admin.id,
     action: AUDIT_ACTIONS.RANKING_SOFT_DELETED,
     targetType: "ranking",
@@ -59,11 +59,11 @@ export async function restoreRankingAction(
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Forbidden." };
 
-  const ranking = findRankingById(rankingId);
+  const ranking = await findRankingById(rankingId);
   if (!ranking) return { error: "Ranking not found." };
 
-  restoreRanking(rankingId);
-  recordAuditLog({
+  await restoreRanking(rankingId);
+  await recordAuditLog({
     actorUserId: admin.id,
     action: AUDIT_ACTIONS.RANKING_RESTORED,
     targetType: "ranking",
@@ -83,11 +83,11 @@ export async function setRankingHiddenAction(
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Forbidden." };
 
-  const ranking = findRankingById(rankingId);
+  const ranking = await findRankingById(rankingId);
   if (!ranking) return { error: "Ranking not found." };
 
-  setRankingHidden(rankingId, hidden);
-  recordAuditLog({
+  await setRankingHidden(rankingId, hidden);
+  await recordAuditLog({
     actorUserId: admin.id,
     action: hidden ? AUDIT_ACTIONS.SPAM_HIDDEN : AUDIT_ACTIONS.SPAM_RESTORED,
     targetType: "ranking",
@@ -110,11 +110,11 @@ export async function softDeleteNomineeAction(
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Forbidden." };
 
-  const profile = findProfileById(profileId);
+  const profile = await findProfileById(profileId);
   if (!profile) return { error: "Profile not found." };
 
-  softDeleteNominee(profileId);
-  recordAuditLog({
+  await softDeleteNominee(profileId);
+  await recordAuditLog({
     actorUserId: admin.id,
     action: AUDIT_ACTIONS.NOMINEE_SOFT_DELETED,
     targetType: "profile",
@@ -134,11 +134,11 @@ export async function restoreNomineeAction(
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Forbidden." };
 
-  const profile = findProfileById(profileId);
+  const profile = await findProfileById(profileId);
   if (!profile) return { error: "Profile not found." };
 
-  restoreNominee(profileId);
-  recordAuditLog({
+  await restoreNominee(profileId);
+  await recordAuditLog({
     actorUserId: admin.id,
     action: AUDIT_ACTIONS.NOMINEE_RESTORED,
     targetType: "profile",
