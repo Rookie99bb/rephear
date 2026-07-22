@@ -5,7 +5,7 @@ import {
 } from "@/db/auditLog";
 import { findUserById } from "@/db/users";
 
-export default function AdminAuditPage({
+export default async function AdminAuditPage({
   searchParams,
 }: {
   searchParams: {
@@ -16,15 +16,25 @@ export default function AdminAuditPage({
   };
 }) {
   const { action, actor, date, q } = searchParams;
-  const logs = listAuditLogs({
+  const logs = await listAuditLogs({
     action: action || undefined,
     actorUserId: actor || undefined,
     date: date || undefined,
     search: q || undefined,
   });
-  const actions = listDistinctAuditActions();
+  const actions = await listDistinctAuditActions();
 
   const hasFilters = !!(action || actor || date || q);
+
+  // Resolve every distinct actor once up front — .map() inside the JSX
+  // below can't itself be async, so this can't be looked up lazily
+  // during render like the old synchronous db calls could.
+  const actorUsers = new Map<string, Awaited<ReturnType<typeof findUserById>>>();
+  for (const log of logs) {
+    if (!actorUsers.has(log.actorUserId)) {
+      actorUsers.set(log.actorUserId, await findUserById(log.actorUserId));
+    }
+  }
 
   return (
     <div>
@@ -108,7 +118,7 @@ export default function AdminAuditPage({
             </thead>
             <tbody>
               {logs.map((log) => {
-                const actorUser = findUserById(log.actorUserId);
+                const actorUser = actorUsers.get(log.actorUserId);
                 return (
                   <tr key={log.id} className="border-b border-border/60 align-top">
                     <td className="py-2 pr-4 whitespace-nowrap text-subtle">
