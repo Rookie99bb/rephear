@@ -15,7 +15,7 @@ params,
 }: {
 params: { id: string };
 }) {
-const ranking = findRankingById(params.id);
+const ranking = await findRankingById(params.id);
 if (!ranking) notFound();
 
 const user = await getCurrentUser();
@@ -23,13 +23,13 @@ const user = await getCurrentUser();
 if ((ranking.isHidden || ranking.deletedAt) && !isAdminEmail(user?.email)) {
 notFound();
 }
-const mostLoved = getMostLoved(ranking.id);
-const mostSupported = getMostSupported(ranking.id);
+const mostLoved = await getMostLoved(ranking.id);
+const mostSupported = await getMostSupported(ranking.id);
 const likeCounts = user
-? likeCountsForUser(ranking.id, user.id)
+? await likeCountsForUser(ranking.id, user.id)
 : new Map<string, number>();
 const shareCounts = user
-? shareCountsForUser(ranking.id, user.id)
+? await shareCountsForUser(ranking.id, user.id)
 : new Map<string, number>();
 const engagement = new Map(
 [...mostLoved, ...mostSupported].map((entry) => [
