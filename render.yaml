@@ -3,24 +3,26 @@
 # "sync: false" are secrets Render will prompt you to fill in yourself
 # instead of storing them here.
 #
-# NOTE: Starter plan + a 1GB persistent disk mounted at /data. SQLite's
-# file lives under DATA_DIR (see src/db/client.ts), which is pointed at
-# the disk's mount path below so it survives restarts and redeploys
-# instead of resetting to seeded demo data every time.
+# NOTE: The database now lives on Turso (a hosted libSQL/SQLite-compatible
+# service — see src/db/client.ts), not on this service's own disk. That
+# means the free plan is enough again: user data survives redeploys and
+# restarts regardless of plan, because it's no longer stored on this
+# container's (ephemeral, free-plan) filesystem at all. TURSO_DATABASE_URL
+# and TURSO_AUTH_TOKEN below are the only things that make this work —
+# without them, the app silently falls back to a local SQLite file that
+# is wiped on every redeploy, same as before.
 services:
   - type: web
     name: public-reputation
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
-      # Render's Node 22.6.0 build doesn't expose node:sqlite without this
-      # flag (confirmed by an actual failed deploy: ERR_UNKNOWN_BUILTIN_MODULE).
-      - key: NODE_OPTIONS
-        value: --experimental-sqlite
-      - key: DATA_DIR
-        value: /data
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: NEXTAUTH_URL
         sync: false
       - key: NEXTAUTH_SECRET
@@ -43,7 +45,3 @@ services:
       # "Authorization: Bearer <value>" to /api/cron/digest.
       - key: CRON_SECRET
         generateValue: true
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
