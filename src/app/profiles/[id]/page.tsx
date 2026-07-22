@@ -11,13 +11,13 @@ import { getCurrentUser } from "@/lib/session";
 import { findPendingRequestForUser } from "@/db/claimRequests";
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
-  const profile = findProfileById(params.id);
+  const profile = await findProfileById(params.id);
   if (!profile) notFound();
 
-  const stats = getProfileStats(profile.id);
-  const rankings = listRankingsForProfile(profile.id);
+  const stats = await getProfileStats(profile.id);
+  const rankings = await listRankingsForProfile(profile.id);
   const user = await getCurrentUser();
-  const pendingRequest = user ? findPendingRequestForUser(user.id) : null;
+  const pendingRequest = user ? await findPendingRequestForUser(user.id) : null;
 
   return (
     <div className="mx-auto max-w-2xl">
