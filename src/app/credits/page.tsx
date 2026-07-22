@@ -6,7 +6,7 @@ export default async function CreditsHistoryPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const history = getCreditsHistoryForUser(user.id);
+  const history = await getCreditsHistoryForUser(user.id);
 
   return (
     <div>
