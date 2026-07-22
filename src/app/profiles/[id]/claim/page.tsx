@@ -11,7 +11,7 @@ export default async function ClaimProfilePage({
 }: {
   params: { id: string };
 }) {
-  const profile = findProfileById(params.id);
+  const profile = await findProfileById(params.id);
   if (!profile) notFound();
 
   const user = await getCurrentUser();
@@ -35,7 +35,7 @@ export default async function ClaimProfilePage({
     );
   }
 
-  const pending = findPendingRequestForUser(user.id);
+  const pending = await findPendingRequestForUser(user.id);
   if (pending) {
     return (
       <div className="mx-auto max-w-md text-center">
