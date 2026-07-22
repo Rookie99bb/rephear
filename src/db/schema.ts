@@ -188,6 +188,22 @@ CREATE INDEX IF NOT EXISTS idx_likes_ranking_profile ON likes(ranking_id, profil
 CREATE INDEX IF NOT EXISTS idx_shares_ranking_profile_user ON shares(ranking_id, profile_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_credit_tx_ranking_profile ON credit_transactions(ranking_id, profile_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+
+-- Forgot-password flow. A code is a short-lived, one-time-use 6-digit
+-- number emailed to the account's registered address (see
+-- src/db/passwordResets.ts and src/lib/actions/passwordReset.ts).
+-- Requesting a new code invalidates any still-unused previous one for
+-- that user, so only the most recently requested code ever works.
+CREATE TABLE IF NOT EXISTS password_reset_codes (
+id TEXT PRIMARY KEY,
+user_id TEXT NOT NULL REFERENCES users(id),
+code TEXT NOT NULL,
+created_at TEXT NOT NULL DEFAULT (datetime('now')),
+expires_at TEXT NOT NULL,
+consumed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_codes_user ON password_reset_codes(user_id);
 `);
 }
 

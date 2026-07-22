@@ -64,3 +64,13 @@ export function createUser(params: {
 export function setUserLocation(userId: string, location: string): void {
   db.prepare("UPDATE users SET location = ? WHERE id = ?").run(location, userId);
 }
+
+// Used by the forgot-password flow once a reset code has been verified
+// (see src/lib/actions/passwordReset.ts). passwordHash is already hashed
+// by the caller, this never touches a plaintext password.
+export function updateUserPassword(userId: string, passwordHash: string): void {
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
+    passwordHash,
+    userId
+  );
+}
