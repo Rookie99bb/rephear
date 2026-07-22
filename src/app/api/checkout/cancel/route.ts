@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
   }
 
   const { sessionId } = await request.json();
-  const payment = findPaymentBySessionId(String(sessionId || ""));
+  const payment = await findPaymentBySessionId(String(sessionId || ""));
   if (payment && payment.userId === user.id) {
-    markPaymentStatus(payment.id, "cancelled");
+    await markPaymentStatus(payment.id, "cancelled");
   }
 
   return NextResponse.json({ ok: true });
