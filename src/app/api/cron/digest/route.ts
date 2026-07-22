@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const candidates = getDigestCandidates();
+  const candidates = await getDigestCandidates();
   const sentAt = new Date().toISOString();
   let sent = 0;
   let failed = 0;
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const result = await sendEmail({ to: candidate.email, subject, html });
     if (result.sent) {
       sent++;
-      markDigestSent(candidate.userId, sentAt);
+      await markDigestSent(candidate.userId, sentAt);
     } else {
       failed++;
     }
