@@ -27,12 +27,12 @@ export default async function BrowseRankingsPage({
   const defaultCity = user?.location ?? null;
 
   const rankings = query
-    ? searchRankings(query)
+    ? await searchRankings(query)
     : hasExplicitFilter
-      ? searchRankingsByRegion({ country, city })
+      ? await searchRankingsByRegion({ country, city })
       : defaultCity
-        ? searchRankingsByRegion({ city: defaultCity })
-        : listAllRankings();
+        ? await searchRankingsByRegion({ city: defaultCity })
+        : await listAllRankings();
 
   return (
     <div>
