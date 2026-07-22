@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const payment = findPaymentBySessionId(session.id);
+      const payment = await findPaymentBySessionId(session.id);
       if (!payment) break;
       if (payment.status !== "completed") {
-        markPaymentCompleted(
+        await markPaymentCompleted(
           payment.id,
           typeof session.payment_intent === "string"
             ? session.payment_intent
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       }
       // UNIQUE(payment_id) on credit_transactions makes this safe to run
       // even if Stripe redelivers the same event.
-      creditProfileForPayment({
+      await creditProfileForPayment({
         profileId: payment.profileId,
         rankingId: payment.rankingId,
         supporterUserId: payment.userId,
@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
     }
     case "checkout.session.expired": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const payment = findPaymentBySessionId(session.id);
+      const payment = await findPaymentBySessionId(session.id);
       if (payment) {
-        markPaymentStatus(payment.id, "cancelled");
+        await markPaymentStatus(payment.id, "cancelled");
       }
       break;
     }
