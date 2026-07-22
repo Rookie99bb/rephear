@@ -12,8 +12,8 @@ export default async function SupportPage({
 }: {
   params: { id: string; profileId: string };
 }) {
-  const ranking = findRankingById(params.id);
-  const profile = findProfileById(params.profileId);
+  const ranking = await findRankingById(params.id);
+  const profile = await findProfileById(params.profileId);
   if (!ranking || !profile) notFound();
 
   const user = await getCurrentUser();
