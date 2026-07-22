@@ -15,7 +15,7 @@ import { findUserById } from "@/db/users";
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
-  if (!findUserById(session.user.id)) return null;
+  if (!(await findUserById(session.user.id))) return null;
   return session.user;
 }
 
@@ -24,5 +24,5 @@ export async function getCurrentUser() {
 export async function getCurrentFullUser() {
   const user = await getCurrentUser();
   if (!user) return null;
-  return findUserById(user.id);
+  return await findUserById(user.id);
 }
