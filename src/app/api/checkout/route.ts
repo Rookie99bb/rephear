@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
   const profileId = String(body.profileId || "");
   const packageId = String(body.packageId || "");
 
-  const ranking = findRankingById(rankingId);
-  const profile = findProfileById(profileId);
+  const ranking = await findRankingById(rankingId);
+  const profile = await findProfileById(profileId);
   const pkg = findCreditPackage(packageId);
 
   if (!ranking || !profile || !pkg) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  createPendingPayment({
+  await createPendingPayment({
     userId: user.id,
     rankingId,
     profileId,
