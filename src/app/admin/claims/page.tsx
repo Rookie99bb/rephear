@@ -12,7 +12,7 @@ const TABS: { label: string; status: ClaimRequestStatus }[] = [
   { label: "Rejected", status: "rejected" },
 ];
 
-export default function AdminClaimsPage({
+export default async function AdminClaimsPage({
   searchParams,
 }: {
   searchParams: { status?: string };
@@ -22,7 +22,17 @@ export default function AdminClaimsPage({
       ? searchParams.status
       : "pending";
 
-  const requests = listClaimRequestsByStatus(status);
+  const requests = await listClaimRequestsByStatus(status);
+
+  // Resolve each request's applicant/profile up front — .map() inside the
+  // JSX below can't itself be async.
+  const rows = [];
+  for (const req of requests) {
+    const applicant = await findUserById(req.applicantUserId);
+    const profile = await findProfileById(req.profileId);
+    if (!profile) continue;
+    rows.push({ req, applicant, profile });
+  }
 
   return (
     <div>
@@ -42,15 +52,11 @@ export default function AdminClaimsPage({
         ))}
       </div>
 
-      {requests.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-sm text-subtle">No {status} claim requests.</p>
       ) : (
         <ul className="flex flex-col gap-4">
-          {requests.map((req) => {
-            const applicant = findUserById(req.applicantUserId);
-            const profile = findProfileById(req.profileId);
-            if (!profile) return null;
-
+          {rows.map(({ req, applicant, profile }) => {
             return (
               <li
                 key={req.id}
