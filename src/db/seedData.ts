@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomUUID } from "node:crypto";
 import { rawClient } from "./client";
 import { createUser, findUserByEmail } from "./users";
 import { createRanking } from "./rankings";
@@ -14,7 +15,15 @@ import {
 import { CREDIT_PACKAGES } from "@/lib/creditPackages";
 import { LOCATIONS, getCountryForCity } from "@/lib/locations";
 
-const DEMO_PASSWORD = "password123";
+// Demo/seed accounts are decorative — nobody is meant to log into them.
+// Each gets its own random, never-recorded password hash (instead of one
+// shared known password) so this public repo can't be used as a login
+// cheat-sheet for the real rows these seed accounts create in
+// production. If a real login flow is ever needed for a demo account,
+// reset its password via the normal forgot-password flow.
+function randomPasswordHash(): string {
+  return bcrypt.hashSync(randomUUID(), 10);
+}
 
 // ---------------------------------------------------------------------
 // Demo data design notes
@@ -233,8 +242,6 @@ export async function seedIfEmpty(): Promise<void> {
 }
 
 async function insertSeedData(): Promise<void> {
-  const passwordHash = bcrypt.hashSync(DEMO_PASSWORD, 10);
-
   // --- Users -----------------------------------------------------------
   // Featured accounts "joined" earliest (founding community), staggered
   // by a few days each; silent accounts joined a bit later, also
@@ -249,7 +256,7 @@ async function insertSeedData(): Promise<void> {
       existing ??
         (await createUser({
           email: acc.email,
-          passwordHash,
+          passwordHash: randomPasswordHash(),
           name: acc.name,
           location: acc.location,
           createdAt: daysAgo(350 - i * 2),
@@ -265,7 +272,7 @@ async function insertSeedData(): Promise<void> {
       existing ??
         (await createUser({
           email: acc.email,
-          passwordHash,
+          passwordHash: randomPasswordHash(),
           name: acc.name,
           location: acc.location,
           createdAt: daysAgo(320 - i * 4),
@@ -282,7 +289,7 @@ async function insertSeedData(): Promise<void> {
       existing ??
       (await createUser({
         email: acc.email,
-        passwordHash,
+        passwordHash: randomPasswordHash(),
         name: acc.name,
         location,
         createdAt: daysAgo(joinedDaysAgo),
