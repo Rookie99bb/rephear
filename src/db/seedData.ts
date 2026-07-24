@@ -146,7 +146,7 @@ const RANKINGS: RankingSeed[] = [
   { title: "Most Popular Person", city: "London", description: "The people this community can't stop talking about.", createdDaysAgo: 330, nominees: ["Maya Chen", "Yuna Park", "Liam O'Connell", "Ethan Brooks", "Zara Ahmed"] },
   { title: "Best Personal Style", city: "Los Angeles", description: "Effortless, distinctive, always photographed.", createdDaysAgo: 300, nominees: ["Yuna Park", "Aisha Rahman", "Marcus Reid", "Chloe Bennett"] },
   { title: "Kindest Person", city: "Toronto", description: "Small acts, noticed and remembered.", createdDaysAgo: 270, nominees: ["Omar Al-Farsi", "Grace Thompson", "Ravi Patel", "Ella Fischer"] },
-  { title: "Funniest Person", city: "Austin", description: "Guaranteed to make the group chat worse (better).", createdDaysAgo: 260, nominees: ["Jake Sullivan", "Priya Nair", "Tyler Brooks", "Mia Rossi"] },
+  { title: "Funniest Person", city: "Seattle", description: "Guaranteed to make the group chat worse (better).", createdDaysAgo: 260, nominees: ["Jake Sullivan", "Priya Nair", "Tyler Brooks", "Mia Rossi"] },
   { title: "Best Team Player", city: "Manchester", description: "Makes everyone around them better.", createdDaysAgo: 210, nominees: ["Noah Bennett", "Tom Whitfield", "Ravi Patel", "Zara Ahmed"] },
   { title: "Best Programmer", city: "San Francisco", description: "Ships more before breakfast than most people ship all week.", createdDaysAgo: 190, nominees: ["Liam O'Connell", "Kenji Watanabe", "Wei Lin", "Priya Nair"] },
   { title: "Best Athlete", city: "Miami", description: "Records, rivalries, and Sunday morning practice.", createdDaysAgo: 120, nominees: ["Tyler Brooks", "Zara Ahmed", "Tom Whitfield", "Mia Rossi", "Ben Carter"] },

@@ -156,6 +156,21 @@ export async function listPopularRegions(limit = 8): Promise<RegionCount[]> {
   }));
 }
 
+// Ranking counts keyed by city, for the "All Regions" / per-country
+// directory views — only cities with at least one public Ranking show up
+// as keys here. Callers must treat any city missing from this map as a
+// count of 0 (e.g. a configured MVP city with no Rankings yet), since
+// this query has no reason to know about the full configured city list
+// in src/lib/locations.ts.
+export async function getRankingCountsByCity(): Promise<Record<string, number>> {
+  const rows = (await db
+    .prepare(
+      `SELECT city, COUNT(*) AS c FROM rankings WHERE ${PUBLIC_WHERE} GROUP BY city`
+    )
+    .all()) as unknown as { city: string; c: number }[];
+  return Object.fromEntries(rows.map((r) => [r.city, r.c]));
+}
+
 // Free-text search across Ranking titles and descriptions (case- and
 // accent-insensitive via LIKE, since SQLite's LIKE is already
 // case-insensitive for ASCII). Deliberately global — ignores the
