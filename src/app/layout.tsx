@@ -30,30 +30,28 @@ export default async function RootLayout({
         <SessionProvider>
           <header className="border-b border-border">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-              <Link
-                href="/"
-                className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
-                aria-label="RepHear"
-              >
+              <Link href="/" className="flex shrink-0 items-center" aria-label="RepHear — Recognition belongs to everyone.">
+                {/* Full brand lockup (icon + wordmark + tagline) as a single
+                    official asset — shown from the sm breakpoint up, where
+                    there's room for it. */}
+                <Image
+                  src="/logo-full.png"
+                  alt="RepHear — Recognition belongs to everyone."
+                  width={1013}
+                  height={276}
+                  priority
+                  className="hidden h-14 w-auto sm:block"
+                />
+                {/* Compact icon-only mark for narrow screens, so the header
+                    never squeezes or distorts the full lockup. */}
                 <Image
                   src="/logo.png"
-                  alt=""
+                  alt="RepHear"
                   width={28}
                   height={25}
                   priority
-                  className="h-7 w-auto"
+                  className="h-8 w-auto sm:hidden"
                 />
-                {/* Matches the brand lockup: "Rep" in ink, "Hear" in the
-                    violet-to-blue gradient from the logo mark's soundwave. */}
-                <span aria-hidden className="text-ink">
-                  Rep
-                </span>
-                <span
-                  aria-hidden
-                  className="bg-gradient-to-r from-[#6a57fe] to-[#3b82f6] bg-clip-text text-transparent"
-                >
-                  Hear
-                </span>
               </Link>
               <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-subtle sm:gap-x-6">
                 <Link href="/rankings" className="hover:text-ink">
