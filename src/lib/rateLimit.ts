@@ -22,6 +22,12 @@ windowMs: number;
 }
 
 export const RATE_LIMITS: Record<string, RateLimitRule> = {
+// Login attempts, keyed per-email (see src/lib/auth.ts authorize()).
+// 10 attempts per 5 minutes is generous enough that a person mistyping
+// their own password a few times in a row is never affected, while
+// still cutting an unthrottled brute-force script down from unlimited
+// guesses/sec to ~2/minute against any one account.
+login: { limit: 10, windowMs: 5 * 60 * 1000 },
 createRanking: { limit: 10, windowMs: 24 * 60 * 60 * 1000 }, // 10 per day
 claimProfile: { limit: 3, windowMs: 24 * 60 * 60 * 1000 }, // 3 per day
 like: { limit: 30, windowMs: 60 * 1000 }, // 30 per minute

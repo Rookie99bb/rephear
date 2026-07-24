@@ -2,6 +2,7 @@ import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/db/users";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 export const authOptions: AuthOptions = {
   session: { strategy: "jwt" },
@@ -18,7 +19,23 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await findUserByEmail(credentials.email);
+        const email = credentials.email.trim().toLowerCase();
+
+        // Previously unthrottled: this was the one auth-adjacent
+        // endpoint with no rate limiting anywhere in the app (every
+        // other sensitive action already uses this same
+        // checkRateLimit/RATE_LIMITS pattern), which let an attacker
+        // script unlimited password guesses per second against any
+        // account. Keyed per-email, not per-IP, so it can't be trivially
+        // bypassed by rotating source IPs, and it fails the same way
+        // (return null -> NextAuth's generic "CredentialsSignin" error)
+        // as a wrong password, so it doesn't create a new way to enumerate
+        // which emails have accounts.
+        if (!checkRateLimit(`login:${email}`, RATE_LIMITS.login)) {
+          return null;
+        }
+
+        const user = await findUserByEmail(email);
         if (!user) return null;
 
         const valid = await bcrypt.compare(
