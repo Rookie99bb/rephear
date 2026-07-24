@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { getStripeClient } from "@/lib/stripe";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { findCreditPackage } from "@/lib/creditPackages";
 import { findRankingById } from "@/db/rankings";
 import { findProfileById } from "@/db/profiles";
@@ -43,7 +44,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const origin = request.nextUrl.origin;
+  // Must be the app's real public origin, not request.nextUrl.origin —
+  // behind Render's proxy that reflects the container's internal address
+  // (localhost:<PORT>), which broke the post-payment redirect. See
+  // src/lib/siteUrl.ts.
+  const origin = getSiteUrl();
 
   const stripe = getStripeClient();
   const session = await stripe.checkout.sessions.create({
@@ -64,6 +69,13 @@ export async function POST(request: NextRequest) {
     ],
     success_url: `${origin}/rankings/${rankingId}?support=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/rankings/${rankingId}?support=cancelled&session_id={CHECKOUT_SESSION_ID}`,
+    // Without this, card statements fall back to a dynamic descriptor
+    // built from the line item (the Nominee's name) instead of a fixed,
+    // recognizable merchant name — confusing for cardholders and higher
+    // chargeback risk.
+    payment_intent_data: {
+      statement_descriptor: "REPHEAR.COM",
+    },
     metadata: {
       userId: user.id,
       rankingId,
