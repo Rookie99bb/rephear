@@ -1,6 +1,7 @@
 import "@/db/schema";
 import "./globals.css";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import SessionProvider from "@/components/SessionProvider";
 import HeaderAuth from "@/components/HeaderAuth";
@@ -31,8 +32,16 @@ export default async function RootLayout({
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
               <Link
                 href="/"
-                className="text-[15px] font-semibold tracking-tight text-ink"
+                className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-ink"
               >
+                <Image
+                  src="/logo.png"
+                  alt="RepHear"
+                  width={28}
+                  height={25}
+                  priority
+                  className="h-7 w-auto"
+                />
                 RepHear
               </Link>
               <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-subtle sm:gap-x-6">
