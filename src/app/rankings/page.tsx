@@ -5,23 +5,29 @@ import {
   searchRankings,
 } from "@/db/rankings";
 import RankingCard from "@/components/RankingCard";
+import CountryFlagBar from "@/components/CountryFlagBar";
 import { getCurrentFullUser } from "@/lib/session";
 
-// Rankings are location-first: with no explicit filter, this page shows
-// only the current user's chosen location — never a mix of cities from
-// all over the world. An explicit ?country=&city= (e.g. from a Popular
-// Regions link) can still browse a different location on purpose. A
-// search (?q=) takes priority over both — it deliberately searches every
-// open country, since someone searching by name/topic wants to find a
+// Rankings are location-first by default: with no explicit filter, this
+// page shows only the current user's chosen location — never a mix of
+// cities from all over the world. An explicit ?country=&city= (e.g. from
+// a Popular Regions link) can still browse a different location on
+// purpose, and ?all=1 explicitly opts out of location-first behavior
+// entirely so every Ranking, from every region, is reachable in one
+// click regardless of the visitor's own location — that's what the
+// CountryFlagBar's "All Regions" pill links to. A search (?q=) takes
+// priority over all of the above — it deliberately searches every open
+// country, since someone searching by name/topic wants to find a
 // Ranking regardless of where it's based.
 export default async function BrowseRankingsPage({
   searchParams,
 }: {
-  searchParams: { country?: string; city?: string; q?: string };
+  searchParams: { country?: string; city?: string; q?: string; all?: string };
 }) {
-  const { country, city, q } = searchParams;
+  const { country, city, q, all } = searchParams;
   const query = q?.trim();
   const hasExplicitFilter = !!(country || city);
+  const showAll = !hasExplicitFilter && (all === "1" || all === "true");
 
   const user = await getCurrentFullUser();
   const defaultCity = user?.location ?? null;
@@ -30,9 +36,11 @@ export default async function BrowseRankingsPage({
     ? await searchRankings(query)
     : hasExplicitFilter
       ? await searchRankingsByRegion({ country, city })
-      : defaultCity
-        ? await searchRankingsByRegion({ city: defaultCity })
-        : await listAllRankings();
+      : showAll
+        ? await listAllRankings()
+        : defaultCity
+          ? await searchRankingsByRegion({ city: defaultCity })
+          : await listAllRankings();
 
   return (
     <div>
@@ -52,6 +60,22 @@ export default async function BrowseRankingsPage({
           ) : hasExplicitFilter ? (
             <p className="mt-1 text-sm text-subtle">
               Filtered by {[city, country].filter(Boolean).join(", ")}
+              {" — "}
+              <Link href="/rankings?all=1" className="underline">
+                view all regions
+              </Link>
+              {defaultCity && (
+                <>
+                  {" · "}
+                  <Link href="/rankings" className="underline">
+                    back to {defaultCity}
+                  </Link>
+                </>
+              )}
+            </p>
+          ) : showAll ? (
+            <p className="mt-1 text-sm text-subtle">
+              Showing all regions
               {defaultCity && (
                 <>
                   {" — "}
@@ -73,7 +97,9 @@ export default async function BrowseRankingsPage({
         </Link>
       </div>
 
-      <form action="/rankings" method="GET" className="mb-6">
+      <CountryFlagBar currentCountry={country} showingAll={showAll} />
+
+      <form action="/rankings" method="GET" className="mb-6 mt-6">
         <input
           type="search"
           name="q"
@@ -87,7 +113,7 @@ export default async function BrowseRankingsPage({
         <p className="text-sm text-subtle">
           {query ? (
             <>No Rankings match &ldquo;{query}&rdquo;.</>
-          ) : hasExplicitFilter || defaultCity ? (
+          ) : hasExplicitFilter || (defaultCity && !showAll) ? (
             "No Rankings in this location yet."
           ) : (
             <>
