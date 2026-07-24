@@ -1,0 +1,22 @@
+name: Keep RepHear awake
+
+# Render's free web service plan spins the app down after ~15 minutes of
+# no incoming traffic; the next real visitor then waits 30-50s for a cold
+# start. This workflow pings the app's health endpoint every 10 minutes,
+# around the clock, so it never goes idle long enough to spin down.
+#
+# Runs entirely on GitHub's infrastructure (free for public repos) — no
+# dependency on any of our own computers or the Cowork app being open.
+# workflow_dispatch below also lets you trigger a one-off run manually
+# from the Actions tab if you ever want to wake the site up on demand.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -sf --max-time 20 https://rephear.com/api/health || true
