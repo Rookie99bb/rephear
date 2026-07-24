@@ -8,7 +8,7 @@ import {
 import Avatar from "@/components/Avatar";
 import ProfileVerificationStatus from "@/components/ProfileVerificationStatus";
 import { getCurrentUser } from "@/lib/session";
-import { findPendingRequestForUser } from "@/db/claimRequests";
+import { findActiveRequestForUser } from "@/db/claimRequests";
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
   const profile = await findProfileById(params.id);
@@ -17,7 +17,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
   const stats = await getProfileStats(profile.id);
   const rankings = await listRankingsForProfile(profile.id);
   const user = await getCurrentUser();
-  const pendingRequest = user ? await findPendingRequestForUser(user.id) : null;
+  const pendingRequest = user ? await findActiveRequestForUser(user.id) : null;
 
   return (
     <div className="mx-auto max-w-2xl">
