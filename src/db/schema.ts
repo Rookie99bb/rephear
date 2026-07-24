@@ -21,7 +21,8 @@ email TEXT NOT NULL UNIQUE,
 password_hash TEXT NOT NULL,
 name TEXT NOT NULL,
 created_at TEXT NOT NULL DEFAULT (datetime('now')),
-location TEXT
+location TEXT,
+is_admin INTEGER NOT NULL DEFAULT 0
 );
 
 -- Sprint 3: Rankings. One Ranking = one topic.
@@ -291,6 +292,43 @@ async function addUserLocationColumnIfMissing() {
   }
 }
 
+// Defensive ALTER TABLE for any pre-existing database created before
+// per-user admin status existed. New rows get is_admin=0 via the CREATE
+// TABLE default; this just backfills the column itself.
+async function addIsAdminColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+}
+
+// Admin status now lives in the database (see src/app/admin/users, which
+// lets an existing admin grant/revoke it for any user) instead of being
+// purely an ADMIN_EMAILS env var allowlist. ADMIN_EMAILS is kept as a
+// "bootstrap": on every start, any user whose email is listed there gets
+// is_admin=1 if they aren't already an admin — so there is always a way
+// back in (add your email to ADMIN_EMAILS in Render and redeploy) even if
+// every DB-granted admin is ever removed by mistake. Idempotent and safe
+// to run on every start: it only ever adds the flag, never removes it,
+// and does nothing once every listed email already has it.
+async function promoteBootstrapAdmins() {
+  const raw = process.env.ADMIN_EMAILS || "";
+  const emails = raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  for (const email of emails) {
+    await rawClient.execute({
+      sql: "UPDATE users SET is_admin = 1 WHERE email = ? AND is_admin = 0",
+      args: [email],
+    });
+  }
+}
+
 // Tracks when a user last received the daily "updates on Rankings you
 // voted on" digest email (see src/db/digest.ts). NULL means "never
 // sent", the first digest for a user then covers activity since
@@ -379,9 +417,11 @@ export async function ensureMigrated(): Promise<void> {
     await addUserLocationColumnIfMissing();
     await addLastDigestSentAtColumnIfMissing();
     await addLikesCountColumnIfMissing();
+    await addIsAdminColumnIfMissing();
     await seedIfEmpty();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
+    await promoteBootstrapAdmins();
   } finally {
     setMigrating(false);
   }
