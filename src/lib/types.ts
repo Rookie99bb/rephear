@@ -50,7 +50,7 @@ export interface Like {
   createdAt: string;
 }
 
-export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled";
+export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled" | "refunded" | "disputed";
 
 export interface Payment {
   id: string;
@@ -85,13 +85,22 @@ export interface LeaderboardEntry {
   reputationCredits: number;
 }
 
-export type ClaimRequestStatus = "pending" | "approved" | "rejected";
+export type ClaimRequestStatus =
+  | "pending"
+  | "more_info_required"
+  | "approved"
+  | "rejected"
+  | "closed";
+
+export type ClaimType = "self" | "representative" | "organization";
 
 export interface ClaimRequest {
   id: string;
   applicantUserId: string;
   profileId: string;
   status: ClaimRequestStatus;
+  claimType: ClaimType;
+  fullLegalName: string;
   linkedinUrl: string;
   companyWebsite: string;
   socialMediaUrl: string;
@@ -103,6 +112,9 @@ export interface ClaimRequest {
   reviewedAt: string | null;
   reviewedBy: string | null;
   adminComments: string;
+  infoRequested: string;
+  infoRequestedAt: string | null;
+  infoRequestedBy: string | null;
 }
 
 export interface AuditLog {
