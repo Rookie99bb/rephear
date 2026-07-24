@@ -24,6 +24,12 @@ export default async function AdminLayout({
           </h1>
         </div>
         <nav className="flex items-center gap-5 text-sm text-subtle">
+          <Link href="/admin/analytics" className="hover:text-ink">
+            Analytics
+          </Link>
+          <Link href="/admin/users" className="hover:text-ink">
+            Users
+          </Link>
           <Link href="/admin/claims" className="hover:text-ink">
             Claim Requests
           </Link>
