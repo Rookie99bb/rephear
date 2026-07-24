@@ -195,6 +195,17 @@ CREATE INDEX IF NOT EXISTS idx_shares_ranking_profile_user ON shares(ranking_id,
 CREATE INDEX IF NOT EXISTS idx_credit_tx_ranking_profile ON credit_transactions(ranking_id, profile_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 
+-- Admin > Users engagement metrics (src/db/adminUserStats.ts) query
+-- these tables filtered/grouped by "who did this", which none of the
+-- indexes above cover (they're all keyed by ranking/profile instead).
+-- CREATE INDEX IF NOT EXISTS is idempotent, so — same as every index
+-- above — this is safe to run on every process start against an
+-- existing production database, no ALTER-style try/catch needed.
+CREATE INDEX IF NOT EXISTS idx_likes_user ON likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_status ON payments(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_profiles_added_by ON profiles(added_by);
+CREATE INDEX IF NOT EXISTS idx_rankings_created_by ON rankings(created_by);
+
 -- Forgot-password flow. A code is a short-lived, one-time-use 6-digit
 -- number emailed to the account's registered address (see
 -- src/db/passwordResets.ts and src/lib/actions/passwordReset.ts).
