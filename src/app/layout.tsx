@@ -32,17 +32,28 @@ export default async function RootLayout({
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-ink"
+                className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
+                aria-label="RepHear"
               >
                 <Image
                   src="/logo.png"
-                  alt="RepHear"
+                  alt=""
                   width={28}
                   height={25}
                   priority
                   className="h-7 w-auto"
                 />
-                RepHear
+                {/* Matches the brand lockup: "Rep" in ink, "Hear" in the
+                    violet-to-blue gradient from the logo mark's soundwave. */}
+                <span aria-hidden className="text-ink">
+                  Rep
+                </span>
+                <span
+                  aria-hidden
+                  className="bg-gradient-to-r from-[#6a57fe] to-[#3b82f6] bg-clip-text text-transparent"
+                >
+                  Hear
+                </span>
               </Link>
               <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-subtle sm:gap-x-6">
                 <Link href="/rankings" className="hover:text-ink">
