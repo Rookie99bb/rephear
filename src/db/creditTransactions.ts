@@ -32,3 +32,52 @@ export async function creditProfileForPayment(params: {
     );
   return result.changes > 0;
 }
+
+export interface SupportedItem {
+  rankingId: string;
+  rankingTitle: string;
+  profileId: string;
+  profileName: string;
+  totalCredits: number;
+  lastSupportedAt: string;
+}
+
+// One row per (Ranking, Nominee) this user has ever backed with paid
+// Reputation Credits — powers the "Rankings you've supported" section on
+// the user's own Settings page. Aggregates every completed payment's
+// credit grant, so supporting the same Nominee more than once still
+// shows as a single row with a combined credit total. Excludes a
+// Ranking/Nominee that's since been soft-deleted so the list never
+// links to something that 404s.
+export async function supportedItemsForUser(
+  userId: string
+): Promise<SupportedItem[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT ct.ranking_id, r.title AS ranking_title, ct.profile_id,
+              p.name AS profile_name, SUM(ct.credits) AS total_credits,
+              MAX(ct.created_at) AS last_supported_at
+       FROM credit_transactions ct
+       JOIN rankings r ON r.id = ct.ranking_id
+       JOIN profiles p ON p.id = ct.profile_id
+       WHERE ct.supporter_user_id = ? AND r.deleted_at IS NULL AND p.deleted_at IS NULL
+       GROUP BY ct.ranking_id, ct.profile_id
+       ORDER BY last_supported_at DESC`
+    )
+    .all(userId)) as unknown as {
+    ranking_id: string;
+    ranking_title: string;
+    profile_id: string;
+    profile_name: string;
+    total_credits: number;
+    last_supported_at: string;
+  }[];
+  return rows.map((r) => ({
+    rankingId: r.ranking_id,
+    rankingTitle: r.ranking_title,
+    profileId: r.profile_id,
+    profileName: r.profile_name,
+    totalCredits: r.total_credits,
+    lastSupportedAt: r.last_supported_at,
+  }));
+}

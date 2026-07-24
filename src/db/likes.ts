@@ -95,3 +95,45 @@ DO UPDATE SET count = count + 1`
       params.createdAt ?? null
     );
 }
+
+export interface LikedItem {
+  rankingId: string;
+  rankingTitle: string;
+  profileId: string;
+  profileName: string;
+  count: number;
+  createdAt: string;
+}
+
+// One row per (Ranking, Nominee) this user has ever Liked — powers the
+// "Rankings you've liked" section on the user's own Settings page.
+// Excludes Likes against a Nominee or Ranking that's since been
+// soft-deleted so the list never links to something that 404s.
+export async function likedItemsForUser(userId: string): Promise<LikedItem[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT l.ranking_id, r.title AS ranking_title, l.profile_id,
+              p.name AS profile_name, l.count, l.created_at
+       FROM likes l
+       JOIN rankings r ON r.id = l.ranking_id
+       JOIN profiles p ON p.id = l.profile_id
+       WHERE l.user_id = ? AND r.deleted_at IS NULL AND p.deleted_at IS NULL
+       ORDER BY l.created_at DESC`
+    )
+    .all(userId)) as unknown as {
+    ranking_id: string;
+    ranking_title: string;
+    profile_id: string;
+    profile_name: string;
+    count: number;
+    created_at: string;
+  }[];
+  return rows.map((r) => ({
+    rankingId: r.ranking_id,
+    rankingTitle: r.ranking_title,
+    profileId: r.profile_id,
+    profileName: r.profile_name,
+    count: r.count,
+    createdAt: r.created_at,
+  }));
+}
