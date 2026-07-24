@@ -141,6 +141,26 @@ export default async function AdminClaimsPage({
   );
 }
 
+// Claim evidence links (LinkedIn/company website/social media) are
+// free-text submitted by the applicant (see submitClaimRequestAction in
+// src/lib/actions/claimRequests.ts, which only .trim()s them) and were
+// being rendered directly as an <a href>. React does not sanitize href
+// schemes, so a value like "javascript:alert(document.cookie)" would
+// render as a clickable link that executes script in the admin's
+// session when clicked — a stored XSS reachable only by an admin
+// visiting /admin/claims. Standard fix: only ever render as a clickable
+// link when the value is a genuine http(s) URL; otherwise show the
+// submitted text as plain, non-clickable text so admins can still see
+// exactly what was submitted.
+function isSafeHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function Evidence({
   label,
   value,
@@ -151,11 +171,12 @@ function Evidence({
   isLink?: boolean;
 }) {
   if (!value) return null;
+  const safeLink = isLink && isSafeHttpUrl(value);
   return (
     <div>
       <dt className="font-medium">{label}</dt>
       <dd>
-        {isLink ? (
+        {safeLink ? (
           <a href={value} className="underline" target="_blank" rel="noreferrer">
             {value}
           </a>
