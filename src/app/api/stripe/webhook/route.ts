@@ -3,10 +3,15 @@ import Stripe from "stripe";
 import { getStripeClient, getWebhookSecret } from "@/lib/stripe";
 import {
   findPaymentBySessionId,
+  findPaymentByPaymentIntentId,
   markPaymentCompleted,
   markPaymentStatus,
+  markPaymentRefunded,
 } from "@/db/payments";
-import { creditProfileForPayment } from "@/db/creditTransactions";
+import {
+  creditProfileForPayment,
+  reverseCreditsForPayment,
+} from "@/db/creditTransactions";
 
 // Stripe requires the raw request body (not JSON-parsed) to verify the
 // webhook signature. Next.js App Router route handlers give us that via
@@ -64,6 +69,45 @@ export async function POST(request: NextRequest) {
       const payment = await findPaymentBySessionId(session.id);
       if (payment) {
         await markPaymentStatus(payment.id, "cancelled");
+      }
+      break;
+    }
+    // Security-audit fix: previously unhandled. A refund or a won
+    // chargeback both mean Stripe has taken the money back, but until
+    // now nothing here ever revoked the Credits that were granted when
+    // the payment first completed — they stayed on the Nominee's total
+    // forever even after the supporter got their money back. Both cases
+    // do the same two things: stop counting this payment as "completed"
+    // (so it drops out of Support Given / totalPurchased, which already
+    // filter on that status) and zero out the Credits it granted (so it
+    // drops out of every leaderboard/received-credits total too).
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+      const paymentIntentId =
+        typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id ?? null;
+      if (paymentIntentId) {
+        const payment = await findPaymentByPaymentIntentId(paymentIntentId);
+        if (payment && payment.status === "completed") {
+          await markPaymentRefunded(payment.id, "refunded");
+          await reverseCreditsForPayment(payment.id);
+        }
+      }
+      break;
+    }
+    case "charge.dispute.created": {
+      const dispute = event.data.object as Stripe.Dispute;
+      const paymentIntentId =
+        typeof dispute.payment_intent === "string"
+          ? dispute.payment_intent
+          : dispute.payment_intent?.id ?? null;
+      if (paymentIntentId) {
+        const payment = await findPaymentByPaymentIntentId(paymentIntentId);
+        if (payment && payment.status === "completed") {
+          await markPaymentRefunded(payment.id, "disputed");
+          await reverseCreditsForPayment(payment.id);
+        }
       }
       break;
     }
