@@ -9,7 +9,7 @@ import { createPendingPayment, markPaymentCompleted } from "./payments";
 import { creditProfileForPayment } from "./creditTransactions";
 import {
   createClaimRequest,
-  approveClaimRequest,
+  approveClaimAndTransferOwnership,
   rejectClaimRequest,
 } from "./claimRequests";
 import { CREDIT_PACKAGES } from "@/lib/creditPackages";
@@ -325,6 +325,8 @@ async function insertSeedData(): Promise<void> {
       const req = await createClaimRequest({
         applicantUserId: account.id,
         profileId: profile.id,
+        claimType: "self",
+        fullLegalName: person.name,
         linkedinUrl: `https://linkedin.com/in/${account.email.split("@")[0]}`,
         companyWebsite: "",
         socialMediaUrl: "",
@@ -334,13 +336,18 @@ async function insertSeedData(): Promise<void> {
         supportingFilePath: null,
         submittedAt: daysAgo(submittedDaysAgo),
       });
-      await approveClaimRequest({
-        id: req.id,
-        reviewedBy: featuredUsers[0].id,
+      await approveClaimAndTransferOwnership({
+        requestId: req.id,
+        profileId: profile.id,
+        claimantUserId: account.id,
+        reviewerUserId: featuredUsers[0].id,
         adminComments: "Verified via LinkedIn and official email.",
-        reviewedAt: daysAgo(reviewedDaysAgo),
+        isFounderOverride: false,
+        ipAddress: null,
+        userAgent: null,
+        reviewedAtOverride: daysAgo(reviewedDaysAgo),
+        claimedAtOverride: daysAgo(reviewedDaysAgo),
       });
-      await claimProfile(profile.id, account.id, daysAgo(reviewedDaysAgo));
       return;
     }
 
@@ -350,6 +357,8 @@ async function insertSeedData(): Promise<void> {
       await createClaimRequest({
         applicantUserId: account.id,
         profileId: profile.id,
+        claimType: "self",
+        fullLegalName: person.name,
         linkedinUrl: `https://linkedin.com/in/${account.email.split("@")[0]}`,
         companyWebsite: "",
         socialMediaUrl: "",
@@ -369,6 +378,8 @@ async function insertSeedData(): Promise<void> {
       const req = await createClaimRequest({
         applicantUserId: account.id,
         profileId: profile.id,
+        claimType: "self",
+        fullLegalName: person.name,
         linkedinUrl: "",
         companyWebsite: "",
         socialMediaUrl: "",

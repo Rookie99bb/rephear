@@ -133,11 +133,18 @@ UNIQUE (payment_id)
 -- rejected/approved history is kept forever as an audit trail. A
 -- profile's claim_status only ever changes via an admin approving
 -- exactly one request here.
+-- Claim workflow lifecycle (security-audit upgrade):
+-- 'pending' -> 'more_info_required' -> 'pending' (loops until reviewed)
+--                                    -> 'approved' (ownership transferred)
+--                                    -> 'rejected'
+-- 'closed' is used for other still-open applications on a Profile that's
+-- since been claimed via a different (approved) application — moot, not
+-- rejected-for-cause. See approveClaimAndTransferOwnership in db/claimRequests.ts.
 CREATE TABLE IF NOT EXISTS claim_requests (
 id TEXT PRIMARY KEY,
 applicant_user_id TEXT NOT NULL REFERENCES users(id),
 profile_id TEXT NOT NULL REFERENCES profiles(id),
-status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected'
+status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'more_info_required' | 'approved' | 'rejected' | 'closed'
 linkedin_url TEXT NOT NULL DEFAULT '',
 company_website TEXT NOT NULL DEFAULT '',
 social_media_url TEXT NOT NULL DEFAULT '',
@@ -148,7 +155,12 @@ supporting_file_path TEXT,
 submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
 reviewed_at TEXT,
 reviewed_by TEXT REFERENCES users(id),
-admin_comments TEXT NOT NULL DEFAULT ''
+admin_comments TEXT NOT NULL DEFAULT '',
+claim_type TEXT NOT NULL DEFAULT 'self', -- 'self' | 'representative' | 'organization'
+full_legal_name TEXT NOT NULL DEFAULT '',
+info_requested TEXT NOT NULL DEFAULT '',
+info_requested_at TEXT,
+info_requested_by TEXT REFERENCES users(id)
 );
 
 -- Administrative Audit Trail. Append-only by design: the triggers
@@ -243,6 +255,55 @@ async function addIsHiddenColumnIfMissing() {
     });
   } catch {
     // Column already exists, nothing to do.
+  }
+}
+
+// Security-audit fix: lets a refund/chargeback (Stripe "charge.refunded"
+// / "charge.dispute.created" webhook events, see
+// src/app/api/stripe/webhook/route.ts) zero out a Nominee's credit grant
+// after the fact. NULL = never refunded (the normal case). Deliberately
+// does NOT delete or renumber the row, or touch its original `credits`
+// value's neighbors — every SUM(credits) read site across the app
+// (leaderboards, rankings totals, credits history, admin stats) already
+// just sums this table directly, so reusing that same column for the
+// reversal (see reverseCreditsForPayment in src/db/creditTransactions.ts)
+// means all of them automatically stop counting a refunded payment's
+// Credits with zero changes to any of those read paths.
+async function addRefundedAtColumnToCreditTransactionsIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE credit_transactions ADD COLUMN refunded_at TEXT;",
+      args: [],
+    });
+  } catch {
+    // Column already exists, nothing to do.
+  }
+}
+
+// Claim-workflow security upgrade: adds the columns needed for the
+// PENDING -> MORE_INFO_REQUIRED -> PENDING -> APPROVED/REJECTED lifecycle
+// and the Founder Override audit trail, without touching or renumbering
+// any existing claim_requests row. Existing rows get the column defaults
+// (claim_type='self', the rest empty/NULL), which is exactly correct:
+// every claim submitted before this upgrade was, in effect, an "I am
+// this person" claim under the old single-type form.
+async function addClaimWorkflowColumnsIfMissing() {
+  const columns: [string, string][] = [
+    ["claim_type", "TEXT NOT NULL DEFAULT 'self'"],
+    ["full_legal_name", "TEXT NOT NULL DEFAULT ''"],
+    ["info_requested", "TEXT NOT NULL DEFAULT ''"],
+    ["info_requested_at", "TEXT"],
+    ["info_requested_by", "TEXT REFERENCES users(id)"],
+  ];
+  for (const [name, def] of columns) {
+    try {
+      await rawClient.execute({
+        sql: `ALTER TABLE claim_requests ADD COLUMN ${name} ${def};`,
+        args: [],
+      });
+    } catch {
+      // Column already exists, nothing to do.
+    }
   }
 }
 
@@ -423,6 +484,8 @@ export async function ensureMigrated(): Promise<void> {
   try {
     await runMigrations();
     await addIsHiddenColumnIfMissing();
+    await addRefundedAtColumnToCreditTransactionsIfMissing();
+    await addClaimWorkflowColumnsIfMissing();
     await addSoftDeleteColumnsIfMissing();
     await addProfileDetailColumnsIfMissing();
     await addUserLocationColumnIfMissing();

@@ -33,6 +33,26 @@ export async function creditProfileForPayment(params: {
   return result.changes > 0;
 }
 
+// Security-audit fix: the other half of markPaymentRefunded (see
+// payments.ts). Zeroes out the credits this payment granted, instead of
+// deleting the row or inserting an offsetting negative row, specifically
+// so every existing SUM(credits) read site (leaderboards.ts, rankings.ts,
+// digest.ts, creditsHistory.ts, adminStats.ts, profiles.ts) keeps working
+// completely unchanged — a refunded payment's row still exists (so the
+// original grant is still visible/auditable via refunded_at), it just no
+// longer contributes to anyone's total. `WHERE refunded_at IS NULL` makes
+// this idempotent: Stripe redelivering the same refund/dispute webhook
+// just no-ops on the second delivery instead of doing anything twice.
+export async function reverseCreditsForPayment(paymentId: string): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE credit_transactions
+       SET credits = 0, refunded_at = datetime('now')
+       WHERE payment_id = ? AND refunded_at IS NULL`
+    )
+    .run(paymentId);
+}
+
 export interface SupportedItem {
   rankingId: string;
   rankingTitle: string;

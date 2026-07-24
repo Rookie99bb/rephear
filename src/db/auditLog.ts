@@ -39,8 +39,13 @@ function toAuditLog(row: AuditLogRow): AuditLog {
 // new action types can be added later without any migration.
 export const AUDIT_ACTIONS = {
   CLAIM_REQUEST_SUBMITTED: "claim_request_submitted",
+  CLAIM_MORE_INFO_REQUESTED: "claim_more_info_requested",
+  CLAIM_ADDITIONAL_INFO_SUBMITTED: "claim_additional_info_submitted",
   CLAIM_APPROVED: "claim_approved",
   CLAIM_REJECTED: "claim_rejected",
+  CLAIM_CLOSED: "claim_closed",
+  PROFILE_OWNERSHIP_TRANSFERRED: "profile_ownership_transferred",
+  FOUNDER_CLAIM_OVERRIDE: "founder_claim_override",
   RANKING_SOFT_DELETED: "ranking_soft_deleted",
   RANKING_RESTORED: "ranking_restored",
   NOMINEE_SOFT_DELETED: "nominee_soft_deleted",
@@ -85,6 +90,7 @@ export async function recordAuditLog(params: {
 export interface AuditLogFilters {
   action?: string;
   actorUserId?: string;
+  targetId?: string; // exact match, e.g. a specific claim_request.id
   date?: string; // YYYY-MM-DD, matches created_at's date portion
   search?: string; // matches target_id or details substring
   limit?: number;
@@ -101,6 +107,10 @@ export async function listAuditLogs(filters: AuditLogFilters = {}): Promise<Audi
   if (filters.actorUserId) {
     clauses.push("actor_user_id = ?");
     values.push(filters.actorUserId);
+  }
+  if (filters.targetId) {
+    clauses.push("target_id = ?");
+    values.push(filters.targetId);
   }
   if (filters.date) {
     clauses.push("date(created_at) = date(?)");

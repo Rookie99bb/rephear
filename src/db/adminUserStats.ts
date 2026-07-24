@@ -233,7 +233,7 @@ export type UserActivityEntry =
   | {
       type: "claim";
       createdAt: string;
-      status: "pending" | "approved" | "rejected";
+      status: "pending" | "more_info_required" | "approved" | "rejected" | "closed";
       profileId: string;
       profileName: string;
     };
@@ -425,7 +425,7 @@ export async function getUserActivityHistory(
     entries.push({
       type: "claim",
       createdAt: r.created_at,
-      status: r.status as "pending" | "approved" | "rejected",
+      status: r.status as "pending" | "more_info_required" | "approved" | "rejected" | "closed",
       profileId: r.profile_id,
       profileName: r.profile_name,
     });
