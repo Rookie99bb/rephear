@@ -10,6 +10,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [bonusLikesEarned, setBonusLikesEarned] = useState<number | null>(null);
 
   async function handleSubmit(formData: FormData) {
     setSubmitting(true);
@@ -23,8 +24,39 @@ export default function SignupPage() {
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
     await signIn("credentials", { email, password, redirect: false });
+
+    if (result.bonusLikesEarned) {
+      // Show the "thanks for helping the community grow" moment briefly
+      // before moving on — the reward is already saved server-side by
+      // this point, this is purely the celebratory beat the product
+      // spec asks for ("Credits should appear immediately").
+      setBonusLikesEarned(result.bonusLikesEarned);
+      setTimeout(() => {
+        router.push("/");
+        router.refresh();
+      }, 1800);
+      return;
+    }
+
     router.push("/");
     router.refresh();
+  }
+
+  if (bonusLikesEarned) {
+    return (
+      <div className="mx-auto max-w-sm text-center">
+        <div className="rounded-2xl border border-border bg-surface p-8">
+          <p className="text-3xl">🎉</p>
+          <p className="mt-3 text-lg font-semibold tracking-tight text-ink">
+            Thanks for helping the community grow.
+          </p>
+          <p className="mt-2 text-sm text-subtle">
+            You and the person who invited you each received {bonusLikesEarned}{" "}
+            additional Likes — a few more people you can help recognise.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
