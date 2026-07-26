@@ -244,6 +244,43 @@ CREATE TABLE IF NOT EXISTS seed_lock (
 id INTEGER PRIMARY KEY CHECK (id = 1),
 locked_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Invitation system (Community Ambassador, phase 1: core invite loop).
+-- Every user owns exactly one Invitation row, created lazily the first
+-- time it's needed (see getOrCreateInvitationForUser in
+-- src/db/invitations.ts) rather than at signup time, so existing users
+-- from before this feature shipped automatically get one too the first
+-- time they visit their invite link or Settings page, no backfill
+-- migration required. invite_code is short and URL-safe
+-- (rephear.com/invite/<code>). total_visits counts every open of the
+-- link regardless of outcome; successful_invites counts only opens that
+-- went on to create a Referral row (see below).
+CREATE TABLE IF NOT EXISTS invitations (
+id TEXT PRIMARY KEY,
+owner_id TEXT NOT NULL UNIQUE REFERENCES users(id),
+invite_code TEXT NOT NULL UNIQUE,
+total_visits INTEGER NOT NULL DEFAULT 0,
+successful_invites INTEGER NOT NULL DEFAULT 0,
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One row per successful referral, created exactly once at the moment a
+-- new account is created (see signupAction in src/lib/actions/auth.ts).
+-- UNIQUE(new_user_id) is the structural guarantee that a user can only
+-- ever be referred once, and — combined with referrals only ever being
+-- written at account-creation time, never editable afterward — makes a
+-- referral "loop" (someone ending up in their own referral chain)
+-- impossible: a user's referrer must always be an account that existed
+-- strictly before theirs did.
+CREATE TABLE IF NOT EXISTS referrals (
+id TEXT PRIMARY KEY,
+referrer_id TEXT NOT NULL REFERENCES users(id),
+new_user_id TEXT NOT NULL UNIQUE REFERENCES users(id),
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(invite_code);
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
 `);
 }
 
@@ -387,6 +424,23 @@ async function addIsAdminColumnIfMissing() {
 // every DB-granted admin is ever removed by mistake. Idempotent and safe
 // to run on every start: it only ever adds the flag, never removes it,
 // and does nothing once every listed email already has it.
+// Invitation system: lets a user's Like allowance (see likeAction in
+// src/lib/actions/likes.ts) grow when they successfully invite someone
+// or are themselves successfully invited, on top of the existing
+// Share-based unlock. Defaults to 0 so every pre-existing user starts
+// with exactly the same allowance they always had; nothing changes for
+// an account until it actually earns a bonus.
+async function addInviteBonusLikesColumnToUsersIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE users ADD COLUMN invite_bonus_likes INTEGER NOT NULL DEFAULT 0;",
+      args: [],
+    });
+  } catch {
+    // Column already exists, nothing to do.
+  }
+}
+
 async function promoteBootstrapAdmins() {
   const raw = process.env.ADMIN_EMAILS || "";
   const emails = raw
@@ -492,6 +546,7 @@ export async function ensureMigrated(): Promise<void> {
     await addLastDigestSentAtColumnIfMissing();
     await addLikesCountColumnIfMissing();
     await addIsAdminColumnIfMissing();
+    await addInviteBonusLikesColumnToUsersIfMissing();
     await seedIfEmpty();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();

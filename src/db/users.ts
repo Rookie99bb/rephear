@@ -10,6 +10,7 @@ interface UserRow {
   created_at: string;
   location: string | null;
   is_admin: number;
+  invite_bonus_likes: number;
 }
 
 function toUser(row: UserRow): User {
@@ -21,6 +22,7 @@ function toUser(row: UserRow): User {
     createdAt: row.created_at,
     location: row.location,
     isAdmin: !!row.is_admin,
+    inviteBonusLikes: row.invite_bonus_likes ?? 0,
   };
 }
 
@@ -118,4 +120,29 @@ export async function countAdmins(): Promise<number> {
     .prepare("SELECT COUNT(*) AS c FROM users WHERE is_admin = 1")
     .get()) as unknown as { c: number };
   return row.c;
+}
+
+// Invitation system: raises this user's Like allowance (see likeAction in
+// src/lib/actions/likes.ts, which reads this value directly) by `amount`.
+// Called for both sides of a successful referral (see signupAction) —
+// always additive, never set directly, so concurrent/duplicate calls
+// can't clobber each other's grant, only stack (and duplicate calls are
+// themselves prevented upstream by the UNIQUE(new_user_id) constraint on
+// referrals, see createReferral).
+export async function grantInviteBonusLikes(
+  userId: string,
+  amount: number
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE users SET invite_bonus_likes = invite_bonus_likes + ? WHERE id = ?"
+    )
+    .run(amount, userId);
+}
+
+export async function getInviteBonusLikes(userId: string): Promise<number> {
+  const row = (await db
+    .prepare("SELECT invite_bonus_likes FROM users WHERE id = ?")
+    .get(userId)) as unknown as { invite_bonus_likes: number } | undefined;
+  return row?.invite_bonus_likes ?? 0;
 }
