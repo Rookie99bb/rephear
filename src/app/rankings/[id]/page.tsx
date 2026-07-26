@@ -74,6 +74,8 @@ icon="🏆"
 entries={mostLoved}
 emphasis="likes"
 rankingId={ranking.id}
+city={ranking.city}
+country={ranking.country}
 engagement={engagement}
 loggedIn={!!user}
 />
@@ -83,6 +85,8 @@ icon="🪙"
 entries={mostSupported}
 emphasis="credits"
 rankingId={ranking.id}
+city={ranking.city}
+country={ranking.country}
 engagement={engagement}
 loggedIn={!!user}
 />
