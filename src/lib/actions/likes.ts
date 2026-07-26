@@ -5,12 +5,19 @@ import { getCurrentUser } from "@/lib/session";
 import { likeCountForUser, incrementLike } from "@/db/likes";
 import { shareCountForUser } from "@/db/shares";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { getInviteBonusLikes } from "@/db/users";
 
 // A user's first Like on a Nominee is always free. Every Like after that
 // requires having Shared that same Nominee first, one Share unlocks one
 // extra Like, and this stacks indefinitely (share 3 times, get 3 extra
-// Likes). allowedLikes = 1 + (number of shares by this user for this
-// nominee); the Like is only recorded if likeCount < allowedLikes.
+// Likes). On top of that, the invitation system (see
+// grantInviteBonusLikes in src/db/users.ts) adds a flat, global bonus
+// earned by successfully inviting someone or being invited — it applies
+// to every Nominee a user Likes, not just one, reflecting the product
+// framing that these bonus Likes represent a general expanded ability
+// to recognise people, not a per-nominee unlock. allowedLikes = 1 +
+// shares + inviteBonusLikes; the Like is only recorded if
+// likeCount < allowedLikes.
 export async function likeAction(
 rankingId: string,
 profileId: string
@@ -26,7 +33,8 @@ return { error: "Too many Likes, please slow down and try again shortly." };
 
 const currentCount = await likeCountForUser(rankingId, profileId, user.id);
 const shares = await shareCountForUser(rankingId, profileId, user.id);
-const allowedLikes = 1 + shares;
+const inviteBonusLikes = await getInviteBonusLikes(user.id);
+const allowedLikes = 1 + shares + inviteBonusLikes;
 
 if (currentCount >= allowedLikes) {
 return {
