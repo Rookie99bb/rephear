@@ -36,6 +36,14 @@ support: { limit: 10, windowMs: 60 * 1000 }, // 10 per minute
 nominate: { limit: 20, windowMs: 60 * 1000 }, // 20 per minute
 passwordResetRequest: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
 passwordResetVerify: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
+// Invitation system anti-abuse: caps how many successful referrals can
+// be *credited* (reward granted) from a single IP per day, independent
+// of how many accounts that IP creates. Deliberately generous — the
+// goal is to blunt an obvious "one person spins up N throwaway emails
+// from their own browser to farm bonus Likes for themselves" script,
+// not to rate-limit normal signups, which already go through
+// signupAction's own validation.
+referralPerIp: { limit: 5, windowMs: 24 * 60 * 60 * 1000 }, // 5 per day per IP
 };
 
 // Returns true if the action is allowed (and records it), false if the

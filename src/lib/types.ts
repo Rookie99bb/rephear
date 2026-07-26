@@ -6,6 +6,11 @@ export interface User {
   createdAt: string;
   location: string | null;
   isAdmin: boolean;
+  // Invitation system: additional Like allowance earned by successfully
+  // inviting someone, or by being successfully invited (see
+  // grantInviteBonusLikes in src/db/users.ts). Stacks on top of the
+  // existing Share-based unlock in likeAction, never spent/decremented.
+  inviteBonusLikes: number;
 }
 
 export interface Ranking {
