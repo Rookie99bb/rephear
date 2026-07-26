@@ -281,6 +281,39 @@ created_at TEXT NOT NULL DEFAULT (datetime('now'))
 
 CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(invite_code);
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+
+-- Reputation Credit → real-money redemption (see src/lib/redemption.ts
+-- for the fee math). One row per redemption request from a claimed
+-- profile's owner. Amounts are computed and stored at request time, not
+-- recomputed later, so a rate change never rewrites history. Status
+-- starts 'pending'; an admin marks it 'paid' once the payout has
+-- actually been sent outside the app (Stripe/bank, manually — this
+-- table never moves money itself), or 'rejected' with admin_notes
+-- explaining why. requested_by is who submitted the request (the
+-- profile's claimed_by user at the time), kept as its own column
+-- (rather than just reading profiles.claimed_by later) so the record is
+-- still accurate even if ownership of the profile ever changes hands
+-- afterward.
+CREATE TABLE IF NOT EXISTS credit_redemptions (
+id TEXT PRIMARY KEY,
+profile_id TEXT NOT NULL REFERENCES profiles(id),
+requested_by TEXT NOT NULL REFERENCES users(id),
+credits INTEGER NOT NULL,
+gross_amount_cents INTEGER NOT NULL,
+fee_cents INTEGER NOT NULL,
+net_amount_cents INTEGER NOT NULL,
+fee_rate REAL NOT NULL DEFAULT 0.20,
+payout_contact TEXT NOT NULL DEFAULT '',
+status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'paid' | 'rejected' | 'cancelled'
+requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+reviewed_at TEXT,
+reviewed_by TEXT REFERENCES users(id),
+admin_notes TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_credit_redemptions_profile ON credit_redemptions(profile_id);
+CREATE INDEX IF NOT EXISTS idx_credit_redemptions_status ON credit_redemptions(status);
+CREATE INDEX IF NOT EXISTS idx_credit_redemptions_requested_by ON credit_redemptions(requested_by);
 `);
 }
 

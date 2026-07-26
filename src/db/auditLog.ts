@@ -54,6 +54,9 @@ export const AUDIT_ACTIONS = {
   SPAM_RESTORED: "spam_restored",
   ADMIN_GRANTED: "admin_granted",
   ADMIN_REVOKED: "admin_revoked",
+  REDEMPTION_REQUESTED: "redemption_requested",
+  REDEMPTION_PAID: "redemption_paid",
+  REDEMPTION_REJECTED: "redemption_rejected",
 } as const;
 
 // Audit Logs are append-only: this module intentionally exposes no
