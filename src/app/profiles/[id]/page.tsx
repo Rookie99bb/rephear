@@ -59,12 +59,20 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         hasPendingRequestElsewhere={!!pendingRequest && pendingRequest.profileId !== profile.id}
       />
 
-      <div className="mt-8 flex gap-8 border-y border-border py-4">
+      <div className="mt-8 flex flex-wrap items-center gap-8 border-y border-border py-4">
         <Stat label="Total Likes" value={stats.totalLikes} />
         <Stat
           label="Total Reputation Credits"
           value={stats.totalReputationCredits}
         />
+        {user && profile.claimStatus === "claimed" && profile.claimedBy === user.id && (
+          <Link
+            href={`/profiles/${profile.id}/redeem`}
+            className="ml-auto rounded-lg border border-ink px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-ink hover:text-white"
+          >
+            Redeem Support
+          </Link>
+        )}
       </div>
 
       <div className="mt-8">
