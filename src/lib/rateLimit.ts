@@ -44,6 +44,11 @@ passwordResetVerify: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
 // not to rate-limit normal signups, which already go through
 // signupAction's own validation.
 referralPerIp: { limit: 5, windowMs: 24 * 60 * 60 * 1000 }, // 5 per day per IP
+// Credit redemption requests, keyed per-user. Generous enough that a
+// legitimate profile owner is never blocked (redeeming is inherently
+// infrequent — you need fresh Support to accumulate first), while
+// stopping a script from hammering the request action.
+redeemCredits: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
 };
 
 // Returns true if the action is allowed (and records it), false if the

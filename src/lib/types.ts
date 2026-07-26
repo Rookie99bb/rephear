@@ -90,6 +90,32 @@ export interface LeaderboardEntry {
   reputationCredits: number;
 }
 
+export type RedemptionStatus = "pending" | "paid" | "rejected" | "cancelled";
+
+// A claimed profile's owner cashing out Reputation Credits their profile
+// has received as paid Support, into real money. The platform keeps
+// REDEMPTION_FEE_RATE (20%) as a service fee — see src/lib/redemption.ts
+// for the exchange-rate/fee math. Money never moves automatically here;
+// this row is a request + an immutable record of the amounts agreed at
+// request time, reviewed and (once actually paid out, outside the app,
+// by an admin) marked paid.
+export interface CreditRedemption {
+  id: string;
+  profileId: string;
+  requestedBy: string;
+  credits: number;
+  grossAmountCents: number;
+  feeCents: number;
+  netAmountCents: number;
+  feeRate: number;
+  payoutContact: string;
+  status: RedemptionStatus;
+  requestedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  adminNotes: string;
+}
+
 export type ClaimRequestStatus =
   | "pending"
   | "more_info_required"
