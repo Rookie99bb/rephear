@@ -8,6 +8,9 @@ import {
   supportedItemsForUser,
   type SupportedItem,
 } from "@/db/creditTransactions";
+import { getOrCreateInvitationForUser } from "@/db/invitations";
+import { getSiteUrl } from "@/lib/siteUrl";
+import InviteLinkCard from "@/components/InviteLinkCard";
 
 function ActivityList<T extends { rankingId: string; profileId: string }>({
   items,
@@ -39,10 +42,12 @@ export default async function SettingsPage() {
   const user = await getCurrentFullUser();
   if (!user) redirect("/login");
 
-  const [liked, supported] = await Promise.all([
+  const [liked, supported, invitation] = await Promise.all([
     likedItemsForUser(user.id),
     supportedItemsForUser(user.id),
+    getOrCreateInvitationForUser(user.id),
   ]);
+  const inviteUrl = `${getSiteUrl()}/invite/${invitation.inviteCode}`;
 
   return (
     <div className="mx-auto max-w-md">
@@ -84,6 +89,22 @@ export default async function SettingsPage() {
             </button>
           ))}
         </form>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-subtle">
+          Invite Friends
+        </h2>
+        <p className="mb-3 text-sm text-subtle">
+          Recognition belongs to everyone. Invite people who believe that
+          too — you both get a few more Likes to recognise others.
+        </p>
+        <InviteLinkCard
+          inviteUrl={inviteUrl}
+          totalVisits={invitation.totalVisits}
+          successfulInvites={invitation.successfulInvites}
+          inviteBonusLikes={user.inviteBonusLikes}
+        />
       </div>
 
       <div className="mt-10">
