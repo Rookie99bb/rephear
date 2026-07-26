@@ -33,6 +33,9 @@ export default async function AdminLayout({
           <Link href="/admin/claims" className="hover:text-ink">
             Claim Requests
           </Link>
+          <Link href="/admin/redemptions" className="hover:text-ink">
+            Redemptions
+          </Link>
           <Link href="/admin/moderation" className="hover:text-ink">
             Moderation
           </Link>
