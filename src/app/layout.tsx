@@ -6,6 +6,7 @@ import Link from "next/link";
 import SessionProvider from "@/components/SessionProvider";
 import HeaderAuth from "@/components/HeaderAuth";
 import LocationGate from "@/components/LocationGate";
+import Footer from "@/components/Footer";
 import { getCurrentFullUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 
@@ -26,7 +27,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="font-sans">
+      <body className="flex min-h-screen flex-col font-sans">
         <SessionProvider>
           <header className="border-b border-border">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
@@ -81,9 +82,10 @@ export default async function RootLayout({
               </nav>
             </div>
           </header>
-          <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
             {needsLocation ? <LocationGate /> : children}
           </main>
+          <Footer />
         </SessionProvider>
       </body>
     </html>
