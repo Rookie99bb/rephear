@@ -1,6 +1,7 @@
 import { rawClient, setMigrating } from "./client";
 import { seedIfEmpty } from "./seedData";
 import { seedLondonNicheRankings } from "./londonNicheRankings";
+import { seedLosAngelesRankings } from "./losAngelesRankings";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -645,6 +646,9 @@ export async function ensureMigrated(): Promise<void> {
     // see londonNicheRankings.ts for the idempotency guarantee (checked
     // by slug, never duplicates, never touches unrelated rows).
     await seedLondonNicheRankings();
+    // Same always-runs, slug-keyed idempotent pattern as
+    // seedLondonNicheRankings() above — see losAngelesRankings.ts.
+    await seedLosAngelesRankings();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
     await promoteBootstrapAdmins();
