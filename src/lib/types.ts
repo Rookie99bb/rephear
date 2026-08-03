@@ -28,6 +28,8 @@ export interface Ranking {
   // niche/subculture launch set — see src/db/londonNicheRankings.ts.
   slug: string | null;
   categoryId: string | null;
+  isPinned: boolean;
+  displayOrder: number;
 }
 
 // Parent Category grouping a curated set of Rankings (e.g. "Underground

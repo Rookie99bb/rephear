@@ -42,7 +42,9 @@ created_at TEXT NOT NULL DEFAULT (datetime('now')),
 is_hidden INTEGER NOT NULL DEFAULT 0,
 deleted_at TEXT,
 slug TEXT,
-category_id TEXT REFERENCES categories(id)
+category_id TEXT REFERENCES categories(id),
+is_pinned INTEGER NOT NULL DEFAULT 0,
+display_order INTEGER
 );
 
 -- Parent Category for a Ranking (e.g. "Underground Music", "Cosplay").
@@ -375,6 +377,83 @@ async function addRankingSlugAndCategoryColumnsIfMissing() {
   });
 }
 
+// Admin ranking controls (Pin + drag-and-drop ordering — see
+// src/app/admin/rankings). is_pinned and display_order are new columns
+// added after the original rankings table shipped, so any pre-existing
+// (production) database needs these ALTER TABLEs; a fresh database
+// already has both from the CREATE TABLE above (harmless no-op there,
+// caught below). Visibility reuses the existing is_hidden column/flow
+// (see setRankingHidden in db/rankings.ts and the Moderation panel) —
+// deliberately NOT a second, separate "is_visible" column, so there is
+// only ever one source of truth for whether a Ranking is public.
+async function addRankingPinAndOrderColumnsIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE rankings ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE rankings ADD COLUMN display_order INTEGER;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+}
+
+// Every Ranking must end up with a real display_order value (the whole
+// point of the column), but this can't be a simple ALTER TABLE default —
+// order is per-city and has to be computed from each city's existing
+// rows. Idempotent and safe to run on every start: only rows that still
+// have display_order IS NULL are touched (a fresh install's CREATE TABLE
+// rows, or any row created before this feature shipped); every other row
+// — including ones an admin has since deliberately reordered — is left
+// completely alone.
+//
+// Rows are assigned display_order in the same relative order they
+// already appeared in (createdAt DESC, i.e. newest first — the sort
+// every public Ranking list used before this feature existed), so
+// running this migration causes no visible reshuffle the first time it
+// runs against an existing database.
+async function backfillRankingDisplayOrder() {
+  const citiesResult = await rawClient.execute({
+    sql: "SELECT DISTINCT city FROM rankings WHERE display_order IS NULL",
+    args: [],
+  });
+  const cities = (citiesResult.rows as unknown as { city: string }[]).map(
+    (r) => r.city
+  );
+
+  for (const city of cities) {
+    const maxResult = await rawClient.execute({
+      sql: "SELECT MAX(display_order) as maxOrder FROM rankings WHERE city = ? AND display_order IS NOT NULL",
+      args: [city],
+    });
+    const maxOrder =
+      ((maxResult.rows[0] as unknown as { maxOrder: number | null })
+        ?.maxOrder as number | null) ?? 0;
+
+    const rowsResult = await rawClient.execute({
+      sql: "SELECT id FROM rankings WHERE city = ? AND display_order IS NULL ORDER BY created_at DESC",
+      args: [city],
+    });
+    const rows = rowsResult.rows as unknown as { id: string }[];
+
+    let nextOrder = maxOrder + 1;
+    for (const row of rows) {
+      await rawClient.execute({
+        sql: "UPDATE rankings SET display_order = ? WHERE id = ?",
+        args: [nextOrder, row.id],
+      });
+      nextOrder += 1;
+    }
+  }
+}
+
 async function addIsHiddenColumnIfMissing() {
   try {
     await rawClient.execute({
@@ -629,6 +708,7 @@ export async function ensureMigrated(): Promise<void> {
   try {
     await runMigrations();
     await addRankingSlugAndCategoryColumnsIfMissing();
+    await addRankingPinAndOrderColumnsIfMissing();
     await addIsHiddenColumnIfMissing();
     await addRefundedAtColumnToCreditTransactionsIfMissing();
     await addClaimWorkflowColumnsIfMissing();
@@ -649,6 +729,7 @@ export async function ensureMigrated(): Promise<void> {
     // Same always-runs, slug-keyed idempotent pattern as
     // seedLondonNicheRankings() above — see losAngelesRankings.ts.
     await seedLosAngelesRankings();
+    await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
     await promoteBootstrapAdmins();

@@ -14,6 +14,8 @@ interface RankingRow {
   deleted_at: string | null;
   slug: string | null;
   category_id: string | null;
+  is_pinned: number;
+  display_order: number | null;
 }
 
 function toRanking(row: RankingRow): Ranking {
@@ -29,7 +31,25 @@ function toRanking(row: RankingRow): Ranking {
     deletedAt: row.deleted_at,
     slug: row.slug,
     categoryId: row.category_id,
+    isPinned: !!row.is_pinned,
+    // Legacy safety only: every row is backfilled a real value by
+    // backfillRankingDisplayOrder() in schema.ts, and createRanking()
+    // below always assigns one to new rows, so this fallback should
+    // never actually be exercised in practice.
+    displayOrder: row.display_order ?? 0,
   };
+}
+
+// Used by createRanking() below (every new Ranking gets the next slot
+// in its city automatically) and available to callers that need to
+// know the current high-water mark for a city without inserting yet.
+export async function getNextDisplayOrderForCity(city: string): Promise<number> {
+  const row = (await db
+    .prepare(
+      "SELECT COALESCE(MAX(display_order), 0) as maxOrder FROM rankings WHERE city = ?"
+    )
+    .get(city.trim())) as unknown as { maxOrder: number } | undefined;
+  return (row?.maxOrder ?? 0) + 1;
 }
 
 // createdAt is an optional override used only by the demo seed data.
@@ -47,21 +67,27 @@ export async function createRanking(params: {
   categoryId?: string;
 }): Promise<Ranking> {
   const id = newId();
+  const city = params.city.trim();
+  // Every new Ranking starts unpinned (is_pinned defaults to 0 — see
+  // schema.ts) and slots in after every other Ranking already in this
+  // city, admin-defined order is never disturbed by new arrivals.
+  const displayOrder = await getNextDisplayOrderForCity(city);
   await db
     .prepare(
-      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at, slug, category_id)
-     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`
+      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at, slug, category_id, display_order)
+     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`
     )
     .run(
       id,
       params.title.trim(),
       params.country.trim(),
-      params.city.trim(),
+      city,
       params.description.trim(),
       params.createdBy,
       params.createdAt ?? null,
       params.slug ?? null,
-      params.categoryId ?? null
+      params.categoryId ?? null,
+      displayOrder
     );
   return (await findRankingById(id))!;
 }
@@ -214,9 +240,15 @@ export async function searchRankings(query: string, limit = 40): Promise<Ranking
   return rows.map(toRanking);
 }
 
+// Sort here is pinned-first, then admin-defined display_order — this is
+// the "browse this region's Rankings" ordering the admin controls panel
+// manages. created_at DESC remains as a tiebreaker only (e.g. legacy rows
+// that briefly share a display_order during backfill).
 export async function listAllRankings(): Promise<Ranking[]> {
   const rows = (await db
-    .prepare(`SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ORDER BY created_at DESC`)
+    .prepare(
+      `SELECT * FROM rankings WHERE ${PUBLIC_WHERE} ORDER BY is_pinned DESC, display_order ASC, created_at DESC`
+    )
     .all()) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
@@ -246,7 +278,9 @@ export async function searchRankingsByRegion(params: {
   }
   const where = `WHERE ${clauses.join(" AND ")}`;
   const rows = (await db
-    .prepare(`SELECT * FROM rankings ${where} ORDER BY created_at DESC`)
+    .prepare(
+      `SELECT * FROM rankings ${where} ORDER BY is_pinned DESC, display_order ASC, created_at DESC`
+    )
     .all(...values)) as unknown as RankingRow[];
   return rows.map(toRanking);
 }
@@ -273,4 +307,77 @@ export async function softDeleteRanking(id: string): Promise<void> {
 
 export async function restoreRanking(id: string): Promise<void> {
   await db.prepare("UPDATE rankings SET deleted_at = NULL WHERE id = ?").run(id);
+}
+
+// Mirrors setRankingHidden() above. Reused by the /admin/rankings Pin/Unpin
+// buttons; visibility (is_hidden) and pin (is_pinned) are separate flags
+// that can be combined freely — pinning never changes visibility and vice
+// versa.
+export async function setRankingPinned(id: string, pinned: boolean): Promise<void> {
+  await db
+    .prepare("UPDATE rankings SET is_pinned = ? WHERE id = ?")
+    .run(pinned ? 1 : 0, id);
+}
+
+// Persists a new drag-and-drop order for one city's Rankings. orderedIds
+// must be every Ranking id currently shown in that city's admin list, in
+// their new top-to-bottom order (pinned and unpinned Rankings mixed
+// together exactly as the admin UI displays them) — index 0 becomes
+// display_order 1, and so on. is_pinned is never touched here, so moving a
+// card up or down never silently (un)pins it.
+//
+// The `AND city = ?` guard on every UPDATE is deliberate belt-and-braces:
+// even if a caller somehow passed an id from a different city, that row's
+// display_order simply wouldn't be touched, instead of corrupting another
+// city's ordering.
+export async function reorderRankingsInCity(
+  city: string,
+  orderedIds: string[]
+): Promise<void> {
+  const trimmedCity = city.trim();
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db
+      .prepare(
+        "UPDATE rankings SET display_order = ? WHERE id = ? AND city = ?"
+      )
+      .run(i + 1, orderedIds[i], trimmedCity);
+  }
+}
+
+// Backs the new /admin/rankings board. Unfiltered by hidden/pinned unless
+// asked, but always excludes soft-deleted Rankings — restoring a
+// soft-deleted Ranking is a distinct workflow that already lives on
+// /admin/moderation, and a deleted Ranking has no meaningful position to
+// drag into this board's order.
+export async function listRankingsForAdmin(filters: {
+  country?: string;
+  city?: string;
+  hidden?: boolean;
+  pinned?: boolean;
+}): Promise<Ranking[]> {
+  const clauses: string[] = ["deleted_at IS NULL"];
+  const values: (string | number)[] = [];
+  if (filters.country) {
+    clauses.push("country = ?");
+    values.push(filters.country);
+  }
+  if (filters.city) {
+    clauses.push("city = ?");
+    values.push(filters.city);
+  }
+  if (filters.hidden !== undefined) {
+    clauses.push("is_hidden = ?");
+    values.push(filters.hidden ? 1 : 0);
+  }
+  if (filters.pinned !== undefined) {
+    clauses.push("is_pinned = ?");
+    values.push(filters.pinned ? 1 : 0);
+  }
+  const where = `WHERE ${clauses.join(" AND ")}`;
+  const rows = (await db
+    .prepare(
+      `SELECT * FROM rankings ${where} ORDER BY is_pinned DESC, display_order ASC, created_at DESC`
+    )
+    .all(...values)) as unknown as RankingRow[];
+  return rows.map(toRanking);
 }
