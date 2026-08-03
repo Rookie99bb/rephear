@@ -1,5 +1,6 @@
 import { rawClient, setMigrating } from "./client";
 import { seedIfEmpty } from "./seedData";
+import { seedLondonNicheRankings } from "./londonNicheRankings";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -38,7 +39,24 @@ description TEXT NOT NULL DEFAULT '',
 created_by TEXT NOT NULL REFERENCES users(id),
 created_at TEXT NOT NULL DEFAULT (datetime('now')),
 is_hidden INTEGER NOT NULL DEFAULT 0,
-deleted_at TEXT
+deleted_at TEXT,
+slug TEXT,
+category_id TEXT REFERENCES categories(id)
+);
+
+-- Parent Category for a Ranking (e.g. "Underground Music", "Cosplay").
+-- Optional/nullable on rankings — the vast majority of existing Rankings
+-- (the community-created MVP kind) have no Category at all; this exists
+-- specifically for curated, editorially-grouped Ranking sets such as the
+-- London niche/subculture launch set. slug is the stable, human-readable
+-- unique identifier admins/seed scripts key off of (never the id), same
+-- pattern as rankings.slug below.
+CREATE TABLE IF NOT EXISTS categories (
+id TEXT PRIMARY KEY,
+name TEXT NOT NULL,
+slug TEXT NOT NULL UNIQUE,
+description TEXT NOT NULL DEFAULT '',
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- Nominees. A nominee belongs to exactly ONE Ranking, there is no
@@ -317,6 +335,45 @@ CREATE INDEX IF NOT EXISTS idx_credit_redemptions_requested_by ON credit_redempt
 `);
 }
 
+// London niche/subculture launch set (see src/db/londonNicheRankings.ts):
+// rankings.slug/category_id are new columns added after the original
+// rankings table shipped, so any pre-existing (production) database needs
+// these ALTER TABLEs. A fresh database already has both columns from the
+// CREATE TABLE above, so these are harmless no-ops there (caught below).
+// The unique-slug and category-id indexes are created here too, not in
+// the CREATE TABLE block above, so they only ever run *after* the column
+// is guaranteed to exist on every database, old or new.
+async function addRankingSlugAndCategoryColumnsIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE rankings ADD COLUMN slug TEXT;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE rankings ADD COLUMN category_id TEXT REFERENCES categories(id);",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+  // Partial unique index: only enforced for rows that actually have a
+  // slug. The large majority of existing (community-created) Rankings
+  // have slug = NULL, and SQLite treats every NULL as distinct for
+  // uniqueness purposes, so this never conflicts with legacy rows.
+  await rawClient.execute({
+    sql: "CREATE UNIQUE INDEX IF NOT EXISTS idx_rankings_slug ON rankings(slug) WHERE slug IS NOT NULL;",
+    args: [],
+  });
+  await rawClient.execute({
+    sql: "CREATE INDEX IF NOT EXISTS idx_rankings_category ON rankings(category_id);",
+    args: [],
+  });
+}
+
 async function addIsHiddenColumnIfMissing() {
   try {
     await rawClient.execute({
@@ -570,6 +627,7 @@ export async function ensureMigrated(): Promise<void> {
   setMigrating(true);
   try {
     await runMigrations();
+    await addRankingSlugAndCategoryColumnsIfMissing();
     await addIsHiddenColumnIfMissing();
     await addRefundedAtColumnToCreditTransactionsIfMissing();
     await addClaimWorkflowColumnsIfMissing();
@@ -581,6 +639,12 @@ export async function ensureMigrated(): Promise<void> {
     await addIsAdminColumnIfMissing();
     await addInviteBonusLikesColumnToUsersIfMissing();
     await seedIfEmpty();
+    // Always runs (unlike seedIfEmpty, which only fires on a totally
+    // empty database) since this seeds a fixed, curated set of Rankings
+    // by slug regardless of whatever else is already in the database —
+    // see londonNicheRankings.ts for the idempotency guarantee (checked
+    // by slug, never duplicates, never touches unrelated rows).
+    await seedLondonNicheRankings();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
     await promoteBootstrapAdmins();

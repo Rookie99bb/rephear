@@ -12,6 +12,8 @@ interface RankingRow {
   created_at: string;
   is_hidden: number;
   deleted_at: string | null;
+  slug: string | null;
+  category_id: string | null;
 }
 
 function toRanking(row: RankingRow): Ranking {
@@ -25,10 +27,15 @@ function toRanking(row: RankingRow): Ranking {
     createdAt: row.created_at,
     isHidden: !!row.is_hidden,
     deletedAt: row.deleted_at,
+    slug: row.slug,
+    categoryId: row.category_id,
   };
 }
 
 // createdAt is an optional override used only by the demo seed data.
+// slug/categoryId are optional overrides used only by curated/editorial
+// Ranking sets (see src/db/londonNicheRankings.ts) — ordinary
+// community-created Rankings never set either.
 export async function createRanking(params: {
   title: string;
   country: string;
@@ -36,12 +43,14 @@ export async function createRanking(params: {
   description: string;
   createdBy: string;
   createdAt?: string;
+  slug?: string;
+  categoryId?: string;
 }): Promise<Ranking> {
   const id = newId();
   await db
     .prepare(
-      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
+      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at, slug, category_id)
+     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`
     )
     .run(
       id,
@@ -50,9 +59,21 @@ export async function createRanking(params: {
       params.city.trim(),
       params.description.trim(),
       params.createdBy,
-      params.createdAt ?? null
+      params.createdAt ?? null,
+      params.slug ?? null,
+      params.categoryId ?? null
     );
   return (await findRankingById(id))!;
+}
+
+// Used by curated seed scripts (see londonNicheRankings.ts) to check
+// whether a Ranking already exists before inserting — the idempotency
+// guarantee for those seeds is entirely keyed off this lookup.
+export async function findRankingBySlug(slug: string): Promise<Ranking | null> {
+  const row = (await db
+    .prepare("SELECT * FROM rankings WHERE slug = ?")
+    .get(slug)) as unknown as RankingRow | undefined;
+  return row ? toRanking(row) : null;
 }
 
 // Returns a Ranking regardless of hidden/soft-deleted status — used both
