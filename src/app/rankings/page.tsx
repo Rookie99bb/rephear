@@ -5,11 +5,13 @@ import {
   searchRankings,
   getRankingCountsByCity,
 } from "@/db/rankings";
+import { listCategories } from "@/db/categories";
 import RankingCard from "@/components/RankingCard";
 import CountryFlagBar from "@/components/CountryFlagBar";
 import RegionDirectory from "@/components/RegionDirectory";
 import { listCountries } from "@/lib/locations";
 import { getCurrentFullUser } from "@/lib/session";
+import type { Ranking } from "@/lib/types";
 
 // Rankings are location-first by default: with no explicit filter, this
 // page shows only the current user's chosen location — never a mix of
@@ -64,6 +66,39 @@ export default async function BrowseRankingsPage({
   const directoryCountries = isCountryDirectory
     ? listCountries().filter((c) => c.country === country)
     : listCountries();
+
+  // Group the flat Ranking list by parent Category, if any of it has
+  // one. Most cities have zero categorised Rankings (Category only
+  // exists for curated sets like the London niche/subculture launch
+  // set — see src/db/londonNicheRankings.ts), in which case
+  // categoryGroups is simply empty and rendering falls straight
+  // through to the original flat grid, unchanged. Skipped entirely for
+  // search results and the directory view, where grouping by category
+  // isn't meaningful.
+  let categoryGroups: { id: string; name: string; rankings: Ranking[] }[] = [];
+  let uncategorizedRankings: Ranking[] = rankings;
+  if (!isDirectory && !query && rankings.length > 0) {
+    const categories = await listCategories();
+    const rankingsByCategory = new Map<string, Ranking[]>();
+    const leftover: Ranking[] = [];
+    for (const r of rankings) {
+      if (r.categoryId) {
+        const arr = rankingsByCategory.get(r.categoryId) ?? [];
+        arr.push(r);
+        rankingsByCategory.set(r.categoryId, arr);
+      } else {
+        leftover.push(r);
+      }
+    }
+    categoryGroups = categories
+      .filter((c) => rankingsByCategory.has(c.id))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        rankings: rankingsByCategory.get(c.id)!,
+      }));
+    uncategorizedRankings = leftover;
+  }
 
   return (
     <div>
@@ -170,6 +205,33 @@ export default async function BrowseRankingsPage({
             </Link>
           </div>
         )
+      ) : categoryGroups.length > 0 ? (
+        <div className="flex flex-col gap-8">
+          {categoryGroups.map((group) => (
+            <div key={group.id}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
+                {group.name}
+              </h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {group.rankings.map((r) => (
+                  <RankingCard key={r.id} ranking={r} />
+                ))}
+              </div>
+            </div>
+          ))}
+          {uncategorizedRankings.length > 0 && (
+            <div>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
+                All Rankings
+              </h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {uncategorizedRankings.map((r) => (
+                  <RankingCard key={r.id} ranking={r} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {rankings.map((r) => (
