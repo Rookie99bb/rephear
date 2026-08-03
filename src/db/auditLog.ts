@@ -57,6 +57,7 @@ export const AUDIT_ACTIONS = {
   REDEMPTION_REQUESTED: "redemption_requested",
   REDEMPTION_PAID: "redemption_paid",
   REDEMPTION_REJECTED: "redemption_rejected",
+  RANKING_CREATED: "ranking_created",
 } as const;
 
 // Audit Logs are append-only: this module intentionally exposes no

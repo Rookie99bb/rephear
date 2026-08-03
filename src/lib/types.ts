@@ -23,6 +23,21 @@ export interface Ranking {
   createdAt: string;
   isHidden: boolean;
   deletedAt: string | null;
+  // Both null for the vast majority of (community-created) Rankings.
+  // Only set for curated, editorially-grouped sets such as the London
+  // niche/subculture launch set — see src/db/londonNicheRankings.ts.
+  slug: string | null;
+  categoryId: string | null;
+}
+
+// Parent Category grouping a curated set of Rankings (e.g. "Underground
+// Music", "Cosplay"). Most Rankings have no Category at all.
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  createdAt: string;
 }
 
 export type ClaimStatus = "unclaimed" | "claimed";
