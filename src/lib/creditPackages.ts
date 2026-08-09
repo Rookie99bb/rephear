@@ -20,3 +20,18 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
 export function findCreditPackage(id: string): CreditPackage | undefined {
   return CREDIT_PACKAGES.find((p) => p.id === id);
 }
+
+// Same exchange rate the fixed packages above use, exported so the
+// "Custom amount" option (SupportPackages.tsx / api/checkout) computes
+// Credits the exact same way instead of hardcoding "10" a second time.
+export const CREDITS_PER_DOLLAR = 10;
+
+// Whole-dollar bounds for a custom Support amount. Minimum keeps every
+// charge comfortably above Stripe's own $0.50 minimum; maximum is a
+// sanity ceiling against a fat-fingered extra zero, not a real spending
+// limit — someone who genuinely wants to give more can just submit the
+// form again.
+export const CUSTOM_AMOUNT_MIN_DOLLARS = 1;
+export const CUSTOM_AMOUNT_MAX_DOLLARS = 1000;
+
+export const CUSTOM_PACKAGE_ID = "custom";
