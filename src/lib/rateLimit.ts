@@ -34,6 +34,7 @@ like: { limit: 30, windowMs: 60 * 1000 }, // 30 per minute
 share: { limit: 20, windowMs: 60 * 1000 }, // 20 per minute
 support: { limit: 10, windowMs: 60 * 1000 }, // 10 per minute
 nominate: { limit: 20, windowMs: 60 * 1000 }, // 20 per minute
+photoUpload: { limit: 20, windowMs: 60 * 60 * 1000 }, // 20 per hour
 passwordResetRequest: { limit: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
 passwordResetVerify: { limit: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
 // Invitation system anti-abuse: caps how many successful referrals can
