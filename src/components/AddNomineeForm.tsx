@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { addNomineeAction, type ActionResult } from "@/lib/actions/nominees";
+import PhotoPicker from "@/components/PhotoPicker";
 
 const initialState: ActionResult = {};
 
@@ -20,12 +21,10 @@ export default function AddNomineeForm({ rankingId }: { rankingId: string }) {
         required
         className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
       />
-      <input
-        name="photoUrl"
-        type="url"
-        placeholder="Photo URL (optional)"
-        className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
-      />
+      <div className="flex flex-col gap-1.5 text-sm">
+        <span className="font-medium text-ink">Photo (optional)</span>
+        <PhotoPicker name="photoUrl" />
+      </div>
       <textarea
         name="bio"
         placeholder="Short description (optional)"

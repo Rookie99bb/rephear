@@ -4,20 +4,24 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { likeAction } from "@/lib/actions/likes";
 import { shareAction } from "@/lib/actions/shares";
+import ShareProfileDialog from "@/components/ShareProfileDialog";
 
 // Renders the Like + Share cluster for one Nominee. A user's first Like is
 // free; after that the Like button stays disabled until they Share this
-// Nominee (copying its link), which unlocks exactly one more Like, and
-// this repeats indefinitely (share again, unlock another Like). Both
-// buttons live in one component because they share this unlock state.
+// Nominee (recorded once they actually copy the link or complete a native
+// share from the Share dialog below), which unlocks exactly one more
+// Like, and this repeats indefinitely (share again, unlock another Like).
+// Both buttons live in one component because they share this unlock
+// state.
 //
 // variant="pill" is the original labeled-button layout (kept for any
 // future non-card usage). variant="icon" renders the same logic as two
 // small glass icon buttons, meant to sit on top of a photo (used by the
-// premium nominee cover card in LeaderboardTable).
+// premium nominee cover card in NomineeCard) — Like first, then Share.
 export default function LikeButton({
   rankingId,
   profileId,
+  profileName,
   likeCount,
   allowedLikes,
   loggedIn,
@@ -25,6 +29,7 @@ export default function LikeButton({
 }: {
   rankingId: string;
   profileId: string;
+  profileName?: string;
   likeCount: number;
   allowedLikes: number;
   loggedIn: boolean;
@@ -33,6 +38,7 @@ export default function LikeButton({
   const [count, setCount] = useState(likeCount);
   const [allowed, setAllowed] = useState(allowedLikes);
   const [copied, setCopied] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -57,11 +63,11 @@ export default function LikeButton({
     });
   }
 
-  function handleShare() {
-    const url = `${window.location.origin}/profiles/${profileId}`;
-    navigator.clipboard?.writeText(url).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Records a Share with the backend and unlocks the next Like. Shared by
+  // both the pill variant's own copy-link button and (via onShared, below)
+  // the icon variant's Share dialog, which handles the actual copy /
+  // native-share UI itself and just calls back here once it's done.
+  function recordShare() {
     startTransition(async () => {
       const result = await shareAction(rankingId, profileId);
       if (result.error) {
@@ -70,6 +76,14 @@ export default function LikeButton({
         setAllowed(result.allowedLikes);
       }
     });
+  }
+
+  function handleShare() {
+    const url = `${window.location.origin}/profiles/${profileId}`;
+    navigator.clipboard?.writeText(url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    recordShare();
   }
 
   if (variant === "icon") {
@@ -85,7 +99,7 @@ export default function LikeButton({
             className={iconButtonClass}
             onClick={(e) => e.stopPropagation()}
           >
-            ♡
+            👍
           </Link>
           <Link
             href="/login"
@@ -115,22 +129,31 @@ export default function LikeButton({
           }
           className={`${iconButtonClass} ${!canLike ? "opacity-40" : ""}`}
         >
-          <span className={count > 0 ? "" : "opacity-90"}>
-            {count > 0 ? "❤️" : "♡"}
-          </span>
+          <span className={count > 0 ? "" : "opacity-70"}>👍</span>
         </button>
         <button
           type="button"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleShare();
+            setShareDialogOpen(true);
           }}
-          title={copied ? "Link copied!" : "Share (unlocks another Like)"}
+          title="Share"
           className={iconButtonClass}
         >
-          {copied ? "✓" : "↗"}
+          ↗
         </button>
+        <ShareProfileDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          profileUrl={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/profiles/${profileId}`
+              : `/profiles/${profileId}`
+          }
+          profileName={profileName}
+          onShared={recordShare}
+        />
       </>
     );
   }
