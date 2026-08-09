@@ -89,6 +89,12 @@ export default function LikeButton({
   if (variant === "icon") {
     const iconButtonClass =
       "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30";
+    // Like gets its own vivid, colorful treatment -- same premium
+    // "not just glass" idea as SupportButton.tsx, in gold rather than
+    // pink so the two stay visually distinct while both reading as
+    // prominent, alive actions (as opposed to the plain glass Share/More).
+    const likeButtonClass =
+      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 text-[16px] leading-none text-white shadow-[0_6px_16px_-4px_rgba(180,83,9,0.7)] ring-1 ring-white/40 backdrop-blur-md transition hover:scale-110 hover:shadow-[0_10px_22px_-4px_rgba(180,83,9,0.85)] active:scale-95";
 
     if (!loggedIn) {
       return (
@@ -96,7 +102,7 @@ export default function LikeButton({
           <Link
             href="/login"
             title="Log in to Like"
-            className={iconButtonClass}
+            className={likeButtonClass}
             onClick={(e) => e.stopPropagation()}
           >
             👍
@@ -127,9 +133,9 @@ export default function LikeButton({
             error ??
             (!canLike ? "Share to Like again" : count > 0 ? `${count} Likes` : "Like")
           }
-          className={`${iconButtonClass} ${!canLike ? "opacity-40" : ""}`}
+          className={`${likeButtonClass} ${!canLike ? "opacity-40" : ""}`}
         >
-          <span className={count > 0 ? "" : "opacity-70"}>👍</span>
+          👍
         </button>
         <button
           type="button"
