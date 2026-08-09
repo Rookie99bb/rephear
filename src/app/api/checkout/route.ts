@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { getStripeClient } from "@/lib/stripe";
 import { getSiteUrl } from "@/lib/siteUrl";
-import { findCreditPackage } from "@/lib/creditPackages";
+import {
+  findCreditPackage,
+  CREDITS_PER_DOLLAR,
+  CUSTOM_AMOUNT_MIN_DOLLARS,
+  CUSTOM_AMOUNT_MAX_DOLLARS,
+  CUSTOM_PACKAGE_ID,
+} from "@/lib/creditPackages";
 import { findRankingById } from "@/db/rankings";
 import { findProfileById } from "@/db/profiles";
 import { createPendingPayment } from "@/db/payments";
@@ -29,12 +35,50 @@ export async function POST(request: NextRequest) {
   const rankingId = String(body.rankingId || "");
   const profileId = String(body.profileId || "");
   const packageId = String(body.packageId || "");
+  // Custom amount is a whole number of US dollars, entered by the
+  // supporter instead of picking one of the fixed packages below — see
+  // SupportPackages.tsx. Absent/undefined when a fixed package was
+  // chosen instead.
+  const customAmountDollars = body.customAmountDollars;
 
   const ranking = await findRankingById(rankingId);
   const profile = await findProfileById(profileId);
-  const pkg = findCreditPackage(packageId);
 
-  if (!ranking || !profile || !pkg) {
+  if (!ranking || !profile) {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // Resolve exactly one of: a known fixed package, or a validated custom
+  // dollar amount, into the same {id, credits, priceCents, label} shape
+  // the rest of this handler already works with — so nothing below this
+  // block needs to know or care which path was taken.
+  let pkg: { id: string; credits: number; priceCents: number; label: string } | undefined;
+  if (packageId) {
+    pkg = findCreditPackage(packageId);
+  } else if (customAmountDollars !== undefined && customAmountDollars !== null) {
+    const dollars = Number(customAmountDollars);
+    if (
+      !Number.isInteger(dollars) ||
+      dollars < CUSTOM_AMOUNT_MIN_DOLLARS ||
+      dollars > CUSTOM_AMOUNT_MAX_DOLLARS
+    ) {
+      return NextResponse.json(
+        {
+          error: `Enter a whole dollar amount between $${CUSTOM_AMOUNT_MIN_DOLLARS} and $${CUSTOM_AMOUNT_MAX_DOLLARS}.`,
+        },
+        { status: 400 }
+      );
+    }
+    const credits = dollars * CREDITS_PER_DOLLAR;
+    pkg = {
+      id: CUSTOM_PACKAGE_ID,
+      credits,
+      priceCents: dollars * 100,
+      label: `${credits.toLocaleString()} Reputation Credits`,
+    };
+  }
+
+  if (!pkg) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   if (ranking.isHidden || ranking.deletedAt) {
@@ -80,7 +124,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       rankingId,
       profileId,
-      packageId,
+      packageId: pkg.id,
       credits: String(pkg.credits),
     },
   });
