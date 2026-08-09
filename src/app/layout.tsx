@@ -14,7 +14,7 @@ import { isAdminEmail } from "@/lib/admin";
 export const metadata: Metadata = {
   title: "RepHear",
   description:
-    "An open public ranking platform where communities recognize and support people together.",
+    "RepHear is a public reputation platform where every voice helps recognize, appreciate, and support people. Together, we build public reputation. Every voice deserves to be heard.",
 };
 
 export default async function RootLayout({
