@@ -12,6 +12,12 @@ import {
   creditProfileForPayment,
   reverseCreditsForPayment,
 } from "@/db/creditTransactions";
+import { findUserById } from "@/db/users";
+import { findProfileById } from "@/db/profiles";
+import { sendEmail } from "@/lib/email";
+import { thankYouSupportEmail } from "@/emails/thankYouSupport";
+import { emitNotificationEvent } from "@/lib/notificationEvents";
+import type { Payment } from "@/lib/types";
 
 // Stripe requires the raw request body (not JSON-parsed) to verify the
 // webhook signature. Next.js App Router route handlers give us that via
@@ -54,14 +60,34 @@ export async function POST(request: NextRequest) {
         );
       }
       // UNIQUE(payment_id) on credit_transactions makes this safe to run
-      // even if Stripe redelivers the same event.
-      await creditProfileForPayment({
+      // even if Stripe redelivers the same event. granted is false on a
+      // redelivery of an event we already processed — only fire the
+      // notification/email the first time Credits are actually granted,
+      // never on a Stripe retry of the same event.
+      const granted = await creditProfileForPayment({
         profileId: payment.profileId,
         rankingId: payment.rankingId,
         supporterUserId: payment.userId,
         paymentId: payment.id,
         credits: payment.credits,
       });
+      if (granted) {
+        emitNotificationEvent({
+          type: "support_sent",
+          profileId: payment.profileId,
+          rankingId: payment.rankingId,
+          supporterUserId: payment.userId,
+          credits: payment.credits,
+          paymentId: payment.id,
+        });
+        // Fire-and-forget: must never block or fail the webhook
+        // response, which Stripe expects quickly and will otherwise
+        // retry. Only sent for a genuinely completed payment — never
+        // for failed/cancelled checkouts, which never reach this case.
+        sendThankYouSupportEmail(payment).catch((err) =>
+          console.error("[stripe webhook] Failed to send thank-you email:", err)
+        );
+      }
       break;
     }
     case "checkout.session.expired": {
@@ -117,3 +143,34 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ received: true });
 }
+
+// Looks up the supporter and the Nominee they just supported, then sends
+// the "Thank You!" email — deliberately framed as a thank-you, not a
+// receipt (no line-item pricing/invoice layout). Silently no-ops if
+// either record is missing (e.g. a soft-deleted profile) rather than
+// throwing, since this must never take down webhook processing.
+async function sendThankYouSupportEmail(payment: Payment): Promise<void> {
+  const [user, profile] = await Promise.all([
+    findUserById(payment.userId),
+    findProfileById(payment.profileId),
+  ]);
+  if (!user || !profile) return;
+
+  const dateLabel = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const { subject, html } = thankYouSupportEmail({
+    supporterName: user.name,
+    profileName: profile.name,
+    profileId: profile.id,
+    rankingId: payment.rankingId,
+    credits: payment.credits,
+    dateLabel,
+  });
+
+  await sendEmail({ to: user.email, subject, html });
+}
+

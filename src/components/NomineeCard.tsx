@@ -1,6 +1,9 @@
 import Link from "next/link";
 import NomineeCoverImage from "@/components/NomineeCoverImage";
 import LikeButton from "@/components/LikeButton";
+import SupportButton from "@/components/SupportButton";
+import NomineeStats from "@/components/NomineeStats";
+import NomineeCardGlow from "@/components/NomineeCardGlow";
 import type { LeaderboardEntry } from "@/lib/types";
 
 // Premium, full-photo "magazine cover" nominee card. Replaces the old
@@ -19,8 +22,12 @@ import type { LeaderboardEntry } from "@/lib/types";
 // passed to Client Component props" at request time for dynamic routes,
 // which `next build` does NOT catch (this exact mistake shipped once and
 // 500'd every Ranking page that had a Nominee on it). Any control that
-// truly needs client-side interactivity belongs in its own small
-// "use client" component instead — see LikeButton.tsx for the pattern.
+// truly needs client-side interactivity (animation, state, context)
+// belongs in its own small "use client" component instead — see
+// SupportButton.tsx, NomineeStats.tsx, NomineeCardGlow.tsx and
+// LikeButton.tsx for the pattern. Those subscribe to
+// SupportCelebrationProvider's context (mounted once in
+// src/app/layout.tsx) to know when THIS profile was just Supported.
 export default function NomineeCard({
   rank,
   entry,
@@ -69,6 +76,11 @@ export default function NomineeCard({
           at the bottom, confined to the bottom 40% of the card. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] h-[40%] bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
+      {/* Pink glow ring, lit up for ~1s the instant this profile's
+          Support is confirmed elsewhere on the page — connects the
+          full-screen celebration dialog back to this exact card. */}
+      <NomineeCardGlow profileId={profile.id} />
+
       {/* Top-left: rank badge */}
       <div className="absolute left-3 top-3 z-20">
         <span className="inline-flex items-center rounded-full bg-black/35 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md">
@@ -78,17 +90,7 @@ export default function NomineeCard({
 
       {/* Top-right: Support / Like / Share / More */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
-        <Link
-          href={
-            loggedIn
-              ? `/rankings/${rankingId}/support/${profile.id}`
-              : "/login"
-          }
-          title={loggedIn ? "Support" : "Log in to Support"}
-          className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30"
-        >
-          💝
-        </Link>
+        <SupportButton rankingId={rankingId} profileId={profile.id} loggedIn={loggedIn} />
         <LikeButton
           rankingId={rankingId}
           profileId={profile.id}
@@ -118,14 +120,12 @@ export default function NomineeCard({
           {city}
           {country ? `, ${country}` : ""}
         </p>
-        <div className="mt-2 flex items-center gap-3 text-[13px] font-medium text-white/95">
-          <span className={emphasis === "likes" ? "text-white" : "text-white/70"}>
-            ❤️ {entry.likeCount.toLocaleString()} Likes
-          </span>
-          <span className={emphasis === "credits" ? "text-white" : "text-white/70"}>
-            💝 {entry.reputationCredits.toLocaleString()} Credits
-          </span>
-        </div>
+        <NomineeStats
+          profileId={profile.id}
+          likeCount={entry.likeCount}
+          credits={entry.reputationCredits}
+          emphasis={emphasis}
+        />
       </div>
     </li>
   );
