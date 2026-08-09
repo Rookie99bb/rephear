@@ -29,9 +29,16 @@ function CelebrationContent() {
   const [secondsLeft, setSecondsLeft] = useState(5);
   const [displayCredits, setDisplayCredits] = useState(0);
 
-  // Guaranteed non-null while this is mounted (see SupportCelebrationDialog
-  // above), but TS can't see that across renders.
-  const data = celebration!;
+  // Snapshotted ONCE via the lazy initializer, not read live from
+  // `celebration` on every render. This matters because AnimatePresence
+  // keeps this component mounted for its exit-fade animation *after*
+  // close() has already set the context's celebration back to null --
+  // without this snapshot, that re-render would hit `celebration!.
+  // profileName` etc. on an actual null value and crash with "Cannot
+  // read properties of null", surfacing to the user as Next's generic
+  // "Application error: a client-side exception has occurred" page
+  // right as (or just after) every celebration dialog closes.
+  const [data] = useState(() => celebration!);
 
   // Focus trap + Escape-to-close + body scroll lock, mirroring
   // src/components/ui/Dialog.tsx's existing pattern.
