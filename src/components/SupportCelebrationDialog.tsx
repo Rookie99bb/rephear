@@ -203,8 +203,7 @@ function CelebrationContent() {
           </h2>
           <p className="mx-auto mt-3 max-w-xs text-[15px] leading-relaxed text-subtle">
             Thank you so much for supporting {data.profileName}. Your support
-            is a powerful voice. Together we are building a community where
-            every voice deserves to be heard.
+            is a powerful voice.
           </p>
 
           <div className="mx-auto mt-5 inline-flex flex-col items-center gap-1 rounded-2xl bg-white/70 px-6 py-3 shadow-inner ring-1 ring-pink-200">
