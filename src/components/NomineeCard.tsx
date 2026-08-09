@@ -6,8 +6,8 @@ import type { LeaderboardEntry } from "@/lib/types";
 // Premium, full-photo "magazine cover" nominee card. Replaces the old
 // text-first list row. The whole card is one stretched link to the
 // profile (an absolutely-positioned <Link> underneath everything else,
-// z-10). Every interactive control (Like, Share, More, Claim) is a
-// separate sibling positioned on top of it at a higher z-index — since
+// z-10). Every interactive control (Support, Like, Share, More, Claim) is
+// a separate sibling positioned on top of it at a higher z-index — since
 // they aren't nested inside the stretched link, clicking one only
 // triggers its own action/navigation, never both.
 export default function NomineeCard({
@@ -65,16 +65,8 @@ export default function NomineeCard({
         </span>
       </div>
 
-      {/* Top-right: Like / Share / More */}
+      {/* Top-right: Support / Like / Share / More */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
-        <LikeButton
-          rankingId={rankingId}
-          profileId={profile.id}
-          likeCount={likeCount}
-          allowedLikes={allowedLikes}
-          loggedIn={loggedIn}
-          variant="icon"
-        />
         <Link
           href={
             loggedIn
@@ -82,10 +74,35 @@ export default function NomineeCard({
               : "/login"
           }
           title={loggedIn ? "Support" : "Log in to Support"}
+          onClick={(e) => e.stopPropagation()}
+          className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30"
+        >
+          💝
+        </Link>
+        <LikeButton
+          rankingId={rankingId}
+          profileId={profile.id}
+          profileName={profile.name}
+          likeCount={likeCount}
+          allowedLikes={allowedLikes}
+          loggedIn={loggedIn}
+          variant="icon"
+        />
+        <button
+          type="button"
+          title="More"
+          aria-haspopup="true"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // No menu wired up yet — reserved for future per-Nominee
+            // options (report, hide, etc). Intentionally a no-op so it
+            // doesn't navigate or interfere with Support/Like/Share.
+          }}
           className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30"
         >
           ⋯
-        </Link>
+        </button>
       </div>
 
       {/* Bottom overlay: name, verified badge, city, stats */}
