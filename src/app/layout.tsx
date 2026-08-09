@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import SessionProvider from "@/components/SessionProvider";
+import { SupportCelebrationProvider } from "@/components/SupportCelebrationProvider";
 import HeaderAuth from "@/components/HeaderAuth";
 import LocationGate from "@/components/LocationGate";
 import Footer from "@/components/Footer";
@@ -29,6 +30,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className="flex min-h-screen flex-col font-sans">
         <SessionProvider>
+        <SupportCelebrationProvider>
           <header className="border-b border-border">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
               <Link href="/" className="flex shrink-0 items-center" aria-label="RepHear — Recognition belongs to everyone.">
@@ -86,6 +88,7 @@ export default async function RootLayout({
             {needsLocation ? <LocationGate /> : children}
           </main>
           <Footer />
+        </SupportCelebrationProvider>
         </SessionProvider>
       </body>
     </html>
