@@ -9,7 +9,18 @@ import type { LeaderboardEntry } from "@/lib/types";
 // z-10). Every interactive control (Support, Like, Share, More, Claim) is
 // a separate sibling positioned on top of it at a higher z-index — since
 // they aren't nested inside the stretched link, clicking one only
-// triggers its own action/navigation, never both.
+// triggers its own action/navigation, never both, purely from normal DOM
+// stacking (no stopPropagation needed).
+//
+// This component has no "use client" directive — it's a Server
+// Component, rendered per-Nominee on the server. Do NOT add inline
+// event handlers (onClick, etc.) to anything in this file, including
+// props passed to <Link>: Next.js throws "Event handlers cannot be
+// passed to Client Component props" at request time for dynamic routes,
+// which `next build` does NOT catch (this exact mistake shipped once and
+// 500'd every Ranking page that had a Nominee on it). Any control that
+// truly needs client-side interactivity belongs in its own small
+// "use client" component instead — see LikeButton.tsx for the pattern.
 export default function NomineeCard({
   rank,
   entry,
@@ -74,7 +85,6 @@ export default function NomineeCard({
               : "/login"
           }
           title={loggedIn ? "Support" : "Log in to Support"}
-          onClick={(e) => e.stopPropagation()}
           className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30"
         >
           💝
@@ -92,13 +102,6 @@ export default function NomineeCard({
           type="button"
           title="More"
           aria-haspopup="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // No menu wired up yet — reserved for future per-Nominee
-            // options (report, hide, etc). Intentionally a no-op so it
-            // doesn't navigate or interfere with Support/Like/Share.
-          }}
           className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30"
         >
           ⋯
