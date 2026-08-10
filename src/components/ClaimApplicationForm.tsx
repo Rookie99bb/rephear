@@ -52,9 +52,11 @@ export default function ClaimApplicationForm({
       </label>
 
       <p className="text-xs text-subtle">
-        We don&apos;t require a government ID by default — official email domains,
-        official websites, and official social profiles are all accepted verification
-        evidence.
+        We don&apos;t require a government ID by default. Provide{" "}
+        <strong className="font-medium text-ink">at least one</strong> of the
+        fields below as evidence — LinkedIn, an official website, an official
+        social profile, or an official email are all accepted, and you only
+        need one.
       </p>
 
       <Field
@@ -62,24 +64,28 @@ export default function ClaimApplicationForm({
         name="linkedinUrl"
         type="url"
         placeholder="https://linkedin.com/in/…"
+        optional
       />
       <Field
         label="Official website"
         name="companyWebsite"
         type="url"
         placeholder="https://…"
+        optional
       />
       <Field
         label="Official social media profile"
         name="socialMediaUrl"
         type="url"
         placeholder="https://…"
+        optional
       />
       <Field
         label="Organization / institution email"
         name="officialEmail"
         type="email"
         placeholder="you@company.com"
+        optional
       />
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-ink">Reason for claiming this profile</span>
@@ -125,15 +131,22 @@ function Field({
   name,
   type,
   placeholder,
+  optional,
 }: {
   label: string;
   name: string;
   type: string;
   placeholder: string;
+  optional?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-ink">{label}</span>
+      <span className="font-medium text-ink">
+        {label}
+        {optional && (
+          <span className="ml-1.5 font-normal text-subtle">(optional)</span>
+        )}
+      </span>
       <input
         name={name}
         type={type}
