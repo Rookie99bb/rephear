@@ -118,6 +118,23 @@ export async function claimProfile(
   return (await findProfileById(profileId))!;
 }
 
+// Approved, currently-claimed Profiles owned by this user — used by the
+// Credits page to show "how is my claimed profile doing" (Likes +
+// Reputation Credits received) once a claim goes through. A user could
+// in principle own more than one (separate Nominee entries across
+// different Rankings are separate Profiles), so this returns a list
+// rather than assuming exactly one.
+export async function findProfilesClaimedByUser(userId: string): Promise<Profile[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT * FROM profiles
+       WHERE claimed_by = ? AND claim_status = 'claimed' AND deleted_at IS NULL
+       ORDER BY claimed_at DESC`
+    )
+    .all(userId)) as unknown as ProfileRow[];
+  return rows.map(toProfile);
+}
+
 export interface ProfileStats {
   totalLikes: number;
   totalReputationCredits: number;

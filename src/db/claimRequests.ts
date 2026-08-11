@@ -115,6 +115,22 @@ export async function findClaimRequestById(id: string): Promise<ClaimRequest | n
   return row ? toClaimRequest(row) : null;
 }
 
+// Most recent claim application a user has ever submitted, regardless of
+// status — used by the Credits page to show "claim in progress" /
+// "needs your input" / "not approved" status for a user who doesn't
+// (yet, or no longer) own a claimed Profile. Deliberately broader than
+// findActiveRequestForUser above, which only looks at open requests.
+export async function findLatestClaimRequestForUser(
+  applicantUserId: string
+): Promise<ClaimRequest | null> {
+  const row = (await db
+    .prepare(
+      "SELECT * FROM claim_requests WHERE applicant_user_id = ? ORDER BY submitted_at DESC LIMIT 1"
+    )
+    .get(applicantUserId)) as unknown as ClaimRequestRow | undefined;
+  return row ? toClaimRequest(row) : null;
+}
+
 export async function listClaimRequestsByStatus(
   status: ClaimRequestStatus
 ): Promise<ClaimRequest[]> {
