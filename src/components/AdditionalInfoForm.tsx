@@ -21,29 +21,38 @@ export default function AdditionalInfoForm({ request }: { request: ClaimRequest 
 
   return (
     <form action={formAction} encType="multipart/form-data" className="flex flex-col gap-4">
+      <p className="text-xs text-subtle">
+        Provide <strong className="font-medium text-ink">at least one</strong>{" "}
+        of the fields below — you don&apos;t need to fill in all of them.
+      </p>
+
       <Field
         label="LinkedIn profile"
         name="linkedinUrl"
         type="url"
         defaultValue={request.linkedinUrl}
+        optional
       />
       <Field
         label="Official website"
         name="companyWebsite"
         type="url"
         defaultValue={request.companyWebsite}
+        optional
       />
       <Field
         label="Official social media profile"
         name="socialMediaUrl"
         type="url"
         defaultValue={request.socialMediaUrl}
+        optional
       />
       <Field
         label="Organization / institution email"
         name="officialEmail"
         type="email"
         defaultValue={request.officialEmail}
+        optional
       />
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-ink">Reason for claiming this profile</span>
@@ -90,15 +99,22 @@ function Field({
   name,
   type,
   defaultValue,
+  optional,
 }: {
   label: string;
   name: string;
   type: string;
   defaultValue: string;
+  optional?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-ink">{label}</span>
+      <span className="font-medium text-ink">
+        {label}
+        {optional && (
+          <span className="ml-1.5 font-normal text-subtle">(optional)</span>
+        )}
+      </span>
       <input
         name={name}
         type={type}
