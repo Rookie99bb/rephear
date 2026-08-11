@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { getCreditsHistoryForUser } from "@/db/creditsHistory";
+import { findProfilesClaimedByUser, getProfileStats, findProfileById } from "@/db/profiles";
+import { findLatestClaimRequestForUser } from "@/db/claimRequests";
+import type { ClaimRequest, Profile } from "@/lib/types";
 
 // "My Reputation Credits" — a record of community Support, not a wallet.
 // The underlying data is untouched (still getCreditsHistoryForUser,
@@ -16,7 +20,20 @@ export default async function CreditsHistoryPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const history = await getCreditsHistoryForUser(user.id);
+  const [history, claimedProfiles] = await Promise.all([
+    getCreditsHistoryForUser(user.id),
+    findProfilesClaimedByUser(user.id),
+  ]);
+
+  // Only look up an application's status when the user doesn't already
+  // own a claimed Profile — once claimed, the story to tell is the
+  // Profile's Likes/Credits, not the (by then historical) application.
+  const latestClaim =
+    claimedProfiles.length === 0 ? await findLatestClaimRequestForUser(user.id) : null;
+  const latestClaimProfile =
+    latestClaim && ["pending", "more_info_required", "rejected"].includes(latestClaim.status)
+      ? await findProfileById(latestClaim.profileId)
+      : null;
 
   return (
     <div>
@@ -37,6 +54,14 @@ export default async function CreditsHistoryPage() {
         A Like says &ldquo;I recognize you.&rdquo; Support says &ldquo;I
         stand behind you.&rdquo;
       </p>
+
+      {claimedProfiles.length > 0 && (
+        <ClaimedProfilesSection profiles={claimedProfiles} />
+      )}
+
+      {claimedProfiles.length === 0 && latestClaimProfile && latestClaim && (
+        <ClaimStatusSection claim={latestClaim} profile={latestClaimProfile} />
+      )}
 
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
@@ -89,6 +114,111 @@ export default async function CreditsHistoryPage() {
           </div>
         )}
         <p className="mt-4 text-sm text-subtle">Every Support matters.</p>
+      </div>
+    </div>
+  );
+}
+
+// Shown once a claim has actually gone through — the Likes + Reputation
+// Credits totals mirror exactly what NomineeStats shows on the public
+// Ranking page (same getProfileStats query), just framed here as "your"
+// numbers instead of a leaderboard stat.
+async function ClaimedProfilesSection({ profiles }: { profiles: Profile[] }) {
+  const withStats = await Promise.all(
+    profiles.map(async (profile) => ({
+      profile,
+      stats: await getProfileStats(profile.id),
+    }))
+  );
+
+  return (
+    <div className="mt-8 border-b border-border pb-8">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
+        Your Claimed Profile{withStats.length > 1 ? "s" : ""}
+      </h2>
+      <div className="flex flex-col gap-3">
+        {withStats.map(({ profile, stats }) => (
+          <Link
+            key={profile.id}
+            href={`/profiles/${profile.id}`}
+            className="flex items-center justify-between rounded-xl border border-border px-4 py-3 transition hover:border-ink"
+          >
+            <span className="text-sm font-medium text-ink">{profile.name}</span>
+            <span className="flex items-center gap-4 text-sm text-subtle">
+              <span>
+                <span className="font-semibold text-ink">{stats.totalLikes}</span> Likes
+              </span>
+              <span>
+                <span className="font-semibold text-ink">
+                  {stats.totalReputationCredits.toLocaleString()}
+                </span>{" "}
+                Credits Received
+              </span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Shown while a user's claim application hasn't (or didn't) result in
+// them owning a Profile yet — mirrors the three states an applicant can
+// actually be in outside of "approved" (see ClaimRequestStatus): still
+// under review, admin asked for more evidence, or turned down. Once
+// approved, ClaimedProfilesSection above takes over and this disappears.
+function ClaimStatusSection({
+  claim,
+  profile,
+}: {
+  claim: ClaimRequest;
+  profile: Profile;
+}) {
+  const statusMeta: Record<
+    "pending" | "more_info_required" | "rejected",
+    { label: string; classes: string }
+  > = {
+    pending: {
+      label: "Under review",
+      classes: "border-border bg-surface text-ink",
+    },
+    more_info_required: {
+      label: "Needs your input",
+      classes: "border-amber-200 bg-amber-50 text-amber-900",
+    },
+    rejected: {
+      label: "Not approved",
+      classes: "border-red-200 bg-red-50 text-red-700",
+    },
+  };
+  const meta = statusMeta[claim.status as keyof typeof statusMeta];
+  if (!meta) return null;
+
+  return (
+    <div className="mt-8 border-b border-border pb-8">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
+        Your Claim Application
+      </h2>
+      <div className={`rounded-xl border px-4 py-3 ${meta.classes}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">
+            {profile.name} &mdash; {meta.label}
+          </span>
+          {claim.status === "more_info_required" && (
+            <Link
+              href={`/profiles/${profile.id}/claim`}
+              className="shrink-0 text-sm font-medium underline"
+            >
+              Respond
+            </Link>
+          )}
+        </div>
+        {claim.status === "more_info_required" && claim.infoRequested && (
+          <p className="mt-1 text-sm">{claim.infoRequested}</p>
+        )}
+        {claim.status === "rejected" && claim.adminComments && (
+          <p className="mt-1 text-sm">{claim.adminComments}</p>
+        )}
       </div>
     </div>
   );
