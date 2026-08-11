@@ -21,6 +21,8 @@ import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
 import { saveUploadedFile, UploadValidationError } from "@/lib/uploads";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getRequestContext } from "@/lib/requestContext";
+import { sendEmail } from "@/lib/email";
+import { claimMoreInfoRequestedEmail } from "@/emails/claimMoreInfoRequested";
 import type { ClaimType } from "@/lib/types";
 
 export interface ActionResult {
@@ -400,6 +402,28 @@ export async function requestMoreInfoAction(
   });
   if (!ok) {
     return { error: "This request has already been reviewed." };
+  }
+
+  // Notify the applicant by email — otherwise their only way to learn
+  // their application is stalled is to happen to revisit the claim page.
+  // Never let an email failure surface as an error on the admin's review
+  // action; the review itself already succeeded above.
+  try {
+    const [applicant, profile] = await Promise.all([
+      findUserById(request.applicantUserId),
+      findProfileById(request.profileId),
+    ]);
+    if (applicant && profile) {
+      const { subject, html } = claimMoreInfoRequestedEmail({
+        applicantName: applicant.name,
+        profileName: profile.name,
+        profileId: request.profileId,
+        infoRequested,
+      });
+      await sendEmail({ to: applicant.email, subject, html });
+    }
+  } catch (err) {
+    console.error("[requestMoreInfoAction] Failed to send notification email:", err);
   }
 
   revalidatePath("/admin/claims");
