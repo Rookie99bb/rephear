@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { getCreditsHistoryForUser } from "@/db/creditsHistory";
+import type { CreditsHistoryEntry } from "@/db/creditsHistory";
 import { findProfilesClaimedByUser, getProfileStats, findProfileById } from "@/db/profiles";
 import { findLatestClaimRequestForUser } from "@/db/claimRequests";
 import type { ClaimRequest, Profile } from "@/lib/types";
@@ -34,6 +35,9 @@ export default async function CreditsHistoryPage() {
     latestClaim && ["pending", "more_info_required", "rejected"].includes(latestClaim.status)
       ? await findProfileById(latestClaim.profileId)
       : null;
+
+  const givenEntries = history.entries.filter((entry) => entry.type === "purchased");
+  const receivedEntries = history.entries.filter((entry) => entry.type === "received");
 
   return (
     <div>
@@ -70,51 +74,80 @@ export default async function CreditsHistoryPage() {
         {history.entries.length === 0 ? (
           <p className="text-sm text-subtle">No Support yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs uppercase tracking-wide text-subtle">
-                  <th className="py-2 pr-4 font-medium">Date</th>
-                  <th className="py-2 pr-4 font-medium">Type</th>
-                  <th className="py-2 pr-4 font-medium">Nominee</th>
-                  <th className="py-2 pr-4 font-medium">Ranking</th>
-                  <th className="py-2 pr-4 text-right font-medium">
-                    Credits
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.entries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-border/60">
-                    <td className="py-2 pr-4 text-subtle">
-                      {new Date(entry.date).toLocaleDateString()}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {entry.type === "purchased" ? (
-                        <span className="text-ink">Support Given</span>
-                      ) : (
-                        <span className="text-emerald-700">
-                          Support Received
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-4 text-ink">
-                      {entry.profileName}
-                    </td>
-                    <td className="py-2 pr-4 text-subtle">
-                      {entry.rankingTitle}
-                    </td>
-                    <td className="py-2 pr-4 text-right font-medium text-ink">
-                      {entry.credits} Credits
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-8">
+            <SupportActivityTable
+              title="Support Given"
+              entries={givenEntries}
+              emptyLabel="No Support given yet."
+            />
+            <SupportActivityTable
+              title="Support Received"
+              entries={receivedEntries}
+              emptyLabel="No Support received yet."
+            />
           </div>
         )}
         <p className="mt-4 text-sm text-subtle">Every Support matters.</p>
       </div>
+    </div>
+  );
+}
+
+// One of the two Support Activity tables (Given / Received). Splitting
+// them out avoids mixing directions in a single list — each table only
+// needs Date/Nominee/Ranking/Credits since the section heading already
+// says which direction it is (no more inline "Support Given"/"Support
+// Received" tag per row).
+function SupportActivityTable({
+  title,
+  entries,
+  emptyLabel,
+}: {
+  title: string;
+  entries: CreditsHistoryEntry[];
+  emptyLabel: string;
+}) {
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-subtle">
+        {title}
+      </h3>
+      {entries.length === 0 ? (
+        <p className="text-sm text-subtle">{emptyLabel}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-subtle">
+                <th className="py-2 pr-4 font-medium">Date</th>
+                <th className="py-2 pr-4 font-medium">Nominee</th>
+                <th className="py-2 pr-4 font-medium">Ranking</th>
+                <th className="py-2 pr-4 text-right font-medium">
+                  Credits
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr key={entry.id} className="border-b border-border/60">
+                  <td className="py-2 pr-4 text-subtle">
+                    {new Date(entry.date).toLocaleDateString()}
+                  </td>
+                  <td className="py-2 pr-4 text-ink">
+                    {entry.profileName}
+                  </td>
+                  <td className="py-2 pr-4 text-subtle">
+                    {entry.rankingTitle}
+                  </td>
+                  <td className="py-2 pr-4 text-right font-medium text-ink">
+                    {entry.credits} Credits
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
