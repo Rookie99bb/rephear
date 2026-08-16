@@ -20,7 +20,7 @@ import type { Ranking } from "@/lib/types";
 // Browsing beyond your own city is a two-step directory, not a flat
 // dump of every Ranking on earth: picking "All Regions" (?all=1) or a
 // single country (?country=) first shows every configured MVP city in
-// that scope — see src/lib/locations.ts for the full 22-city list —
+// that scope — see src/lib/locations.ts for the current city list —
 // grouped by country, with a Ranking count per city (including cities
 // with 0 Rankings, which must stay discoverable, not hidden). Only once
 // a specific city is picked (?city=, always paired with its ?country=)
@@ -117,8 +117,7 @@ export default async function BrowseRankingsPage({
             </p>
           ) : showAllDirectory ? (
             <p className="mt-1 text-sm text-subtle">
-              Browse all 22 regions across the United Kingdom, United
-              States, and Canada.
+              Browse Rankings in London, United Kingdom.
               {defaultCity && (
                 <>
                   {" — "}
