@@ -1,41 +1,17 @@
 // Fixed list of selectable locations. Location is a city, matching
 // Ranking.city, so choosing one always corresponds to real Rankings.
 //
-// This is the complete, approved MVP region list — 22 cities across the
-// three currently open countries (UK 7 / US 10 / Canada 5). Every city
-// here must stay discoverable on the Rankings "All Regions" directory
-// even with zero Rankings — do not prune a city just because it has no
-// activity yet, and do not add cities beyond this approved list without
-// an explicit product decision. Adding a new country back later just
-// means adding its cities here and to CITY_COUNTRY below — nothing else
-// references a hardcoded country list, since country is always derived
-// from city.
+// MVP scope has been narrowed to London only. This file used to list 22
+// cities across three countries (UK 7 / US 10 / Canada 5); all Rankings
+// outside London have been taken down (soft-deleted, not erased — see
+// Moderation in the admin panel) and this list now only offers London so
+// new Rankings can't be created outside it either. Re-opening other
+// cities later just means adding them back here and to CITY_COUNTRY
+// below — nothing else references a hardcoded country list, since
+// country is always derived from city.
 export const LOCATIONS = [
-  // United Kingdom (7)
+  // United Kingdom (1)
   "London",
-  "Manchester",
-  "Birmingham",
-  "Edinburgh",
-  "Cambridge",
-  "Oxford",
-  "Bristol",
-  // United States (10)
-  "New York",
-  "Los Angeles",
-  "Chicago",
-  "San Francisco",
-  "Washington D.C.",
-  "Boston",
-  "Dallas",
-  "Houston",
-  "Seattle",
-  "Miami",
-  // Canada (5)
-  "Toronto",
-  "Vancouver",
-  "Montreal",
-  "Calgary",
-  "Ottawa",
 ] as const;
 
 export type Location = (typeof LOCATIONS)[number];
@@ -64,27 +40,6 @@ function flagFromCountryCode(countryCode: string): string {
 
 const CITY_COUNTRY: Record<Location, { country: string; countryCode: string }> = {
   London: { country: "United Kingdom", countryCode: "GB" },
-  Manchester: { country: "United Kingdom", countryCode: "GB" },
-  Birmingham: { country: "United Kingdom", countryCode: "GB" },
-  Edinburgh: { country: "United Kingdom", countryCode: "GB" },
-  Cambridge: { country: "United Kingdom", countryCode: "GB" },
-  Oxford: { country: "United Kingdom", countryCode: "GB" },
-  Bristol: { country: "United Kingdom", countryCode: "GB" },
-  "New York": { country: "United States", countryCode: "US" },
-  "Los Angeles": { country: "United States", countryCode: "US" },
-  Chicago: { country: "United States", countryCode: "US" },
-  "San Francisco": { country: "United States", countryCode: "US" },
-  "Washington D.C.": { country: "United States", countryCode: "US" },
-  Boston: { country: "United States", countryCode: "US" },
-  Dallas: { country: "United States", countryCode: "US" },
-  Houston: { country: "United States", countryCode: "US" },
-  Seattle: { country: "United States", countryCode: "US" },
-  Miami: { country: "United States", countryCode: "US" },
-  Toronto: { country: "Canada", countryCode: "CA" },
-  Vancouver: { country: "Canada", countryCode: "CA" },
-  Montreal: { country: "Canada", countryCode: "CA" },
-  Calgary: { country: "Canada", countryCode: "CA" },
-  Ottawa: { country: "Canada", countryCode: "CA" },
 };
 
 export const LOCATION_INFO: Record<Location, LocationInfo> = Object.fromEntries(
