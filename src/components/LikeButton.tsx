@@ -96,9 +96,35 @@ export default function LikeButton({
     const likeButtonClass =
       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 text-[16px] leading-none text-white shadow-[0_6px_16px_-4px_rgba(180,83,9,0.7)] ring-1 ring-white/40 backdrop-blur-md transition hover:scale-110 hover:shadow-[0_10px_22px_-4px_rgba(180,83,9,0.85)] active:scale-95";
 
-    if (!loggedIn) {
-      return (
-        <>
+    // Share needs no account — it's just "copy this link" — and gating
+    // it behind /login was actively hostile to the growth loop the Share
+    // button exists for (see the optimization review: a logged-out
+    // visitor who wants to share a profile got bounced to login instead
+    // of a copyable link). Only Like stays gated, since it's the one
+    // action that actually needs an account. Anonymous shares still open
+    // the same dialog; they just don't call recordShare() (that only
+    // exists to unlock extra Likes for the sharer, which is meaningless
+    // without an account).
+    return (
+      <>
+        {loggedIn ? (
+          <button
+            type="button"
+            disabled={!canLike || pending}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleLike();
+            }}
+            title={
+              error ??
+              (!canLike ? "Share to Like again" : count > 0 ? `${count} Likes` : "Like")
+            }
+            className={`${likeButtonClass} ${!canLike ? "opacity-40" : ""}`}
+          >
+            👍
+          </button>
+        ) : (
           <Link
             href="/login"
             title="Log in to Like"
@@ -107,36 +133,7 @@ export default function LikeButton({
           >
             👍
           </Link>
-          <Link
-            href="/login"
-            title="Log in to Share"
-            className={iconButtonClass}
-            onClick={(e) => e.stopPropagation()}
-          >
-            ↗
-          </Link>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <button
-          type="button"
-          disabled={!canLike || pending}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleLike();
-          }}
-          title={
-            error ??
-            (!canLike ? "Share to Like again" : count > 0 ? `${count} Likes` : "Like")
-          }
-          className={`${likeButtonClass} ${!canLike ? "opacity-40" : ""}`}
-        >
-          👍
-        </button>
+        )}
         <button
           type="button"
           onClick={(e) => {
@@ -158,7 +155,7 @@ export default function LikeButton({
               : `/profiles/${profileId}`
           }
           profileName={profileName}
-          onShared={recordShare}
+          onShared={loggedIn ? recordShare : undefined}
         />
       </>
     );

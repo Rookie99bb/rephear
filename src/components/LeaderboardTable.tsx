@@ -3,6 +3,7 @@ import type { LeaderboardEntry } from "@/lib/types";
 
 export default function LeaderboardTable({
   title,
+  subtitle,
   icon,
   entries,
   emphasis,
@@ -13,6 +14,7 @@ export default function LeaderboardTable({
   loggedIn,
 }: {
   title: string;
+  subtitle?: string;
   icon: string;
   entries: LeaderboardEntry[];
   emphasis: "likes" | "credits";
@@ -24,9 +26,10 @@ export default function LeaderboardTable({
 }) {
   return (
     <div>
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-subtle">
+      <h2 className={`text-sm font-semibold uppercase tracking-wide text-subtle ${subtitle ? "mb-1" : "mb-4"}`}>
         {icon} {title}
       </h2>
+      {subtitle && <p className="mb-4 text-xs text-subtle">{subtitle}</p>}
       {entries.length === 0 ? (
         <p className="text-sm text-subtle">No nominees yet.</p>
       ) : (

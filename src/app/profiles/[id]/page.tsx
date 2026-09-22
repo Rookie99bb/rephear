@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   findProfileById,
@@ -9,6 +10,39 @@ import Avatar from "@/components/Avatar";
 import ProfileVerificationStatus from "@/components/ProfileVerificationStatus";
 import { getCurrentUser } from "@/lib/session";
 import { findActiveRequestForUser } from "@/db/claimRequests";
+
+// Per-page title/OG so a shared profile link unfurls with the person's
+// name and photo instead of the site-wide default "RepHear" with no
+// image (see the optimization review — this is the exact page the ↗
+// Share button points people at). photoUrl is a user-supplied external
+// URL by design (see Avatar.tsx / next.config.js img-src) so it's safe
+// to pass straight through as an og:image.
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const profile = await findProfileById(params.id);
+  if (!profile || profile.deletedAt) {
+    return { title: "Profile not found" };
+  }
+  const title = profile.name;
+  const description =
+    profile.bio ||
+    `${profile.name}'s public reputation on RepHear${profile.region ? ` — ${profile.region}` : ""}.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/profiles/${profile.id}` },
+    openGraph: {
+      title,
+      description,
+      url: `/profiles/${profile.id}`,
+      images: profile.photoUrl ? [{ url: profile.photoUrl }] : undefined,
+    },
+    twitter: { title, description },
+  };
+}
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
   const profile = await findProfileById(params.id);

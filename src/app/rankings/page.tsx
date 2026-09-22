@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   listAllRankings,
   searchRankingsByRegion,
@@ -12,6 +13,13 @@ import RegionDirectory from "@/components/RegionDirectory";
 import { listCountries } from "@/lib/locations";
 import { getCurrentFullUser } from "@/lib/session";
 import type { Ranking } from "@/lib/types";
+
+export const metadata: Metadata = {
+  title: "Rankings",
+  description:
+    "Browse public reputation Rankings on RepHear — see who's leading in London and beyond.",
+  alternates: { canonical: "/rankings" },
+};
 
 // Rankings are location-first by default: with no explicit filter, this
 // page shows only the current user's chosen location — never a mix of

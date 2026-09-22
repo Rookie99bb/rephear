@@ -178,6 +178,21 @@ export async function listNomineesForRanking(rankingId: string): Promise<Profile
 
 // Admin moderation view: includes soft-deleted Nominees too (deletedAt is
 // already part of Profile), so an admin can find and restore them.
+// Every public (non-deleted) Profile id, paired with its most recent
+// activity timestamp — used only to build sitemap.xml (see
+// src/app/sitemap.ts). Intentionally minimal: the sitemap only needs the
+// URL and a lastmod hint, never the full row.
+export async function listPublicProfileIdsForSitemap(): Promise<
+  { id: string; updatedAt: string }[]
+> {
+  const rows = (await db
+    .prepare(
+      "SELECT id, created_at FROM profiles WHERE deleted_at IS NULL ORDER BY created_at DESC"
+    )
+    .all()) as unknown as { id: string; created_at: string }[];
+  return rows.map((r) => ({ id: r.id, updatedAt: r.created_at }));
+}
+
 export async function listNomineesForRankingAdmin(rankingId: string): Promise<Profile[]> {
   const rows = (await db
     .prepare("SELECT * FROM profiles WHERE ranking_id = ? ORDER BY created_at ASC")
