@@ -152,6 +152,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "MJ Cole",
+        photoUrl: "https://www.nme.com/wp-content/uploads/2025/03/mj_cole_sincere.jpg",
         bio: "London producer/DJ — 'Sincere' single and Mercury Prize-nominated Sincere album (2000), MOBO Best Producer 2001, remixes for Mariah Carey and Amy Winehouse.",
       },
       {
@@ -224,10 +225,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Double O",
+        photoUrl: "https://cdn.prod.website-files.com/66fbea41b5ef08dc592dbf43/6a0b07e0d46e16ba26819d02_Double%20O-p-800.webp",
         bio: "London-based jungle DJ/producer (David Henry) — co-founder of the Rupture night and label (since 2006), 25+ year selector, 2025 debut album Firm Meditation.",
       },
       {
         name: "4am Kru",
+        photoUrl: "https://cdn.amsterdam-dance-event.nl/images/images/transforms/_1200x630_crop_center-center_none/2671371/Please-use-logo-for-assets.-Press-Pic-Approved.webp",
         bio: "London jungle collective — energetic rave-driven productions on influential underground labels, a busy post-lockdown touring schedule.",
       },
       {
@@ -396,6 +399,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Servant Jazz Quarters",
+        photoUrl: "https://cdn.squaremeal.co.uk/restaurants/17525/images/90088771-1156441251370328-7901045935091684293-n_27022024025242.jpg?w=800",
         bio: "80-100-cap basement at 10A Bradbury Street, Dalston, open since February 2011. Eclectic programming from jazz to pop; Sun Ra Arkestra, Moses Boyd and Laura Mvula have played.",
       },
       {
@@ -556,10 +560,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Ashbeck",
+        photoUrl: "https://i.ytimg.com/vi/W-iVCVYrLL8/maxresdefault.jpg",
         bio: "London — released the collaborative Rush Hour EP with Rushy and appeared on multiple Victory Lap cyphers; Dazed named him a chill-rap pioneer of the underground.",
       },
       {
         name: "Finessekid",
+        photoUrl: "https://images.h-wing.net/wp-content/uploads/2025/10/14212150/image-7.webp",
         bio: "London — featured on the Victory Lap cypher alongside Blanco, M'way and Ashbeck (GRM Daily); 2026 MOBO Best Newcomer nominee.",
       },
 
@@ -589,6 +595,7 @@ const SLATES: SlateSeed[] = [
         photoUrl: "https://www.linesapp.co/_next/image?url=https%3A%2F%2Fstorage.googleapis.com%2Fbondilines.appspot.com%2Fevent%2Fimages%2Fa8cdd490-ff00-431d-98c1-5e44f994b6b6.webp&w=768&q=80",
       },      {
         name: "Len",
+        photoUrl: "https://d2ljoqkkoec4f6.cloudfront.net/wp-content/uploads/2022/08/25125839/FF_Len1-545x750.jpg",
         bio: "Harrow — went bar-for-bar with Dave and Central Cee in the 2023 Victory Lap cypher; co-released the Conglomerate mixtape with Lancey Foux and Fimiguerrero, which hit UK Albums #23.",
       },
       {
@@ -691,6 +698,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Cereselcosplay",
+        photoUrl: "https://cereselcosplay.com/assets/about/640538026_3821790041287927_3309519802455046134_n.jpg",
         bio: "One half of the UK cosplay duo Sparkie & Ceres, named a cosplay guest at HYPER JAPAN Manchester 2025.",
       },
       {
@@ -727,10 +735,12 @@ const SLATES: SlateSeed[] = [
         photoUrl: "https://www.soccerphile.com/public/web_images/content_images/chriscowlin3.jpg",
       },      {
         name: "Ty (Taiwo Ogunlabi)",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a3/Ty%2C_Claude_and_Robbie_AFTV_2017.png",
         bio: "Arsenal fan-channel host — long-running AFTV regular known for his relentlessly optimistic takes and his defence of Arsène Wenger.",
       },
       {
         name: "Lee Judges",
+        photoUrl: "https://i.ytimg.com/vi/42vK6WuO05A/hqdefault.jpg",
         bio: "Arsenal fan-channel host — AFTV regular known for his passionate post-match rants; also runs his own channel, Lee Judges TV.",
       },
       {
@@ -740,10 +750,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Moh",
+        photoUrl: "https://jacobpotterjournalism.files.wordpress.com/2017/08/moh.png?w=600",
         bio: "Arsenal fan-channel host — AFTV regular who coined the catchphrase \"Don't talk about spend, talk about net spend\" on the channel.",
       },
       {
         name: "Alex Harris",
+        photoUrl: "https://i.ytimg.com/vi/7TvCo04kKUM/hqdefault.jpg",
         bio: "Chelsea fan-channel host — fronts Chelsea Fan TV, a \"voice of the fans\" channel built on fan cams and reactions outside Stamford Bridge.",
       },
       {
@@ -752,10 +764,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Gonzo",
+        photoUrl: "https://cdn.claretandhugh.info/wp-content/uploads/Gonzo-BBC-interview--1024x625.png",
         bio: "West Ham fan-channel host — founder of the Hammers Chat YouTube channel covering West Ham news and reactions.",
       },
       {
         name: "Ben Daniel",
+        photoUrl: "https://wearetottenhamtv.com/wp-content/uploads/2025/08/This-Was-A-Reality-Check-1024x576.jpg",
         bio: "Tottenham fan-channel host — co-runs WeAreTottenhamTV with Simeon Daniel, a daily Spurs channel with weekly fan shows.",
       },
       {
@@ -883,10 +897,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Fleur De Force",
+        photoUrl: "https://www.thefamouspeople.com/profiles/images/og-fleur-de-force-41768.jpg",
         bio: "British beauty creator and author of The Glam Guide; she launched a makeup collection with Feelunique and collaborated with MAC and Eylure.",
       },
       {
         name: "Tanya Burr",
+        photoUrl: "https://vz.cnwimg.com/wp-content/uploads/2016/04/GettyImages-490188926.jpg?x87003",
         bio: "English YouTuber who began posting makeup and fashion videos in 2009; she launched Tanya Burr Cosmetics with Superdrug in 2014.",
       },
       {
@@ -942,6 +958,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Nency Makeup",
+        photoUrl: "https://cdn.wezoree.com/upload/user_photos/13848/preview-makeup-artists-nency-portfolio-photo-270975.jpg",
         bio: "London-based editorial and bridal MUA (@nencymakeup) — high-fashion meets bridal, viral face-yoga content.",
       },      {
         name: "Charlotte Tilbury",
@@ -955,10 +972,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Isamaya Ffrench",
+        photoUrl: "https://theindustry.beauty/wp-content/uploads/2022/06/Isamaya-Ffrench-Industrial-1024x576.jpg",
         bio: "British MUA who developed makeup lines for Tom Ford, Burberry and Byredo; she launched her eponymous brand in 2022.",
       },
       {
         name: "Val Garland",
+        photoUrl: "https://pbs.twimg.com/profile_images/665951223724564480/SSNciOfy.jpg",
         bio: "London-based MUA who became L'Oréal Paris's first Global Make-up Director in 2017; she is a judge on BBC's Glow Up.",
       },
       {
@@ -982,10 +1001,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Dominic Skinner",
+        photoUrl: "https://www.attitude.co.uk/wp-content/uploads/sites/5/2021/06/Dominic-Skinner.jpg",
         bio: "British MUA who joined MAC in 2004 and now serves as Director of Makeup Artistry; he judges BBC's Glow Up.",
       },
       {
         name: "Hannah Martin",
+        photoUrl: "https://i2-prod.ok.co.uk/incoming/article36144831.ece/ALTERNATES/s615/0_Hannah-Martin.jpg",
         bio: "British MUA and former Bobbi Brown senior pro artist; she did Princess Eugenie's wedding makeup and has a collection with Ciaté London.",
       },
 
@@ -1020,6 +1041,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Connor McGee",
+        photoUrl: "https://artworks.thetvdb.com/banners/v4/actor/9125955/photo/661747b9d33f5.jpg",
         bio: "Runner-up of Glow Up series 6 (2024); the Kent beauty manager and dance teacher competed in the show's final.",
       },
       {
@@ -1044,6 +1066,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Danielle Marcan",
+        photoUrl: "https://www.latex247.co.uk/wp-content/uploads/2025/05/danielle-marcan-atsuko-kudo-latex-fashion-clothing-bafta-awards.webp",
         bio: "London-based MUA and creator with ~2M+ Instagram followers; the Romanian-born creator became a Huda Beauty brand ambassador after her beauty tutorials went viral.",
       },
       {
@@ -1084,6 +1107,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Ma Petite Jamaica",
+        photoUrl: "https://www.hot-dinners.com/media/reviews/photos/thumbnail/500x333c/33/4a/f3/ma-petite-jamaica-camden-39-1675872049.jpg",
         bio: "Ma Petite Jamaica is a Jamaican diner with sites in Camden and Shoreditch, serving jerk chicken and rum cocktails.",
       },
       {
@@ -1142,14 +1166,17 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Rampage Sound",
+        photoUrl: "https://i.guim.co.uk/img/media/a0a0529cafdc1d4837f3d14ef353b01812ba3820/0_0_5842_7303/master/5842.jpg?width=1200&dpr=1&s=none",
         bio: "Sound system with a long-running Carnival pitch at Colville Square, documented on the official Carnival site.",
       },
       {
         name: "Solution Sound System",
+        photoUrl: "https://nhcarnival.org/wp-content/uploads/2023/07/solution_sound_system_logo_2019-scaled.jpg",
         bio: "Roots sound system documented on the official Carnival site as holding its Carnival pitch since 2012.",
       },
       {
         name: "Mastermind Roadshow",
+        photoUrl: "https://nhcarnival.org/wp-content/uploads/2023/07/Mastermind_Logo_Gold_Transparent_3x-scaled.png",
         bio: "Hip hop, soul and R&B sound system on Canal Close, described in the 2026 guide as one of the longest-running names on the route.",
       },
       {
@@ -1159,6 +1186,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Gladdy Wax",
+        photoUrl: "https://nhcarnival.org/wp-content/uploads/2023/07/Screenshot_2026-04-06_at_19.19.24.png",
         bio: "Vintage reggae vinyl sound system on Portobello Road near Chesterton Road, named in the 2026 Carnival guide.",
       },
       {
@@ -1220,10 +1248,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Kerberos Cosplay — Percival de Rolo (Critical Role) at MCM Birmingham Comic Con",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/67ab6a0b0732b56dc39f7b91/d46ce7aa-0032-4d31-babd-4f273625863b/Percy-1.jpg",
         bio: "UK cosplayer — took second place in the Cosplay Central Crown Championships UK qualifier at MCM Birmingham Comic Con 2023 as Percival de Rolo from Critical Role.",
       },
       {
         name: "The Crystal Wolf — Lagertha (Vikings) at MCM Birmingham Comic Con",
+        photoUrl: "https://www.fiz-x.com/wp-content/uploads/2020/10/Hot-RED-SONJA-Cosplay-1.jpg",
         bio: "UK cosplayer — third place in the Cosplay Central Crown Championships UK qualifier at MCM Birmingham Comic Con 2023 with a handmade Lagertha armour from Vikings.",
       },
       {
@@ -1236,6 +1266,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Doomed Gav — Forge Grandmaster winning performance at the C3 Cosplay City Championship final 2023",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/6761c8be198616670b503125/1734461692362-URMOBNXR9JKE3ZGUL2Z4/C3+Cosplay+City+Championship+Forge+Grandmaster+-+Doomed+Gav+-+Photographer+Acoustica+-+ACME+Comic+Con.jpg",
         bio: "UK cosplayer — Forge Grandmaster of the 2023 C3 Cosplay City Championship, as listed in the official Hall of Fame.",
       },
       {
@@ -1393,6 +1424,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Bar Bruno",
+        photoUrl: "https://img10.misterbandb.com/xyzILv4ixKdvKciBNcQ2_4q2EeY=/480x0/filters:quality(70)/location_photos/data/12525/original/bar-bruno-gay-london-1506937390.jpg",
         bio: "Bar Bruno is a family-run cafe on Wardour Street in Soho serving Bruno's Big Breakfast fry-up.",
       },
       {
@@ -1457,6 +1489,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "FABRICLIVE",
+        photoUrl: "https://pbs.twimg.com/profile_images/1321438907343491072/tjaKgP-i.jpg",
         bio: "fabric's long-running Friday-night club brand.",
       },
       {
@@ -1535,6 +1568,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "805 Old Kent Road",
+        photoUrl: "https://dineawardslondon.com/images/p400/805-restaurants-old-kent-rd-design-1.jpg",
         bio: "805 is a Nigerian restaurant on Old Kent Road in Southwark, London, serving jollof rice and grilled dishes.",
       },
       {
@@ -1561,6 +1595,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Jollof House Kitchen",
+        photoUrl: "https://itin-dev.wanderlogstatic.com/freeImage/esE2ASmUM38oVBgvUqc6yF9gN9jNzVLS",
         bio: "Jollof House Kitchen is a Nigerian food vendor based in Brixton, London, serving jollof rice.",
       },
       {
@@ -1569,6 +1604,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Moyo",
+        photoUrl: "https://rs-menus-api.roocdn.com/images/28ba1a8b-8d18-4b68-8be1-c4bf66f14a65/image.jpeg?width=1200&height=630&fit=crop",
         bio: "Moyo is a Nigerian-Japanese restaurant in Hendon, London, with jollof rice on its 2026 menu.",
       },
     ],
@@ -1660,6 +1696,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Star Kebab House",
+        photoUrl: "https://static.wixstatic.com/media/432568_770fb67242174c07a8c66bbedcd48c38~mv2.jpg/v1/fill/w_724,h_483,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/432568_770fb67242174c07a8c66bbedcd48c38~mv2.jpg",
         bio: "Star Kebab House is a kebab shop on Earl's Court Road, open until 3am (5am on weekends), serving doner and shish kebabs.",
       },
       {
@@ -1680,6 +1717,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Layalina Piccadilly",
+        photoUrl: "https://cdn.venuescanner.com/photos/c59Ax/d009c48e9aed536e8cc31b46a04735e7.jpg",
         bio: "Layalina Piccadilly is a Lebanese street-food restaurant on Coventry Street in Piccadilly, open until 5am daily, serving shawarma and falafel.",
       },
       {
@@ -1830,6 +1868,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Serena Williams — 163Margs",
+        photoUrl: "https://pbs.twimg.com/profile_images/2099656124320329728/0yAUuD9Y_400x400.jpg",
         bio: "Released on 3 September 2026 by 163Margs.",
       },
       {
@@ -1908,6 +1947,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "NiNE8 Collective",
+        photoUrl: "https://media.hero-magazine.com/wp-content/uploads/2026/05/22133756/260326_UGG_SS26_12_GROUP_175-aspect-ratio-1280-720.jpeg",
         bio: "London music and arts collective including Lava La Rue, Biig Piig, NAYANA IZ and Mac Wetha.",
       },
     ],
@@ -1937,14 +1977,17 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Ghosty",
+        photoUrl: "https://sizestores.s3.eu-west-1.amazonaws.com/wp-content/uploads/2021/06/BE0BFA9B-1F9E-44EB-A949-98535D8412D0.jpg",
         bio: "Featured in a 2021 UK drill producers special alongside Flyo and MK The Plug.",
       },
       {
         name: "Flyo",
+        photoUrl: "https://image.rinse.fm/_/DSC_7022-Flyo13.JPG?w=600&h=600",
         bio: "Featured in a 2021 UK drill producers special alongside Ghosty and MK The Plug.",
       },
       {
         name: "MK The Plug",
+        photoUrl: "https://sizestores.s3.eu-west-1.amazonaws.com/wp-content/uploads/2021/06/MK-THE-PLUG.png",
         bio: "Featured in a 2021 UK drill producers special alongside Ghosty and Flyo.",
       },
       {
@@ -1967,10 +2010,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Nyge",
+        photoUrl: "https://trenchtrenchtrench.com/assets/articles/nyge-interview/NYGE-1.JPG",
         bio: "Executive producer of AJ Tracey's album 'Flu Game'.",
       },
       {
         name: "P2J",
+        photoUrl: "https://notjustok.com/wp-content/uploads/2021/08/p2j.jpeg",
         bio: "Produced Burna Boy's 'Anybody' and much of Wizkid's 'Made in Lagos'; he won a Grammy for 'Twice as Tall'.",
       },
     ],
@@ -1994,6 +2039,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "E1",
+        photoUrl: "https://www.e1ldn.co/logo.svg",
         bio: "Wapping, capacity 1,600; warehouse venue with 2026 events listed through December.",
       },
       {
@@ -2013,6 +2059,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Colour Factory",
+        photoUrl: "https://kickoffclub.co.uk/assets/venues/colour-factory.webp",
         bio: "Hackney Wick, capacity 750; multi-space venue with 2026 events listed through November.",
       },
       {
@@ -2041,6 +2088,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "HERE at Outernet",
+        photoUrl: "https://www.outernet.com/assets/images/here-interior-jake-davis-Processed.jpg",
         bio: "Tottenham Court Road, capacity 2,000; underground venue now operating as Outernet Live, with 2026 events listed through November.",
       },
     ],
@@ -2149,10 +2197,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "ASTRAY",
+        photoUrl: "https://img.youtube.com/vi/3ICTCxgpMIE/maxresdefault.jpg",
         bio: "London K-pop cover crew with a documented recent cover of RIIZE's \"Fame\", performed by Sixtine, Ruby, Namixen, Zhnnieya, Leanne Trieu and others.",
       },
       {
         name: "HKZ Dance",
+        photoUrl: "https://yt3.ggpht.com/JzAgJnpOxFIVLOqWo1oLLuNTno1MZC6cFQ3Z8ptWykczZp7c9F3wf0w8Lt8H7nALxLobdKF7=s800-c-k-c0x00ffffff-no-rj",
         bio: "London K-pop cover crew with documented recent covers including ILLIT's \"It's Me\", BLACKPINK's \"Don't Know What To Do\" and Jennie's \"Like Jennie\", featuring dancers Cherrie, Hayden, Anet, Nati and Bartek.",
       },
     ],
@@ -2162,58 +2212,72 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Quoc Anh Nguyen",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Vietnamese Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Yuki Zhou",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Chinese Students and Scholars Association for 2025/26 in the Students' Union UCL leadership race, winning 85 of 115 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Emir Deniz Durahim",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Turkish Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Yi Kang Chai",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Malaysian Society for 2025/26 in the Students' Union UCL leadership race, winning 41 of 81 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Chin Siang Yew",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Singapore Society for 2025/26 in the Students' Union UCL leadership race, winning 82 of 91 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Vishal Arun",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Hindu Society for 2025/26 in the Students' Union UCL leadership race, winning 76 of 114 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Megan Liao",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Taiwanese Society for 2025/26 in the Students' Union UCL leadership race, winning 18 of 34 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Maya Crasmaru",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL English Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Girish Kharal",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Nepalese Society for 2025/26 in the Students' Union UCL leadership race, winning 17 of 23 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Ines Aissi",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Muslimah Careers Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Conal Flannery",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Irish and Northern Irish Society for 2025/26 in the Students' Union UCL leadership race, winning 9 of 10 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Aryan Virdi",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Punjabi Society for 2025/26 in the Students' Union UCL leadership race, winning 28 of 44 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Hanna Johal",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Elected President of the UCL Real Estate Society for 2025/26 in the Students' Union UCL leadership race, winning 7 of 10 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Izzie Moull",
+        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
         bio: "Named President of the UCL Cheese Grater Magazine Society in the June 2026 issue of the student publication; the society was awarded Best Publication in London (SPA Regional Awards 2025) and Best Publication in the UK and Ireland (SPA National Awards 2026).",
       },
     ],
@@ -2256,6 +2320,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sir Coxsone Outernational",
+        photoUrl: "https://lh3.googleusercontent.com/ci/AL18g_TLW1dFnvORCLJqAD2jw8U_vX9UyFhuMQTqaIdWk5Fvv8qIZpcwtKklI98Vnr6NRsaJnEMs1mzH=s1600",
         bio: "London sound system built around founder Lloyd 'Coxsone' Cox, documented as a pioneering UK reggae sound.",
       },
       {
@@ -2270,6 +2335,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Fatman Sound System",
+        photoUrl: "https://thumbnailer.mixcloud.com/unsafe/136x136/profile/c/3/6/e/b578-0a94-443e-b2a7-0339e8b09d2d",
         bio: "London sound system documented in UK sound-system history and filmed playing out in London in 2025.",
       },
       {
@@ -2390,6 +2456,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Dulwich Hamlet — The Rabble",
+        photoUrl: "https://img-res.pitchero.com/?url=images.pitchero.com%2Fui%2F259163%2Fimage_5cb08095f2381.png&h=550&w=980&t=fit&o=jpg",
         bio: "Supporters behind the goal at Champion Hill; among the loudest followings in non-league football.",
       },
       {
@@ -2411,10 +2478,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Brentford supporters",
+        photoUrl: "https://pbs.twimg.com/profile_images/2087480242256363520/dUzTHPKk_400x400.jpg",
         bio: "Gtech Community Stadium support; the West and East stands are the ground's loudest sections.",
       },
       {
         name: "Fulham supporters",
+        photoUrl: "https://www.fulhamsupporterstrust.com/wp-content/uploads/2019/04/cropped-JH-Stand-scaled-1.jpg",
         bio: "Craven Cottage support; the Hammersmith End is the ground's loudest section.",
       },
       {
@@ -2423,6 +2492,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sutton United supporters",
+        photoUrl: "https://media.thehardtackle.com/uploads/2017/02/Sutton-United-v-Arsenal-The-Emirates-FA-Cup-Fifth-Round-1.jpg",
         bio: "South London club with a loyal non-league home following.",
       },
       {
@@ -2492,6 +2562,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "DJ Alexo",
+        photoUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj14CRZQ6iXiPKD-AK3PiogIQR67lHP19GjNAvHmrvNyEbP_9Pg5nr9MYueOPSW11Kba9AmcB2u7vEZV2A1k7DGlXmLhQhZibJ0yCIfdmBTijDoC7P7mcdl1xtnDHx62V6mL9p3si8rrQ/s1600/Screen+Shot+2013-02-07+at+18.54.03.png",
         bio: "London-based Nigerian DJ interviewed about his UK DJ career.",
       },
       {
@@ -2515,6 +2586,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Rosey Gold",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/560c221ee4b0be9267dba750/89c4a42c-926c-45b8-ac8f-4d94bc0a3a7f/IMG_8550.jpg",
         bio: "London-based South African amapiano DJ and radio personality.",
       },
       {
@@ -2523,6 +2595,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "E305",
+        photoUrl: "https://pbs.twimg.com/profile_images/1663838795295227904/aamwldsb_400x400.jpg",
         bio: "DJ on London's amapiano circuit, named on the line-up for the Sounds on the South amapiano party at E1 London.",
       },
       {
@@ -2561,6 +2634,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "DJ Delight NGB",
+        photoUrl: "https://www.360naijahits.com.ng/wp-content/uploads/2026/09/IMG-20260917-WA0031-350x350.jpg",
         bio: "UK-based DJ playing Afro-fusion, amapiano and Afrobeats.",
       },
     ],
@@ -2570,6 +2644,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Jemma Wilson",
+        photoUrl: "https://yt3.googleusercontent.com/om0imbOyhylWwhZbRKb8DhAdepPA7NKbK_2pp3bldvob-GRgqPi9buaM4NmPv6eDYlL2WSRai1g=s900-c-k-c0x00ffffff-no-rj",
         bio: "Jemma Wilson, known as Cupcake Jemma, is the co-owner of the London bakery Crumbs & Doilies and host of the Cupcake Jemma YouTube channel.",
       },
       {
@@ -2613,6 +2688,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Juliet Sear",
+        photoUrl: "https://images.plex.tv/photo?size=large-1920&scale=1&url=https%3A%2F%2Fmetadata-static.plex.tv%2Fe%2Fgracenote%2Feb2e98689a1413cb263229136dab7d90.jpg",
         bio: "London-based baker, cake artist and television presenter; author of baking books.",
       },
       {
@@ -2719,6 +2795,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sarah Ginn",
+        photoUrl: "https://velocitypress.uk/wp-content/uploads/2022/11/SarahGinn1000.jpg",
         bio: "One of fabric's in-house photographers; her club photography featured in the House of Vans exhibition raising money for fabric's #SaveOurCulture campaign.",
       },
       {
@@ -2747,6 +2824,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Mark McNulty",
+        photoUrl: "https://liverpoolmusiccity.com/wp-content/uploads/2024/05/MarkMcNulty.jpg",
         bio: "Photographer of the 90s UK house and rave scene, including Ministry of Sound and superclub culture.",
       },
       {
@@ -2768,10 +2846,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Nigel Kabvina",
+        photoUrl: "https://media.checkfluence.com/influencers/photos/simplyni-1717477844-aqkmIuT0T5y3eazRkv40Vc5y5FyVfA.jpg",
         bio: "London-based mixologist and TikTok cocktail creator.",
       },
       {
         name: "Giorgio Bargiani",
+        photoUrl: "https://mma.prnewswire.com/media/2996841/50Best_Giorgio_Bargiani.jpg",
         bio: "Head bartender at the Connaught Bar in Mayfair, London; named Bartenders' Bartender at Europe's 50 Best Bars 2026.",
       },
       {
@@ -2785,6 +2865,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Alex Kratena",
+        photoUrl: "https://images.ctfassets.net/6zncp07wiqyq/SfVP75aRy7qDonu7ty6bd/a5e883dba267eb368d78983827f008e2/media_uihnwms1_inspiration-and-resources-_-blogs-inspiration-_-careers-_-learning-from-successful-famous-bartenders-_-alex-1.jpg",
         bio: "London-based bartender; co-owner of Tayēr + Elementary in London, named the world's best bar two years in a row.",
       },
       {
@@ -2803,6 +2884,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Angelos Bafas",
+        photoUrl: "https://www.thespiritsbusiness.com/content/uploads/2026/06/Angelos-Bafas.jpg",
         bio: "London bartender featured in The Times' guide to the city's cocktail bars.",
       },
       {
@@ -3057,6 +3139,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Linett Kamala",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2023/08/Linett-Kamala-8-Photo-credit-Kingsley-Davis-%C2%A9-Lin-Kam-Art-2023-684x1024.jpg",
         bio: "Longstanding sound-system DJ associated with Notting Hill Carnival.",
       },
       {
@@ -3065,6 +3148,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Robbo Ranx",
+        photoUrl: "https://speakrj.nyc3.cdn.digitaloceanspaces.com/instagram/robboranxradio.jpg",
         bio: "UK dancehall and reggae DJ who presented on BBC Radio 1Xtra for 12 years.",
       },
       {
@@ -3099,6 +3183,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Tash LC",
+        photoUrl: "https://media2.ntslive.co.uk/resize/1600x1600/fa651466-47c1-4299-943c-e07ed42385e6_1765843200.jpeg",
         bio: "London-based NTS resident whose sets blend dancehall with Afro-jazz, highlife, kuduro and gqom.",
       },
       {
@@ -3137,6 +3222,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Vito Coppola",
+        photoUrl: "https://yourlocallink.co.uk/wp-content/uploads/2025/07/RED-HOT-VITO-WEB-1104-2-1281x1024.jpg",
         bio: "Strictly Come Dancing professional dancer.",
       },
       {
@@ -3175,6 +3261,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Neil Jones",
+        photoUrl: "https://i2-prod.ok.co.uk/article22049301.ece/ALTERNATES/s1200e/2_Neil-Jones.jpg",
         bio: "Strictly Come Dancing professional dancer.",
       },
     ],
@@ -3404,6 +3491,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "67",
+        photoUrl: "https://images.h-wing.net/wp-content/uploads/2016/12/03181007/67.jpg",
         bio: "Their tracks 'Skengman' and 'Take It There' and the mixtape 'In Skengs We Trust' helped define the early UK drill sound.",
       },
       {
@@ -3512,10 +3600,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Adam McKola",
+        photoUrl: "https://pbs.twimg.com/profile_images/1976747753775517696/FLr0LcDo.jpg",
         bio: "Manchester United fan creator and contributor to The United Stand.",
       },
       {
         name: "Stephen Howson",
+        photoUrl: "https://media.vibetag.com/upload/videos/2024/01/w_autovideothumb_53c0ac850962ffaaf28f59215d5aff35.jpg",
         bio: "Founder of Stretford Paddock, the Man United fan channel that succeeded Full Time Devils.",
       },
       {
@@ -3537,6 +3627,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Drawty (Ben)",
+        photoUrl: "https://pbs.twimg.com/profile_images/2091532046111760384/-IFf4P18_400x400.jpg",
         bio: "Long-standing member of The United Stand team.",
       },
       {
@@ -3564,6 +3655,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Lara Adkins",
+        photoUrl: "https://www.freefocus.co.uk/wp-content/uploads/2024/11/Snapinsta.app_466848002_18474324925003388_4856847795974662257_n_1080.jpg",
         bio: "UK fashion creator — ~689k TikTok followers.",
       },
       {
@@ -3573,10 +3665,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sinead Biddlecombe",
+        photoUrl: "https://lh7-us.googleusercontent.com/jhGt8w9ZgUTtlVb4lIV-rnYKwLNPQsFORA3GeVvX2RpuWsXhtafsv4YjFcYeqQt1TQmv15wV5iPPweTqRVYfK03DepBdpxwsGQKvG92AX8RbzrXGpHvgiEtN0GIha1uH7PEpveG5N7JQ6hfoJ1blRww",
         bio: "UK fashion creator — ~365k TikTok followers.",
       },
       {
         name: "Imogen Cribb",
+        photoUrl: "https://www.thecityceleb.com/wp-content/uploads/2026/02/17709169717052863870097873849258.webp",
         bio: "UK fashion creator — ~315k TikTok followers.",
       },
       {
@@ -3595,6 +3689,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Esi (SerendipEsi)",
+        photoUrl: "https://p19-common-sign.tiktokcdn-us.com/tos-useast2a-p-0037-euttp/340574b4c9f14bce9f0ac434bef2847e_1719868090~tplv-tiktokx-origin.image?dr=9636&x-expires=1790452800&x-signature=upOWfrGHwa0%2B6JPBtD%2FeKbqzBrk%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5",
         bio: "UK fashion creator — ~157k TikTok followers.",
       },
       {
@@ -3637,6 +3732,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "John Gregory-Smith",
+        photoUrl: "https://www.johngregorysmith.com/wp-content/uploads/2019/10/773d1d22-1abb-4447-bed6-efd3df439648-819x1024.jpeg",
         bio: "London-based food writer, chef and cookbook author, known for recipes from the Middle East and beyond.",
       },
       {
@@ -3830,54 +3926,67 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Andy (Let's Talk FPL)",
+        photoUrl: "https://pbs.twimg.com/profile_images/2009238226695761920/GWQNsKuG_400x400.jpg",
         bio: "Runs the Let's Talk FPL channel, with 450k+ YouTube subscribers.",
       },
       {
         name: "Ben Crellin",
+        photoUrl: "https://pbs.twimg.com/profile_images/574886482126598147/x0WD_pYx_400x400.jpeg",
         bio: "FPL fixture-planner known for his planning spreadsheets; on a run of six straight top-10k finishes.",
       },
       {
         name: "FPL Focal",
+        photoUrl: "https://pbs.twimg.com/profile_images/1678392611952906247/CU_pn9tq_400x400.jpg",
         bio: "FPL creator who was briefly ranked #1 in the world at the game.",
       },
       {
         name: "FPL Harry",
+        photoUrl: "https://pbs.twimg.com/profile_images/1963273545770807296/OpyFKgsC_400x400.jpg",
         bio: "FPL YouTuber with 200k+ subscribers; five straight top-10k finishes.",
       },
       {
         name: "Big Man Bakar",
+        photoUrl: "https://pbs.twimg.com/profile_images/1459686915498819587/cYF4VOWO_400x400.jpg",
         bio: "FPL content creator; regular on Fantasy Football Hub's gameweek team-reveal shows.",
       },
       {
         name: "Az (FPL BlackBox)",
+        photoUrl: "https://pbs.twimg.com/profile_images/1831452082383073280/6XUEfCLa_400x400.jpg",
         bio: "Host of the FPL BlackBox show and an official FPL pundit.",
       },
       {
         name: "Pras (The FPL Wire)",
+        photoUrl: "https://pbs.twimg.com/profile_images/1795868568048799744/CSm3QhvI_400x400.jpg",
         bio: "The FPL Wire co-host; BBC Sport live FPL pundit and Fantasy Football Scout pro-pundit.",
       },
       {
         name: "Mark (FPL General)",
+        photoUrl: "https://pbs.twimg.com/profile_images/996319810245091330/vPwgnxhk_400x400.jpg",
         bio: "Fantasy Football Scout's FPL General; hosts a weekly team-selection show.",
       },
       {
         name: "Ross (FPL Raptor)",
+        photoUrl: "https://pbs.twimg.com/profile_images/2070953965827620864/SiHp1iGy_400x400.jpg",
         bio: "FPL Raptor; a community favourite known for humble, analytical FPL content.",
       },
       {
         name: "Lateriser",
+        photoUrl: "https://pbs.twimg.com/profile_images/1041289003381604352/feioKyKN_400x400.jpg",
         bio: "The FPL Wire co-host with three top-200 overall finishes.",
       },
       {
         name: "Lee & Sam (FPL Family)",
+        photoUrl: "https://pbs.twimg.com/profile_images/1690802174983360512/30KeeKBc_400x400.jpg",
         bio: "Hosts of the FPL Family chat show and podcast covering Fantasy Premier League.",
       },
       {
         name: "FPL Mate",
+        photoUrl: "https://pbs.twimg.com/profile_images/1841137797052198913/T8sEuK7Z_400x400.jpg",
         bio: "FPL YouTuber and team-reveal creator; a fixture of community discussion each gameweek.",
       },
       {
         name: "Planet FPL",
+        photoUrl: "https://pbs.twimg.com/profile_images/1572129679569461249/AbK2OBxa_400x400.jpg",
         bio: "Long-running FPL podcast; a staple Monday listen in the community.",
       },
     ],
@@ -3901,6 +4010,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Kruz Leone",
+        photoUrl: "https://cdn-images.dzcdn.net/images/artist/06c52ae66700d8293bb086259161f93d/500x500.jpg",
         bio: "Nominated for Best Grime Act at the 2025 MOBO Awards.",
       },
       {
@@ -3933,6 +4043,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Kano",
+        photoUrl: "https://pbs.twimg.com/profile_images/1151922588559581192/JbDYsqI3.png",
         bio: "His album 'Made in the Manor' reached No.8 in the UK, was shortlisted for the Mercury Prize and won MOBO Best Album.",
       },
       {
@@ -3947,6 +4058,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Frisco",
+        photoUrl: "https://pbs.twimg.com/profile_images/1905531976129421312/Lii4h4w0_400x400.jpg",
         bio: "The Tottenham-born BBK member released the album 'System Killer'.",
       },
     ],
@@ -4021,6 +4133,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "R3WIRE",
+        photoUrl: "https://pbs.twimg.com/profile_images/2101027552986808320/dm6MtHbe_400x400.jpg",
         bio: "Runs weekly livestreamed house and tech DJ sets on YouTube with four-deck mixing.",
       },
       {
@@ -4075,42 +4188,52 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "LADbible",
+        photoUrl: "https://pbs.twimg.com/profile_images/1502328419341807616/nyRcE6w0_400x400.jpg",
         bio: "UK viral publisher with around 14M Instagram and 12.9M TikTok followers.",
       },
       {
         name: "UNILAD",
+        photoUrl: "https://pbs.twimg.com/profile_images/1603411021946933249/AdgqD110_400x400.jpg",
         bio: "UK-based viral media publisher known for memes, videos and trending stories.",
       },
       {
         name: "The Poke",
+        photoUrl: "https://pbs.twimg.com/profile_images/556060000410296321/BXU9aiar_400x400.png",
         bio: "British comedy website curating funny tweets, headlines and viral posts.",
       },
       {
         name: "No Context Brits",
+        photoUrl: "https://pbs.twimg.com/profile_images/1989286782416887808/Yd_hknNG_400x400.jpg",
         bio: "@NoContextBrits; posts out-of-context British photos, with around 1.8M followers on X.",
       },
       {
         name: "Very British Problems",
+        photoUrl: "https://pbs.twimg.com/profile_images/2996456104/b707959f192bba5c31c07058f91a183b_400x400.png",
         bio: "@SoVeryBritish; British humour account with around 964K Instagram followers.",
       },
       {
         name: "The Daily Mash",
+        photoUrl: "https://pbs.twimg.com/profile_images/1140912525501960192/NbvPzgXJ_400x400.png",
         bio: "British satirical news website founded in 2007, publishing spoof current-affairs stories.",
       },
       {
         name: "NewsThump",
+        photoUrl: "https://pbs.twimg.com/profile_images/1579780501065408512/Gagm3ZDW_400x400.jpg",
         bio: "British spoof news website founded in 2009.",
       },
       {
         name: "Pubity",
+        photoUrl: "https://pbs.twimg.com/profile_images/1778055517925146624/nJXOa2UM_400x400.jpg",
         bio: "Meme media brand with over 37M Instagram followers, founded by British creators Kit Chilvers and Iyrah Williams.",
       },
       {
         name: "Memezar",
+        photoUrl: "https://yt3.ggpht.com/UJy6ZG3AconjEr9wayDTWD_ymdLPorHIVpld4I1lHHoQI0SP-QvcTeOhkrNYlp4fwhS4UY5u4A=s800-c-k-c0x00ffffff-no-rj",
         bio: "Meme page with over 23M Instagram followers, part of the British-founded Pubity Group.",
       },
       {
         name: "IMJUSTBAIT",
+        photoUrl: "https://is5-ssl.mzstatic.com/image/thumb/Purple128/v4/13/60/11/136011e2-0c53-8634-b7af-d36480b48462/source/512x512bb.jpg",
         bio: "UK banter and meme Instagram account with around 4.8M followers.",
       },
       {
@@ -4132,10 +4255,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Charlie Irons (Man About Town)",
+        photoUrl: "https://siddh.socialveins.com/profiles/charlieirons/1776248725735-profile.webp",
         bio: "Menswear creator behind the Man About Town platform.",
       },
       {
         name: "Carl Thompson",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/54661df4e4b0c1af99306b69/1783332295009-SIVHY34KOX8G8DHQMRI8/Octobre+Editions+Styling+x+Carl+Thompson.JPG",
         bio: "UK men's fashion creator.",
       },
       {
@@ -4162,6 +4287,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Stanley Dru",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/698b32d49e7cce010aa426f3/1772547130894-7AAIQF3HVI8GR2AINVHI/Stanley2.jpg",
         bio: "Menswear creator and M&S menswear ambassador.",
       },
       {
@@ -4204,6 +4330,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Chuckie Online",
+        photoUrl: "https://ents24.imgix.net/image/000/175/014/06c634ea9d3cdc27dd41462ddd2d46af250803fb.jpg?auto=format&crop=faces&w=1200&h=630",
         bio: "Host of the Halfcast Podcast, which has featured interviews with music figures.",
       },
       {
@@ -4221,10 +4348,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Kenny Allstar",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Kenny_Alstar.jpg",
         bio: "BBC Radio 1Xtra host whose Voice of the Streets series features freestyles and in-depth interviews with UK rap artists.",
       },
       {
         name: "Ras Kwame",
+        photoUrl: "https://pbs.twimg.com/profile_images/1962211317076402176/SZLcOey5_400x400.jpg",
         bio: "Capital Xtra DJ whose Reggae Recipe show features interviews with dancehall and reggae artists.",
       },
       {
@@ -4233,6 +4362,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "DJ Ron",
+        photoUrl: "https://cdn.prod.website-files.com/61b90defe354e5660486c19b/61badea8d8acfdcb5b7253f1_FL-02.28-DJRon-BLOG.jpeg",
         bio: "Host of the London Something Podcast, interviewing jungle figures.",
       },
       {
@@ -4241,6 +4371,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Grant Body-P",
+        photoUrl: "https://i.ytimg.com/vi/obWWlCvIDCo/maxresdefault.jpg",
         bio: "Presenter of the RePPiN4U Hip Hop Show, conducting artist interviews.",
       },
     ],
@@ -4270,6 +4401,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "JAE5",
+        photoUrl: "https://i.audiomack.com/jae5/42d53ad687.webp?width=400",
         bio: "Executive producer of J Hus's 'Common Sense' and producer of Dave's 'Location'; a MOBO Best Producer winner.",
       },
       {
@@ -4279,18 +4411,22 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Nana Rogues",
+        photoUrl: "https://cdn.amsterdam-dance-event.nl/images/images/transforms/artists-speakers/_1200x630_crop_center-center_none/22565/NanaR-01560_158295.webp",
         bio: "Produced Drake's 'Passionfruit' and 'Skepta Interlude'; his credits also span Dave, J Hus and Stormzy.",
       },
       {
         name: "Conducta",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2019/01/CONDUCTA-PRESS-2019-1.jpg",
         bio: "Produced AJ Tracey's chart hit 'Ladbroke Grove'.",
       },
       {
         name: "M1OnTheBeat",
+        photoUrl: "https://crackmag.wpenginepowered.com/wp-content/uploads/2024/01/Magazine-M1ONTHEBEAT-Portrait-Gallery-2.jpg",
         bio: "Produced Headie One's early projects, Digga D's 'Woi', 'Golden Boot' and the Drake/Headie One 'Only You Freestyle'.",
       },
       {
         name: "Sir Spyro",
+        photoUrl: "https://radiox.ch/.imaging/mte/radiox-theme/xlarge/dam/radiox-website/ADW-assets/SirSpyro.jpg/jcr:content/SirSpyro.jpg",
         bio: "Produced Stormzy's 'Big for Your Boots', 'Sounds of the Skeng' and 'Topper Top'.",
       },
       {
@@ -4307,6 +4443,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Juls",
+        photoUrl: "https://storage.googleapis.com/twtdata-blog/original_images/hometwitterappreports_dataprofile_image_JulsOnIt.jpeg",
         bio: "Won Best Producer at the 2025 MOBO Awards.",
       },
     ],
@@ -4316,6 +4453,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "INFERNO",
+        photoUrl: "https://images-prod.dazeddigital.com/1200/0-0-2985-1990/azure/dazed-prod/1320/0/1320784.JPG",
         bio: "Queer techno party collective founded by Lewis G Burton; it marked its 10th anniversary in 2025.",
       },
       {
@@ -4328,6 +4466,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "RIOT",
+        photoUrl: "https://electronicgroove.com/wp-content/uploads/2025/11/LGBTQ-COLLECTIVES-by-Rae-Tait.jpg",
         bio: "Queer London party collective; one of eight collectives behind a landmark joint statement on the capital's queer venue crisis.",
       },
       {
@@ -4336,10 +4475,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Coven",
+        photoUrl: "https://images-prod.dazeddigital.com/1023/0-238-1023-682/azure/dazed-prod/1450/5/1455557.jpg",
         bio: "Queer London party collective; one of eight collectives behind a landmark joint statement on the capital's queer venue crisis.",
       },
       {
         name: "UHAUL Dyke Rescue",
+        photoUrl: "https://freight.cargo.site/t/original/i/79c41c77a0e7fa59745af7af294f9e3da4eccf34bb6521c8599ea26b2f7d74b2/FM2025_Khris_Cowley_Saturday194.jpg",
         bio: "Queer London party collective; one of eight collectives behind a landmark joint statement on the capital's queer venue crisis.",
       },
       {
@@ -4348,18 +4489,22 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Pxssy Palace",
+        photoUrl: "https://image.rinse.fm/_/Pxssy-Palace.jpeg?w=1200&h=630",
         bio: "Collective behind London's Pxssy Palace queer club night; profiled in the Dazed 100.",
       },
       {
         name: "Horse Meat Disco",
+        photoUrl: "https://pbs.twimg.com/profile_images/1233009286529372160/b3amYQZI_400x400.jpg",
         bio: "Long-running London queer disco party collective; staged a 2026 night at Eagle London in Vauxhall.",
       },
       {
         name: "Butterz",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/d/d2/Butterz_Logo_2013.png",
         bio: "Grime label and party brand founded by Elijah and Skilliam; credited with changing the blueprint for independent UK labels.",
       },
       {
         name: "Touching Bass",
+        photoUrl: "http://www.northseajazz.com/-/media/northseajazz/rotterdam/shows/2019/touching-bass.jpg",
         bio: "South London music community and party brand co-founded by Alex Rita and Errol Anderson.",
       },
       {
@@ -4389,6 +4534,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "MC Det",
+        photoUrl: "https://pbs.twimg.com/profile_images/949323310738878464/6wDIUEZN_400x400.jpg",
         bio: "Drum-and-bass/jungle MC who hosts club and rave sets.",
       },
       {
@@ -4397,6 +4543,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Shabba D",
+        photoUrl: "https://instastatistics.com/shabbadan/opengraph-image",
         bio: "Drum-and-bass/jungle MC who hosts club and rave sets.",
       },
       {
@@ -4431,6 +4578,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "SP:MC",
+        photoUrl: "http://images.fabriclondon.com/wp-content/uploads/2012/07/SPMC_650.jpg",
         bio: "Drum-and-bass/jungle MC who hosts club and rave sets.",
       },
     ],
@@ -4445,6 +4593,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Rory Stewart",
+        photoUrl: "https://www.rorystewart.co.uk/wp-content/uploads/2019/05/rory-stewart-720x480.jpg",
         bio: "Co-host of The Rest Is Politics with Alastair Campbell.",
       },
       {
@@ -4514,10 +4663,12 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Jodie Harsh",
+        photoUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Jodie_Harsh_at_SXSW_London_2026.jpg",
         bio: "London DJ and nightlife personality.",
       },
       {
         name: "Princess Julia",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Princess_Julia%2C_Oct_2011.jpg",
         bio: "London nightlife figure featured in DJHistory's Dancefloor Pride series.",
       },
       {
@@ -4545,10 +4696,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Errol Anderson",
+        photoUrl: "https://images.ctfassets.net/taoiy3h84mql/3GjWGmK1XXk2NtwGKBjsfR/a48ed31468b21191f4bfa7c5644f0bbd/GuestShowErrol_-_Errol_Anderson.JPG?w=1200&h=630&fit",
         bio: "Co-founder of the South London music community Touching Bass.",
       },
       {
         name: "Alex Rita",
+        photoUrl: "http://www.northseajazz.com/-/media/northseajazz/rotterdam/shows/2019/touching-bass.jpg",
         bio: "Co-founder of the South London music community Touching Bass.",
       },
       {
@@ -4634,10 +4787,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Raisa K",
+        photoUrl: "https://images.prismic.io/rewirefestival/aWpa9wIvOtkhBp6X_RaisaKPressShot.png?auto=format,compress&rect=0,36,1920,1008&w",
         bio: "Joined NTS Radio as a new resident in summer 2025.",
       },
       {
         name: "Silent Addy & Disco Neil",
+        photoUrl: "https://pbs.twimg.com/profile_images/1397998108332658689/76Oeyk0T_400x400.jpg",
         bio: "Bashment Sound duo who joined NTS Radio as new residents in summer 2025.",
       },
     ],
@@ -4800,6 +4955,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Silverspoon London",
+        photoUrl: "https://www.vuelio.com/uk/wp-content/uploads/2018/03/Angie-Silver-700x400.jpg",
         bio: "London-based food reviewer sharing restaurant reviews from across the capital.",
       },
       {
@@ -4874,6 +5030,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Robert Franks",
+        photoUrl: "https://www.theindustry.fashion/wp-content/uploads/kickgamefounder2-1024x640.jpg",
         bio: "Co-founded London sneaker retailer Kick Game with his brother David in 2013.",
       },
       {
@@ -4887,6 +5044,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Helen Kirkum",
+        photoUrl: "https://scalemag.online/wp-content/uploads/2021/02/scale-HELEN_KIRKUM_ZIG2.jpg",
         bio: "London-based sneaker customiser named among the UK's must-see custom artists.",
       },
       {
@@ -5018,6 +5176,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sir Spyro",
+        photoUrl: "https://bbcinsight.pages.dev/_bbc-assets/ichef.bbci.co.uk/images/ic/400x400/p0lzsznz.jpg",
         bio: "BBC Radio 1Xtra presenter.",
       },
       {
@@ -5027,6 +5186,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Remi Burgz",
+        photoUrl: "https://cdn-profiles.tunein.com/p1398118/images/logog.jpg?t=6",
         bio: "BBC Radio 1Xtra presenter who moved to the station's drive-time slot.",
       },
       {
@@ -5080,6 +5240,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Abby Wambaugh",
+        photoUrl: "https://cloudimages.broadwayworld.com/columnpiccloud/ABBY-WAMBAUGH-THE-FIRST-3-MINUTES-OF-17-SHOWS-Comes-to-London-1731570559.jpg",
         bio: "Winner of the ISH Edinburgh Comedy Award for Best Newcomer 2024.",
       },
       {
@@ -5187,14 +5348,17 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Behzinga",
+        photoUrl: "https://www.thecityceleb.com/wp-content/uploads/2025/09/behzingagram_1720109726_3404849624008267936_566511898-720x405.webp",
         bio: "Sidemen member streaming games and Just Chatting from London.",
       },
       {
         name: "W2S",
+        photoUrl: "https://famecop.com/storage/2021/06/w2s-1024x1024.jpg",
         bio: "Sidemen member and London-based gaming streamer.",
       },
       {
         name: "TBJZL",
+        photoUrl: "https://pbs.twimg.com/profile_images/1590644290618892289/oYAR_NzR.jpg",
         bio: "Sidemen member and London-based gaming streamer.",
       },
       {
@@ -5212,14 +5376,17 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Loz Vassallo",
+        photoUrl: "https://pub-35b3ecdefba74bc8ae94d0b4aa9aee67.r2.dev/creator-photos/lozvassallo.jpg",
         bio: "London streetwear creator — ~259k Instagram followers.",
       },
       {
         name: "Charlotte Olivia",
+        photoUrl: "https://p16-common-sign.tiktokcdn-us.com/tos-maliva-avt-0068/2ce672d04d9a41125ed8f69d825fc10c~tplv-tiktokx-cropcenter:720:720.jpeg?dr=9640&refresh_token=efe376fc&x-expires=1790452800&x-signature=1JIlIW3g%2BKoizZ4bnLDJRUnuqqw%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=useast5",
         bio: "London fashion creator (@iamcharlotteolivia) — ~404k Instagram followers.",
       },
       {
         name: "MUBI Idriess",
+        photoUrl: "https://framerusercontent.com/images/hbd6W7eFWXhffUkRij32ZVOM8I.jpg?width=1129&height=1602",
         bio: "Streetwear creator based across London, Barcelona and Munich — ~363k Instagram followers.",
       },
       {
@@ -5270,6 +5437,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Neebz",
+        photoUrl: "https://musiciansunion.org.uk/MusiciansUnion/media/ProfilePictures/808877/profile_large.jpg",
         bio: "UK-based K-pop singer and dancer who placed second in the vocal category at the New Malden K-pop Awards 2025.",
       },
       {
@@ -5327,6 +5495,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Darkest Man",
+        photoUrl: "https://www.thecityceleb.com/wp-content/uploads/2026/03/17725244221628221120230211446626.webp",
         bio: "London-based comedy creator and Beta Squad affiliate, known for prank and football content.",
       },
       {
@@ -5351,6 +5520,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Italian Bach",
+        photoUrl: "https://yt3.ggpht.com/MrZ3VlQt-yPLenxZihhBfA_0ogen0VScpdAmDPKcI54_-xrV_WH8gD0czb_-jN3jF_sCdV809ZNaYA=s800-c-fcrop64=1,00002000ffffdfff-nd-v1",
         bio: "British comedy TikToker with around 2.4M followers and 222M likes, known for short comedy sketches.",
       },
       {
@@ -5364,6 +5534,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Theo Baker",
+        photoUrl: "https://cdn.socialpruf.com/tiktok/thumbnails/7629388003349105922?optimizer=image&width=512",
         bio: "London-based creator and Fellas Studios member known for comedy and football videos.",
       },
     ],
@@ -5378,10 +5549,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "AJ Odudu",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c2/AJ_Odudu_at_BAFTAs_2026_02.jpg",
         bio: "Hosts Big Brother UK alongside Will Best.",
       },
       {
         name: "Will Best",
+        photoUrl: "http://cdn.thetab.com/wp-content/uploads/2023/10/25133401/unnamed-177.jpg",
         bio: "Hosts Big Brother UK alongside AJ Odudu.",
       },
       {
@@ -5436,6 +5609,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Ruth Langsford",
+        photoUrl: "https://cdn.mos.cms.futurecdn.net/8kCNCtqLfDrrnvMUuUiyiN-2560-80.jpg",
         bio: "TV presenter featured in a UK's favourite TV presenters ranking.",
       },
     ],
@@ -5596,6 +5770,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Rokit",
+        photoUrl: "https://www.rokit.co.uk/cdn/shop/files/rokit-logo.png?v=1633950568",
         bio: "Vintage clothing shop on Brick Lane known for second-hand and retro fashion.",
       },
       {
@@ -5636,6 +5811,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Paper Dress Vintage",
+        photoUrl: "https://paperdressvintage.co.uk/wp-content/uploads/2021/04/84a5f205-3bdf-4f0f-b260-e7d647c612df-600x600.jpg",
         bio: "East London vintage shop.",
       },
       {
@@ -5644,6 +5820,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Atika London",
+        photoUrl: "https://p16-common-sign.tiktokcdn-us.com/tos-maliva-avt-0068/7321299944432730118~tplv-tiktokx-cropcenter:720:720.jpeg?dr=9640&refresh_token=ebeadb89&x-expires=1790452800&x-signature=JzAB6z7ObKapHcVrNdEdi6MGzN8%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=useast5",
         bio: "London vintage clothing shop with strong visitor reviews.",
       },
     ],
@@ -5847,6 +6024,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sharky",
+        photoUrl: "https://pbs.twimg.com/profile_images/2042275500286976005/tPKFwfMr_400x400.jpg",
         bio: "Beta Squad member with around 2M YouTube subscribers; posts challenge and football videos.",
       },
       {
@@ -5856,6 +6034,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "KingKenny",
+        photoUrl: "https://yt3.googleusercontent.com/ytc/AIdro_k1w7-5xnNJLotZUWfI-JfRjRVzD3gQFitPTlr1cCsmgg=s900-c-k-c0x00ffffff-no-rj",
         bio: "Beta Squad member and Misfits boxer; appeared on Celebrity Traitors series 2.",
       },
       {
