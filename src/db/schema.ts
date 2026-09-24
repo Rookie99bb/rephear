@@ -336,6 +336,64 @@ admin_notes TEXT NOT NULL DEFAULT ''
 CREATE INDEX IF NOT EXISTS idx_credit_redemptions_profile ON credit_redemptions(profile_id);
 CREATE INDEX IF NOT EXISTS idx_credit_redemptions_status ON credit_redemptions(status);
 CREATE INDEX IF NOT EXISTS idx_credit_redemptions_requested_by ON credit_redemptions(requested_by);
+
+-- Vote-to-enter prize draws ("投票抽奖"). One row per draw, created and
+-- managed from /admin/raffles. A raffle is scoped to a single Ranking
+-- (ranking_id) or site-wide (ranking_id IS NULL). Entries are earned by
+-- voting — currently free Likes only, deliberately: under UK law a prize
+-- draw must offer free entry, and tying entry to paid Support Credits
+-- could turn the draw into an illegal lottery (Gambling Act 2005). If a
+-- paid-entry mechanic is ever wanted, it needs legal review first and a
+-- separate free-entry route. Status starts 'active'; drawing winners
+-- flips it to 'drawn' (winners recorded in raffle_winners, never edited
+-- afterward); 'cancelled' is for draws that never ran.
+CREATE TABLE IF NOT EXISTS raffles (
+id TEXT PRIMARY KEY,
+title TEXT NOT NULL,
+description TEXT NOT NULL DEFAULT '',
+ranking_id TEXT REFERENCES rankings(id),
+prize_description TEXT NOT NULL,
+sponsor_name TEXT NOT NULL DEFAULT '',
+starts_at TEXT NOT NULL DEFAULT (datetime('now')),
+ends_at TEXT NOT NULL,
+winner_count INTEGER NOT NULL DEFAULT 1,
+status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'drawn' | 'cancelled'
+created_by TEXT REFERENCES users(id),
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One entry per user per raffle (UNIQUE(raffle_id, user_id)): every voter
+-- gets exactly one equal chance, which keeps the draw fair, the messaging
+-- simple ("vote to enter"), and removes any incentive to farm Likes for
+-- extra entries. source records how the entry was earned ('like' today;
+-- 'support' reserved for a future paid-Support entry path via the
+-- checkout webhook).
+CREATE TABLE IF NOT EXISTS raffle_entries (
+id TEXT PRIMARY KEY,
+raffle_id TEXT NOT NULL REFERENCES raffles(id),
+user_id TEXT NOT NULL REFERENCES users(id),
+source TEXT NOT NULL DEFAULT 'like',
+created_at TEXT NOT NULL DEFAULT (datetime('now')),
+UNIQUE(raffle_id, user_id)
+);
+
+-- Winners are append-only history: once drawn, a row is never updated or
+-- deleted (disputes are resolved by reading this table + the audit log).
+-- drawn_seed stores the randomness source description for auditability.
+CREATE TABLE IF NOT EXISTS raffle_winners (
+id TEXT PRIMARY KEY,
+raffle_id TEXT NOT NULL REFERENCES raffles(id),
+user_id TEXT NOT NULL REFERENCES users(id),
+drawn_at TEXT NOT NULL DEFAULT (datetime('now')),
+drawn_by TEXT REFERENCES users(id),
+drawn_seed TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_raffles_status ON raffles(status);
+CREATE INDEX IF NOT EXISTS idx_raffles_ranking ON raffles(ranking_id);
+CREATE INDEX IF NOT EXISTS idx_raffle_entries_raffle ON raffle_entries(raffle_id);
+CREATE INDEX IF NOT EXISTS idx_raffle_entries_user ON raffle_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_raffle_winners_raffle ON raffle_winners(raffle_id);
 `);
 }
 

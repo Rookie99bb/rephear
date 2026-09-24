@@ -61,6 +61,9 @@ export const AUDIT_ACTIONS = {
   RANKING_PINNED: "ranking_pinned",
   RANKING_UNPINNED: "ranking_unpinned",
   RANKING_REORDERED: "ranking_reordered",
+  RAFFLE_CREATED: "raffle_created",
+  RAFFLE_DRAWN: "raffle_drawn",
+  RAFFLE_CANCELLED: "raffle_cancelled",
 } as const;
 
 // Audit Logs are append-only: this module intentionally exposes no

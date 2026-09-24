@@ -42,6 +42,9 @@ export default async function AdminLayout({
           <Link href="/admin/rankings" className="hover:text-ink">
             Rankings
           </Link>
+          <Link href="/admin/raffles" className="hover:text-ink">
+            Prize Draws
+          </Link>
           <Link href="/admin/audit" className="hover:text-ink">
             Audit Log
           </Link>

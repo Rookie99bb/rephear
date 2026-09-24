@@ -9,6 +9,7 @@ import { isAdminEmail } from "@/lib/admin";
 import AddNomineeForm from "@/components/AddNomineeForm";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import CheckoutBanner from "@/components/CheckoutBanner";
+import RaffleBanner from "@/components/RaffleBanner";
 import { Suspense } from "react";
 
 // Per-page title/OG so a shared Ranking link unfurls with the Ranking's
@@ -74,6 +75,9 @@ return (
 <div>
 <Suspense fallback={null}>
 <CheckoutBanner />
+</Suspense>
+<Suspense fallback={null}>
+<RaffleBanner rankingId={ranking.id} />
 </Suspense>
 <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">
 {ranking.city}, {ranking.country}
