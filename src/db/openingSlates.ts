@@ -410,14 +410,17 @@ const SLATES: SlateSeed[] = [
       {
         name: "MAP café",
         bio: "80-cap basement room in Camden (feels busy at 50). Cosy intimate room for singer-songwriter shows.",
+        photoUrl: "https://www.kentishtowner.co.uk/wp-content/uploads/sites/13/2018/08/Map-Studio-Cafe-Interior.jpg",
       },
       {
         name: "The Workshop, Star Inn",
         bio: "70-cap underground room near Old Street station. A first-London-show room for new bands.",
+        photoUrl: "https://starinshoreditch.co.uk/wp-content/uploads/2021/06/Road-Trip-and-The-Workshop-377-1024x683-1.jpeg",
       },
       {
         name: "Ton of Brix",
         bio: "90-100-cap room in central Brixton with a large stage, plants and mirrors. Intimate seated or standing shows.",
+        photoUrl: "https://d23n7gucj1ok25.cloudfront.net/Screenshot-2024-12-16-at-17.34.43-4.png",
       },
 
     ],
@@ -683,10 +686,12 @@ const SLATES: SlateSeed[] = [
       {
         name: "Tsupo",
         bio: "UK cosplayer who, with Clood, won the 2023 World Cosplay Championship grand prize with costumes from the anime Magi: The Labyrinth of Magic.",
+        photoUrl: "https://i.ytimg.com/vi/zSqQGoQDp3w/maxresdefault.jpg",
       },
       {
         name: "Clood",
         bio: "UK cosplayer who, with Tsupo, won the 2023 World Cosplay Championship grand prize with costumes from the anime Magi: The Labyrinth of Magic.",
+        photoUrl: "https://i.ytimg.com/vi/zSqQGoQDp3w/maxresdefault.jpg",
       },
       {
         name: "Richard von Wild",
@@ -695,6 +700,7 @@ const SLATES: SlateSeed[] = [
       {
         name: "TheSparkofRevolution",
         bio: "One half of the UK cosplay duo Sparkie & Ceres, named a cosplay guest at HYPER JAPAN Manchester 2025.",
+        photoUrl: "https://static.wixstatic.com/media/c7ddea_18d1f417d689428f858e1a3844cd5e16~mv2.jpg/v1/fit/w_696,h_464,q_90,enc_avif,quality_auto/c7ddea_18d1f417d689428f858e1a3844cd5e16~mv2.jpg",
       },
       {
         name: "Cereselcosplay",
@@ -704,6 +710,7 @@ const SLATES: SlateSeed[] = [
       {
         name: "GayPanic Cosplay",
         bio: "Cardiff-based cosplayer active since 2016, profiled by Costume and Play in a 2025 interview about a decade in cosplay.",
+        photoUrl: "https://graph.facebook.com/2373470909547995/picture?type=large",
       },
 
     ],
@@ -1221,10 +1228,12 @@ const SLATES: SlateSeed[] = [
       {
         name: "Greig Johnson Making — Red Dwarf blaster build video",
         bio: "UK-based prop maker and YouTuber — his build series documents a scratchbuilt Red Dwarf blaster made from plastic, drainpipe and old toys.",
+        photoUrl: "https://yt3.googleusercontent.com/x-prTsSQxzcX6oStl4cLhQ3QpcPIUiMg10d1EpwC_hEwP105L9OG_vSLMnXNXxdrsVUIyotU6A=s400-c-k-c0x00ffffff-no-rj",
       },
       {
         name: "Venus Callida — Steampunk Botanist build video",
         bio: "Cosplayer — her YouTube video documents the construction of a Steampunk Botanist cosplay, submitted for the London Comic Con masquerade competition.",
+        photoUrl: "https://yt3.googleusercontent.com/P_Q8PJ8uN8ZQFUDtPuB_Bj7q-UrfFgwKBBHpm_2hxmFAzBItP6jgPr65OyqALaeGERSaiFzDAQ=s400-c-k-c0x00ffffff-no-rj",
       },
       {
         name: "Shappi Workshop — Vora (Paladins) build tutorial video",
@@ -1259,6 +1268,7 @@ const SLATES: SlateSeed[] = [
       {
         name: "Hwanni & Jazzichan — WCS 2024 Team UK qualifier performance at MCM London Comic Con",
         bio: "UK cosplay duo — won the UK preliminary round for the World Cosplay Championship 2024 at MCM London Comic Con on 28 October 2023.",
+        photoUrl: "https://pbs.twimg.com/profile_images/1527976409322373120/QZTSk1ID_400x400.jpg",
       },
       {
         name: "Eleo Cosplay — Grand Champion winning performance at the C3 Cosplay City Championship final 2023",
@@ -1276,6 +1286,7 @@ const SLATES: SlateSeed[] = [
       {
         name: "Bat and Blossom Cosplay — Grand Champion winning performance at the C3 Cosplay City Championship final 2024",
         bio: "UK cosplay duo — Grand Champions of the 2024 C3 Cosplay City Championship at ACME Comic Con Scotland, as listed in the official Hall of Fame.",
+        photoUrl: "https://p16-common-sign.tiktokcdn-us.com/tos-maliva-avt-0068/970818e556e130528aeefb3feb08efc1~tplv-tiktokx-cropcenter:1080:1080.jpeg?dr=9640&refresh_token=04e270cf&x-expires=1790456400&x-signature=zNgDG%2BPiEGZbXzM53rvdRKbkk64%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=useast5",
       },
       {
         name: "Lady Honey Designs — Fabric Grandmaster winning performance at the C3 Cosplay City Championship final 2024",
@@ -2285,6 +2296,81 @@ const SLATES: SlateSeed[] = [
   {
     rankingSlug: "best-student-dj-london-2026",
     nominees: [
+      {
+        name: "Fred again..",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3b/FredAgainCPBowl100825-13_%2854713954728%29.jpg",
+        bio: "London-born producer and DJ; won the Grammy for Best Dance/Electronic Album in 2024 for 'Actual Life 3'.",
+      },
+      {
+        name: "Disclosure",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6a/Disclosure.jpg",
+        bio: "London-based electronic duo of brothers Guy and Howard Lawrence; debut album 'Settle' (2013) reached No. 1 on the UK Albums Chart.",
+      },
+      {
+        name: "Jamie xx",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Jamie_xx_%282015%29.jpg",
+        bio: "London producer, DJ and member of The xx; debut solo album 'In Colour' (2015) was shortlisted for the Mercury Prize.",
+      },
+      {
+        name: "Four Tet",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Four_Tet_%282011%29.jpg",
+        bio: "London electronic musician Kieran Hebden, recording as Four Tet; founder of the Text Records label.",
+      },
+      {
+        name: "Chase & Status",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/12/Chase_and_Status-SMS-2018-15.jpg",
+        bio: "London electronic duo Saul Milton and Will Kennard; founders of the MTA Records label.",
+      },
+      {
+        name: "Andy C",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/7/79/Andy_C_live_in_2011_%28cropped%29.jpg",
+        bio: "London drum & bass DJ and co-founder of RAM Records; held a 13-week residency at XOYO London in 2018.",
+      },
+      {
+        name: "Goldie",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Goldie_2003_crop.jpg",
+        bio: "London DJ, producer and visual artist; co-founder of the Metalheadz label and a pioneer of jungle.",
+      },
+      {
+        name: "Shy FX",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Shy_FX.jpg",
+        bio: "London jungle and drum & bass DJ/producer; his 1994 single 'Original Nuttah' is a genre classic and he co-founded Digital Soundboy.",
+      },
+      {
+        name: "DJ EZ",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/ed/DJ_EZ_in_2016.png",
+        bio: "London DJ and UK garage pioneer; hosted a long-running weekly show on Kiss 100.",
+      },
+      {
+        name: "Carl Cox",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/65/CarlCox.jpg",
+        bio: "British techno DJ; held a 15-year residency at Space Ibiza and runs the Intec label.",
+      },
+      {
+        name: "Nicole Moudaber",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Nicole_Moudaber_01.jpg",
+        bio: "London-based techno DJ and producer; founder of MOOD Records and host of the 'In the MOOD' radio show.",
+      },
+      {
+        name: "Annie Mac",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b9/Annie_Mac.jpg",
+        bio: "Irish DJ and broadcaster based in London; presented her BBC Radio 1 dance show from 2004 to 2021.",
+      },
+      {
+        name: "Pete Tong",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/dc/Pete_Tong.jpg",
+        bio: "London-based DJ and BBC Radio 1 broadcaster; has hosted the Essential Mix since 1993 and received an MBE in 2014.",
+      },
+      {
+        name: "Horse Meat Disco",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/cf/Horse_Meat_Disco_DJ_group_photo.jpg",
+        bio: "London DJ collective; have run their Sunday disco party at Eagle London since 2004.",
+      },
+      {
+        name: "Juls",
+        photoUrl: "https://image.rinse.fm/_/Juls-Baby-2-2.jpg",
+        bio: "London-born Ghanaian DJ and producer; won Producer of the Year at the 2025 MOBO Awards and is resident DJ at KOKO.",
+      },
     ],
   },
   {
