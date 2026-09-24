@@ -134,6 +134,26 @@ export async function listNewestRankings(limit = 20, city?: string): Promise<Ran
 // "Trending" for the MVP = Rankings with the most combined community
 // activity (likes + reputation credits) across all their nominees. No
 // separate analytics system needed — it's a derived read.
+// Curated homepage slots: returns the rankings for the given slugs in the
+// given order, skipping any that are missing, hidden, or soft-deleted.
+export async function listRankingsBySlugs(slugs: string[]): Promise<Ranking[]> {
+  if (slugs.length === 0) return [];
+  const placeholders = slugs.map(() => "?").join(", ");
+  const rows = (await db
+    .prepare(
+      `SELECT * FROM rankings WHERE ${PUBLIC_WHERE} AND slug IN (${placeholders})`
+    )
+    .all(...slugs)) as unknown as RankingRow[];
+  const bySlug = new Map<string, Ranking>();
+  for (const row of rows) {
+    if (row.slug) bySlug.set(row.slug, toRanking(row));
+  }
+  return slugs.flatMap((s) => {
+    const r = bySlug.get(s);
+    return r ? [r] : [];
+  });
+}
+
 export async function listTrendingRankings(limit = 10, city?: string): Promise<Ranking[]> {
   const cityClause = city ? "AND r.city = ?" : "";
   const rows = (await db

@@ -1,12 +1,24 @@
 import Link from "next/link";
-import { listNewestRankings, listTrendingRankings } from "@/db/rankings";
+import { listNewestRankings, listRankingsBySlugs, listTrendingRankings } from "@/db/rankings";
 import RankingCard from "@/components/RankingCard";
+
+// Curated homepage lineup: Beauty Creators, DJs, schools, and societies.
+const HOMEPAGE_FEATURED_SLUGS = [
+  "most-popular-beauty-creator-london-2026",
+  "best-student-dj-london-2026",
+  "best-international-student-community-london-2026",
+  "best-university-society-london-2026",
+  "best-emerging-beauty-creator-london-2026",
+  "most-popular-livestream-dj-london-2026",
+  "best-society-president-london-2026",
+  "most-popular-student-performer-london-2026",
+];
 
 export default async function HomePage() {
   // London-only for the MVP: present the London rankings directly.
   // No region picker, no per-account location sections, and empty
   // sections are never rendered — not even their titles.
-  const londonRankings = await listNewestRankings(8, "London");
+  const londonRankings = await listRankingsBySlugs(HOMEPAGE_FEATURED_SLUGS);
   const globalTrending = await listTrendingRankings(4);
   const newest = await listNewestRankings(4);
 
