@@ -3,6 +3,7 @@ import { newId } from "@/lib/id";
 import { colorForName } from "@/lib/avatar";
 import type { Profile, Ranking } from "@/lib/types";
 import { findRankingById } from "./rankings";
+import { generateUniqueShareToken } from "./profileShare";
 
 export interface ProfileRow {
   id: string;
@@ -19,6 +20,7 @@ export interface ProfileRow {
   region: string;
   interests: string;
   deleted_at: string | null;
+  share_token: string | null;
 }
 
 export function toProfile(row: ProfileRow): Profile {
@@ -39,6 +41,7 @@ export function toProfile(row: ProfileRow): Profile {
       ? row.interests.split(",").map((s) => s.trim()).filter(Boolean)
       : [],
     deletedAt: row.deleted_at,
+    shareToken: row.share_token ?? "",
   };
 }
 
@@ -60,11 +63,12 @@ export async function createProfile(params: {
   const id = newId();
   const name = params.name.trim();
   const interests = (params.interests ?? []).join(", ");
+  const shareToken = await generateUniqueShareToken();
   await db
     .prepare(
       `INSERT INTO profiles
-      (id, ranking_id, name, bio, photo_url, avatar_color, region, interests, added_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
+      (id, ranking_id, name, bio, photo_url, avatar_color, region, interests, added_by, created_at, share_token)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?)`
     )
     .run(
       id,
@@ -76,7 +80,8 @@ export async function createProfile(params: {
       (params.region ?? "").trim(),
       interests,
       params.addedBy,
-      params.createdAt ?? null
+      params.createdAt ?? null,
+      shareToken
     );
   return (await findProfileById(id))!;
 }

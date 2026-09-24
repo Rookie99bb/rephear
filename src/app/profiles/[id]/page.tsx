@@ -100,12 +100,20 @@ export default async function ProfilePage({ params }: { params: { id: string } }
           value={stats.totalReputationCredits}
         />
         {user && profile.claimStatus === "claimed" && profile.claimedBy === user.id && (
-          <Link
-            href={`/profiles/${profile.id}/redeem`}
-            className="ml-auto rounded-lg border border-ink px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-ink hover:text-white"
-          >
-            Redeem Support
-          </Link>
+          <div className="ml-auto flex gap-2">
+            <Link
+              href={`/profiles/${profile.id}/share`}
+              className="rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
+            >
+              分享拉票
+            </Link>
+            <Link
+              href={`/profiles/${profile.id}/redeem`}
+              className="rounded-lg border border-ink px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-ink hover:text-white"
+            >
+              Redeem Support
+            </Link>
+          </div>
         )}
       </div>
 

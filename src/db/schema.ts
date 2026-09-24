@@ -9,6 +9,8 @@ import { seedBeautyRankings } from "./beautyRankings";
 import { seedOpeningSlates } from "./openingSlates";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
+import { seedFakeLikes } from "./seedFakeLikes";
+import { backfillProfileShareTokens } from "./profileShare";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -93,6 +95,7 @@ created_at TEXT NOT NULL DEFAULT (datetime('now')),
 region TEXT NOT NULL DEFAULT '',
 interests TEXT NOT NULL DEFAULT '',
 deleted_at TEXT,
+share_token TEXT,
 UNIQUE (ranking_id, name COLLATE NOCASE)
 );
 
@@ -438,6 +441,25 @@ async function addRankingSlugAndCategoryColumnsIfMissing() {
   });
   await rawClient.execute({
     sql: "CREATE INDEX IF NOT EXISTS idx_rankings_category ON rankings(category_id);",
+    args: [],
+  });
+}
+
+// Nominee share tokens (rephear.com/n/TOKEN): new column added after the
+// profiles table shipped, so pre-existing databases need this ALTER
+// TABLE; fresh databases already have it from CREATE TABLE above
+// (harmless no-op there, caught below).
+async function addProfileShareTokenColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE profiles ADD COLUMN share_token TEXT;",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+  await rawClient.execute({
+    sql: "CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_share_token ON profiles(share_token) WHERE share_token IS NOT NULL;",
     args: [],
   });
 }
@@ -799,6 +821,8 @@ export async function ensureMigrated(): Promise<void> {
     await addLikesCountColumnIfMissing();
     await addIsAdminColumnIfMissing();
     await addInviteBonusLikesColumnToUsersIfMissing();
+    await addProfileShareTokenColumnIfMissing();
+    await backfillProfileShareTokens();
     await seedIfEmpty();
     // Always runs (unlike seedIfEmpty, which only fires on a totally
     // empty database) since this seeds a fixed, curated set of Rankings
@@ -832,6 +856,9 @@ export async function ensureMigrated(): Promise<void> {
     // Temporarily hide the Food Wars series from public listings (kept in
     // DB, restorable from admin panel; idempotent no-op afterwards).
     await hideRankingsFromPublic();
+    // Cold-start social proof: top every nominee up to a clustered 200+
+    // like target (idempotent; real likes are never touched).
+    await seedFakeLikes();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();

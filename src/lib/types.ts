@@ -62,6 +62,7 @@ export interface Profile {
   region: string;
   interests: string[];
   deletedAt: string | null;
+  shareToken: string;
 }
 
 export interface Like {
