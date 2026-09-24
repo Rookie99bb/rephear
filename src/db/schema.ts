@@ -5,6 +5,7 @@ import { seedLosAngelesRankings } from "./losAngelesRankings";
 import { seedNewYorkRankings } from "./newYorkRankings";
 import { seedViralRankings } from "./viralRankings";
 import { seedRivalryRankings } from "./rivalryRankings";
+import { seedTierOneRankings } from "./tierOneRankings";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -797,6 +798,9 @@ export async function ensureMigrated(): Promise<void> {
     // 15 tribal-warfare Rankings (fanbases vote against rivals) —
     // football tribes, food wars, scene rivalries.
     await seedRivalryRankings();
+    // 21 Tier-1 cold-start Rankings (K-pop dance, uni societies,
+    // underground rap, club nights, cosplay) — highest gunpowder circles.
+    await seedTierOneRankings();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
