@@ -86,10 +86,10 @@ const CATEGORIES: CategorySeed[] = [
           "Recognising London R&B singers with the voice and songwriting carrying the city's late-night sound. The 2026 edition — vote to crown London's most popular R&B Singer of the year.",
       },
       {
-        title: "London's Most Popular Jazz Musician 2026",
-        slug: "most-popular-jazz-musician-london-2026",
+        title: "London's Most Popular Drill Artist 2026",
+        slug: "most-popular-drill-artist-london-2026",
         description:
-          "Celebrating London's jazz scene — the players packing out Dalston basements and Southbank sessions. The 2026 edition — vote to crown London's most popular Jazz Musician of the year.",
+          "London's most debated crown — drill runs on competition, from block rivalries to chart battles. The artists with the realest fanbases and the hardest pen game. The 2026 edition — vote to crown London's most popular Drill Artist of the year.",
       },
       {
         title: "London's Most Popular Music Producer 2026",
@@ -128,10 +128,10 @@ const CATEGORIES: CategorySeed[] = [
           "Celebrating London podcast hosts with the conversations the city actually listens to. The 2026 edition — vote to crown London's most popular Podcast Host of the year.",
       },
       {
-        title: "London's Most Popular Advice Creator 2026",
-        slug: "most-popular-advice-creator-london-2026",
+        title: "London's Most Popular Streamer 2026",
+        slug: "most-popular-streamer-london-2026",
         description:
-          "Recognising London creators whose advice — renting, visas, jobs, city hacks — genuinely helps people navigate the city. The 2026 edition — vote to crown London's most popular Advice Creator of the year.",
+          "Live every night, judged in real time — London's streamers compete on viewers, clips, and chat loyalty. The most tribal fanbases on the internet. The 2026 edition — vote to crown London's most popular Streamer of the year.",
       },
     ],
   },
