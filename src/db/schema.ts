@@ -7,6 +7,7 @@ import { seedViralRankings } from "./viralRankings";
 import { seedRivalryRankings } from "./rivalryRankings";
 import { seedTierOneRankings } from "./tierOneRankings";
 import { seedBeautyRankings } from "./beautyRankings";
+import { seedOpeningSlates } from "./openingSlates";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -805,6 +806,10 @@ export async function ensureMigrated(): Promise<void> {
     // 3 Beauty Creator Rankings — eighth cold-start circle: beauty
     // creators and MUAs with real audiences (not local-service beauty).
     await seedBeautyRankings();
+    // Official opening Nominee slates (7 verified circles; beauty slate
+    // lands once its candidates finish verification) — natural-rival
+    // Nominees placed by the RepHear Team so no Ranking starts empty.
+    await seedOpeningSlates();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
