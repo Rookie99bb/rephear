@@ -4,9 +4,11 @@ import { seedLondonNicheRankings } from "./londonNicheRankings";
 import { seedViralRankings } from "./viralRankings";
 import { seedRivalryRankings } from "./rivalryRankings";
 import { seedTierOneRankings } from "./tierOneRankings";
+import { applyCategoryOrder } from "./categoryOrder";
 import { seedBeautyRankings } from "./beautyRankings";
 import { seedOpeningSlates } from "./openingSlates";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
+import { hideRankingsFromPublic } from "./hideRankings";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -528,6 +530,20 @@ async function addIsHiddenColumnIfMissing() {
   }
 }
 
+// Display order for the /rankings browse page sections. The user-defined
+// order (University Societies first, Club Nights last) is seeded by
+// applyCategoryOrder() in categoryOrder.ts; this column just stores it.
+async function addCategorySortOrderColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE categories ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;",
+      args: [],
+    });
+  } catch {
+    // Column already exists, nothing to do.
+  }
+}
+
 // Security-audit fix: lets a refund/chargeback (Stripe "charge.refunded"
 // / "charge.dispute.created" webhook events, see
 // src/app/api/stripe/webhook/route.ts) zero out a Nominee's credit grant
@@ -773,6 +789,7 @@ export async function ensureMigrated(): Promise<void> {
     await addRankingSlugAndCategoryColumnsIfMissing();
     await addRankingPinAndOrderColumnsIfMissing();
     await addIsHiddenColumnIfMissing();
+    await addCategorySortOrderColumnIfMissing();
     await addRefundedAtColumnToCreditTransactionsIfMissing();
     await addClaimWorkflowColumnsIfMissing();
     await addSoftDeleteColumnsIfMissing();
@@ -801,6 +818,10 @@ export async function ensureMigrated(): Promise<void> {
     // 3 Beauty Creator Rankings — eighth cold-start circle: beauty
     // creators and MUAs with real audiences (not local-service beauty).
     await seedBeautyRankings();
+    // Apply the user-defined display order of category sections on the
+    // /rankings page (University Societies first … Club Nights last).
+    // Idempotent: plain UPDATEs keyed off category slug.
+    await applyCategoryOrder();
     // Official opening Nominee slates (7 verified circles; beauty slate
     // lands once its candidates finish verification) — natural-rival
     // Nominees placed by the RepHear Team so no Ranking starts empty.
@@ -808,6 +829,9 @@ export async function ensureMigrated(): Promise<void> {
     // Soft-delete every ranking that isn't one of the 89 cold-start
     // rankings (runs last so seeds always win; idempotent no-op afterwards).
     await pruneLegacyRankings();
+    // Temporarily hide the Food Wars series from public listings (kept in
+    // DB, restorable from admin panel; idempotent no-op afterwards).
+    await hideRankingsFromPublic();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();

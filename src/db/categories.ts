@@ -69,7 +69,7 @@ export async function findOrCreateCategory(params: {
 
 export async function listCategories(): Promise<Category[]> {
   const rows = (await db
-    .prepare("SELECT * FROM categories ORDER BY name ASC")
+    .prepare("SELECT * FROM categories ORDER BY sort_order ASC, name ASC")
     .all()) as unknown as CategoryRow[];
   return rows.map(toCategory);
 }
