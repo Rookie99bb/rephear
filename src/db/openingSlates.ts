@@ -300,6 +300,65 @@ const SLATES: SlateSeed[] = [
       },
     ],
   },
+  // ---------------------------------------------------------------
+  // Beauty: verified London-based creators, 7 passed / 2 excluded
+  // (Julia Lazareva unverifiable; Rei Lilith based in Czech Republic).
+  // ---------------------------------------------------------------
+  {
+    rankingSlug: "most-popular-beauty-creator-london-2026",
+    nominees: [
+      {
+        name: "Abby Roberts",
+        bio: "London-based beauty creator — 16.8M TikTok followers, self-taught SFX/transformation MUA, brand collabs with Morphe, Too Faced, Charlotte Tilbury and L'Oréal.",
+      },
+      {
+        name: "Nikki Wolff",
+        bio: "London-based makeup artist (@nikki_makeup) — 1.7M+ Instagram followers, KVD Beauty Global Director of Artistry, MUA to Dua Lipa, Zendaya and the Kardashians.",
+      },
+      {
+        name: "Lisa Eldridge",
+        bio: "London-based makeup legend — Lancôme global creative director, own makeup line, Vogue covers, NYT bestselling author; clients from Kate Winslet to Taylor Swift.",
+      },
+      {
+        name: "Uche Natori",
+        bio: "London-based British-Nigerian beauty creator (@uchjn) — Fashion and Beauty Creator of the Year at the UK & Ireland TikTok Awards.",
+      },
+    ],
+  },
+  {
+    rankingSlug: "best-makeup-artist-london-2026",
+    nominees: [
+      {
+        name: "Nikki Wolff",
+        bio: "London-based makeup artist — KVD Beauty Global Director of Artistry, the red-carpet glow specialist behind Dua Lipa and Zendaya.",
+      },
+      {
+        name: "Lisa Eldridge",
+        bio: "London-based editorial MUA — Lancôme global creative director, Vogue covers, the luxury establishment's pick.",
+      },
+      {
+        name: "Kaniz Ali",
+        bio: "London-born award-winning MUA (Makeup Artist of the Year 2011/2015/2019) — bridal and Bollywood glam, MUA to Kareena Kapoor Khan and Sonam Kapoor, runs a London makeup academy.",
+      },
+      {
+        name: "Nency Makeup",
+        bio: "London-based editorial and bridal MUA (@nencymakeup) — high-fashion meets bridal, viral face-yoga content.",
+      },
+    ],
+  },
+  {
+    rankingSlug: "best-emerging-beauty-creator-london-2026",
+    nominees: [
+      {
+        name: "Charlotte Roberts",
+        bio: "London-based TikTok makeup-transformation star (@charlottelooks) — fantasy and SFX looks, millions of followers, and a famous sister (Abby) to step out from under.",
+      },
+      {
+        name: "Uche Natori",
+        bio: "London-based British-Nigerian creator — UK & Ireland TikTok Awards winner with the title to defend.",
+      },
+    ],
+  },
 ];
 
 async function getOrCreateSystemAccount() {
