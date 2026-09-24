@@ -425,6 +425,12 @@ const CATEGORIES: CategorySeed[] = [
   },
 ];
 
+// Every ranking slug defined in this file — imported by pruneLegacyRankings()
+// so startup can soft-delete any ranking that isn't part of the cold-start set.
+export const VIRAL_RANKING_SLUGS: string[] = CATEGORIES.flatMap((c) =>
+  c.rankings.map((r) => r.slug)
+);
+
 async function getOrCreateSystemAccount() {
   const existing = await findUserByEmail(SYSTEM_ACCOUNT_EMAIL);
   if (existing) return existing;

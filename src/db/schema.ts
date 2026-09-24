@@ -8,6 +8,7 @@ import { seedRivalryRankings } from "./rivalryRankings";
 import { seedTierOneRankings } from "./tierOneRankings";
 import { seedBeautyRankings } from "./beautyRankings";
 import { seedOpeningSlates } from "./openingSlates";
+import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -810,6 +811,9 @@ export async function ensureMigrated(): Promise<void> {
     // lands once its candidates finish verification) — natural-rival
     // Nominees placed by the RepHear Team so no Ranking starts empty.
     await seedOpeningSlates();
+    // Soft-delete every ranking that isn't one of the 89 cold-start
+    // rankings (runs last so seeds always win; idempotent no-op afterwards).
+    await pruneLegacyRankings();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
