@@ -1,35 +1,14 @@
 import Link from "next/link";
-import {
-  listNewestRankings,
-  listTrendingRankings,
-  listTrendingRankingsForCountry,
-} from "@/db/rankings";
+import { listNewestRankings, listTrendingRankings } from "@/db/rankings";
 import RankingCard from "@/components/RankingCard";
-import CountryFlagBar from "@/components/CountryFlagBar";
-import { getCurrentFullUser } from "@/lib/session";
-import { getCountryForCity } from "@/lib/locations";
 
 export default async function HomePage() {
-  const user = await getCurrentFullUser();
-  const city = user?.location ?? undefined;
-  const country = city ? getCountryForCity(city) : undefined;
-
-  // Priority order matches how location-first browsing should feel: your
-  // city first, then the rest of your country, and only then the global
-  // list. countryTrending excludes the user's own city so it never just
-  // repeats the section above it.
-  // city-only when we actually have one — otherwise this would just
-  // duplicate globalTrending below while rendering a broken
-  // "Trending in undefined" title.
-  const cityTrending = city ? await listTrendingRankings(4, city) : [];
-  const countryTrending = country
-    ? await listTrendingRankingsForCountry(4, country, city)
-    : [];
-  const globalTrending = await listTrendingRankings(4);
-  const newest = await listNewestRankings(4, city);
-  // London-first: the site is London-only for the MVP, so always present
-  // the London rankings directly instead of a region picker.
+  // London-only for the MVP: present the London rankings directly.
+  // No region picker, no per-account location sections, and empty
+  // sections are never rendered — not even their titles.
   const londonRankings = await listNewestRankings(8, "London");
+  const globalTrending = await listTrendingRankings(4);
+  const newest = await listNewestRankings(4);
 
   if (
     globalTrending.length === 0 &&
@@ -57,28 +36,6 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-12">
-      <CountryFlagBar currentCountry={country} />
-
-      {cityTrending.length > 0 && (
-        <Section title={`Trending in ${city}`}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {cityTrending.map((r) => (
-              <RankingCard key={r.id} ranking={r} />
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {countryTrending.length > 0 && (
-        <Section title={`Popular in ${country}`}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {countryTrending.map((r) => (
-              <RankingCard key={r.id} ranking={r} />
-            ))}
-          </div>
-        </Section>
-      )}
-
       {londonRankings.length > 0 && (
         <Section title="London Rankings">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -108,7 +65,7 @@ export default async function HomePage() {
       )}
 
       {newest.length > 0 && (
-        <Section title={city ? `Newest in ${city}` : "Newest Rankings"}>
+        <Section title="Newest Rankings">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {newest.map((r) => (
               <RankingCard key={r.id} ranking={r} />

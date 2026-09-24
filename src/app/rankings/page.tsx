@@ -1,91 +1,38 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  listAllRankings,
-  searchRankingsByRegion,
-  searchRankings,
-  getRankingCountsByCity,
-} from "@/db/rankings";
+import { listAllRankings, searchRankings } from "@/db/rankings";
 import { listCategories } from "@/db/categories";
 import RankingCard from "@/components/RankingCard";
-import CountryFlagBar from "@/components/CountryFlagBar";
-import RegionDirectory from "@/components/RegionDirectory";
-import { listCountries } from "@/lib/locations";
-import { getCurrentFullUser } from "@/lib/session";
 import type { Ranking } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Rankings",
   description:
-    "Browse public reputation Rankings on RepHear — see who's leading in London and beyond.",
+    "Browse public reputation Rankings on RepHear — see who's leading in London.",
   alternates: { canonical: "/rankings" },
 };
 
-// Rankings are location-first by default: with no explicit filter, this
-// page shows only the current user's chosen location — never a mix of
-// cities from all over the world.
-//
-// Browsing beyond your own city is a two-step directory, not a flat
-// dump of every Ranking on earth: picking "All Regions" (?all=1) or a
-// single country (?country=) first shows every configured MVP city in
-// that scope — see src/lib/locations.ts for the current city list —
-// grouped by country, with a Ranking count per city (including cities
-// with 0 Rankings, which must stay discoverable, not hidden). Only once
-// a specific city is picked (?city=, always paired with its ?country=)
-// do we actually show that city's Rankings, or an empty state inviting
-// someone to create the first one. A search (?q=) takes priority over
-// all of the above — it deliberately searches every open country, since
-// someone searching by name/topic wants to find a Ranking regardless of
-// where it's based.
+// London-only MVP: this page lists every ranking directly — no region
+// picker, no per-account city default, no directory views. A search
+// (?q=) filters by title/description and takes priority.
 export default async function BrowseRankingsPage({
   searchParams,
 }: {
-  searchParams: { country?: string; city?: string; q?: string; all?: string };
+  searchParams: { q?: string };
 }) {
-  const { country, city, q, all } = searchParams;
-  const query = q?.trim();
-  const hasCityFilter = !!city;
-
-  // "All Regions" directory: every country, every configured city.
-  const showAllDirectory =
-    !country && !hasCityFilter && !query && (all === "1" || all === "true");
-  // Single-country directory: just that country's configured cities.
-  const isCountryDirectory = !!country && !hasCityFilter && !query;
-  const isDirectory = showAllDirectory || isCountryDirectory;
-
-  const user = await getCurrentFullUser();
-  const defaultCity = user?.location ?? null;
-
-  let rankings: Awaited<ReturnType<typeof listAllRankings>> = [];
-  let cityCounts: Record<string, number> = {};
-
-  if (isDirectory) {
-    cityCounts = await getRankingCountsByCity();
-  } else {
-    rankings = query
-      ? await searchRankings(query)
-      : hasCityFilter
-        ? await searchRankingsByRegion({ country, city })
-        : defaultCity
-          ? await searchRankingsByRegion({ city: defaultCity })
-          : await listAllRankings();
-  }
-
-  const directoryCountries = isCountryDirectory
-    ? listCountries().filter((c) => c.country === country)
-    : listCountries();
+  const query = searchParams.q?.trim();
+  const rankings: Ranking[] = query
+    ? await searchRankings(query)
+    : await listAllRankings();
 
   // Group the flat Ranking list by parent Category, if any of it has
-  // one. Most cities have zero categorised Rankings (Category only
-  // exists for curated sets like the London niche/subculture launch
-  // set — see src/db/londonNicheRankings.ts), in which case
-  // categoryGroups is simply empty and rendering falls straight
-  // through to the original flat grid, unchanged. Skipped entirely for
-  // search results and the directory view, where grouping by category
-  // isn't meaningful.
+  // one. Most rankings are uncategorised, in which case categoryGroups
+  // is simply empty and rendering falls straight through to the flat
+  // grid, unchanged. Skipped for search results, where grouping by
+  // category isn't meaningful.
   let categoryGroups: { id: string; name: string; rankings: Ranking[] }[] = [];
   let uncategorizedRankings: Ranking[] = rankings;
-  if (!isDirectory && !query && rankings.length > 0) {
+  if (!query && rankings.length > 0) {
     const categories = await listCategories();
     const rankingsByCategory = new Map<string, Ranking[]>();
     const leftover: Ranking[] = [];
@@ -123,52 +70,6 @@ export default async function BrowseRankingsPage({
                 clear search
               </Link>
             </p>
-          ) : showAllDirectory ? (
-            <p className="mt-1 text-sm text-subtle">
-              Browse Rankings in London, United Kingdom.
-              {defaultCity && (
-                <>
-                  {" — "}
-                  <Link href="/rankings" className="underline">
-                    back to {defaultCity}
-                  </Link>
-                </>
-              )}
-            </p>
-          ) : isCountryDirectory ? (
-            <p className="mt-1 text-sm text-subtle">
-              Browsing {country}
-              {" — "}
-              <Link href="/rankings?all=1" className="underline">
-                view all regions
-              </Link>
-              {defaultCity && (
-                <>
-                  {" · "}
-                  <Link href="/rankings" className="underline">
-                    back to {defaultCity}
-                  </Link>
-                </>
-              )}
-            </p>
-          ) : hasCityFilter ? (
-            <p className="mt-1 text-sm text-subtle">
-              Filtered by {[city, country].filter(Boolean).join(", ")}
-              {" — "}
-              <Link href="/rankings?all=1" className="underline">
-                view all regions
-              </Link>
-              {defaultCity && (
-                <>
-                  {" · "}
-                  <Link href="/rankings" className="underline">
-                    back to {defaultCity}
-                  </Link>
-                </>
-              )}
-            </p>
-          ) : defaultCity ? (
-            <p className="mt-1 text-sm text-subtle">Showing {defaultCity}</p>
           ) : null}
         </div>
         <Link
@@ -179,9 +80,7 @@ export default async function BrowseRankingsPage({
         </Link>
       </div>
 
-      <CountryFlagBar currentCountry={country} showingAll={showAllDirectory} />
-
-      <form action="/rankings" method="GET" className="mb-6 mt-6">
+      <form action="/rankings" method="GET" className="mb-6">
         <input
           type="search"
           name="q"
@@ -191,9 +90,7 @@ export default async function BrowseRankingsPage({
         />
       </form>
 
-      {isDirectory ? (
-        <RegionDirectory countries={directoryCountries} cityCounts={cityCounts} />
-      ) : rankings.length === 0 ? (
+      {rankings.length === 0 ? (
         query ? (
           <p className="text-sm text-subtle">
             No Rankings match &ldquo;{query}&rdquo;.
