@@ -3,7 +3,6 @@ import {
   listNewestRankings,
   listTrendingRankings,
   listTrendingRankingsForCountry,
-  listPopularRegions,
 } from "@/db/rankings";
 import RankingCard from "@/components/RankingCard";
 import CountryFlagBar from "@/components/CountryFlagBar";
@@ -28,12 +27,15 @@ export default async function HomePage() {
     : [];
   const globalTrending = await listTrendingRankings(4);
   const newest = await listNewestRankings(4, city);
-  // Popular Regions intentionally stays unfiltered — it's how you
-  // discover/switch to a different location, complementing the
-  // location-filtered sections above.
-  const regions = await listPopularRegions(6);
+  // London-first: the site is London-only for the MVP, so always present
+  // the London rankings directly instead of a region picker.
+  const londonRankings = await listNewestRankings(8, "London");
 
-  if (globalTrending.length === 0 && newest.length === 0) {
+  if (
+    globalTrending.length === 0 &&
+    newest.length === 0 &&
+    londonRankings.length === 0
+  ) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
@@ -77,36 +79,39 @@ export default async function HomePage() {
         </Section>
       )}
 
-      <Section title="Global Trending">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {globalTrending.map((r) => (
-            <RankingCard key={r.id} ranking={r} />
-          ))}
-        </div>
-      </Section>
+      {londonRankings.length > 0 && (
+        <Section title="London Rankings">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {londonRankings.map((r) => (
+              <RankingCard key={r.id} ranking={r} />
+            ))}
+          </div>
+          <div className="mt-4">
+            <Link
+              href="/rankings"
+              className="text-sm font-medium text-ink hover:opacity-80"
+            >
+              View all rankings →
+            </Link>
+          </div>
+        </Section>
+      )}
 
-      <Section title={city ? `Newest in ${city}` : "Newest Rankings"}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {newest.map((r) => (
-            <RankingCard key={r.id} ranking={r} />
-          ))}
-        </div>
-      </Section>
+      {globalTrending.length > 0 && (
+        <Section title="Global Trending">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {globalTrending.map((r) => (
+              <RankingCard key={r.id} ranking={r} />
+            ))}
+          </div>
+        </Section>
+      )}
 
-      {regions.length > 0 && (
-        <Section title="Popular Regions">
-          <div className="flex flex-wrap gap-2">
-            {regions.map((region) => (
-              <Link
-                key={`${region.country}-${region.city}`}
-                href={`/rankings?country=${encodeURIComponent(region.country)}${region.city ? `&city=${encodeURIComponent(region.city)}` : ""}`}
-                className="rounded-full border border-border px-3 py-1.5 text-sm text-ink transition hover:border-ink"
-              >
-                {region.city ? `${region.city}, ${region.country}` : region.country}
-                <span className="ml-1.5 text-subtle">
-                  {region.rankingCount}
-                </span>
-              </Link>
+      {newest.length > 0 && (
+        <Section title={city ? `Newest in ${city}` : "Newest Rankings"}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {newest.map((r) => (
+              <RankingCard key={r.id} ranking={r} />
             ))}
           </div>
         </Section>

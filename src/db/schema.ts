@@ -1,8 +1,6 @@
 import { rawClient, setMigrating } from "./client";
 import { seedIfEmpty } from "./seedData";
 import { seedLondonNicheRankings } from "./londonNicheRankings";
-import { seedLosAngelesRankings } from "./losAngelesRankings";
-import { seedNewYorkRankings } from "./newYorkRankings";
 import { seedViralRankings } from "./viralRankings";
 import { seedRivalryRankings } from "./rivalryRankings";
 import { seedTierOneRankings } from "./tierOneRankings";
@@ -791,10 +789,6 @@ export async function ensureMigrated(): Promise<void> {
     // see londonNicheRankings.ts for the idempotency guarantee (checked
     // by slug, never duplicates, never touches unrelated rows).
     await seedLondonNicheRankings();
-    // Same always-runs, slug-keyed idempotent pattern as
-    // seedLondonNicheRankings() above — see losAngelesRankings.ts.
-    await seedLosAngelesRankings();
-    await seedNewYorkRankings();
     // 50 high-shareability Rankings (people with audiences who campaign
     // for votes) — top-of-funnel fuel for raffles and the nominee kit.
     await seedViralRankings();

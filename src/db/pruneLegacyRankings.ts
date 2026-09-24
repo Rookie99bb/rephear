@@ -9,8 +9,21 @@ import { TIER_ONE_RANKING_SLUGS } from "./tierOneRankings";
 import { BEAUTY_RANKING_SLUGS } from "./beautyRankings";
 
 // -----------------------------------------------------------------------
-// Prune legacy rankings: soft-delete every ranking that is NOT part of the
-// 89 cold-start rankings (50 viral + 15 rivalry + 21 tier-one + 3 beauty).
+// Prune legacy rankings: soft-delete pre-launch rankings that are NOT part
+// of the 89 cold-start rankings (50 viral + 15 rivalry + 21 tier-one +
+// 3 beauty).
+//
+// ONE-TIME cleanup, not a standing rule. A ranking is eligible only if:
+//   - it was created by the "RepHear Team" system account (every seed
+//     script attributes to it — this catches seed-created rankings no
+//     matter when they were seeded, including on a fresh database), OR
+//   - it was created before the cold-start launch (2026-09-24) — this
+//     catches legacy user-created rankings.
+// A ranking created by a real user after the launch is never touched, so
+// an app restart can never delete a ranking a user just made. The
+// datetime() comparison normalizes whatever created_at format a row
+// carries; rows with NULL/unparseable created_at fall back to the
+// created_by check only (conservative: never delete what we can't date).
 //
 // Why soft delete instead of hard delete: the codebase's own convention
 // (see softDeleteRanking in rankings.ts) is that deleting a ranking only
@@ -57,16 +70,23 @@ interface DoomedRanking {
 
 export async function pruneLegacyRankings(): Promise<void> {
   try {
+    const systemUser = await getOrCreateSystemAccount();
+
     const rows = (await db
-      .prepare("SELECT id, slug, title FROM rankings WHERE deleted_at IS NULL")
-      .all()) as unknown as DoomedRanking[];
+      .prepare(
+        `SELECT id, slug, title FROM rankings
+         WHERE deleted_at IS NULL
+           AND (
+             created_by = ?
+             OR datetime(created_at) < datetime('2026-09-24 00:00:00')
+           )`
+      )
+      .all(systemUser.id)) as unknown as DoomedRanking[];
 
     const doomed = rows.filter(
       (r) => r.slug === null || !KEEP_SLUGS.has(r.slug)
     );
     if (doomed.length === 0) return;
-
-    const systemUser = await getOrCreateSystemAccount();
 
     for (const ranking of doomed) {
       await db
