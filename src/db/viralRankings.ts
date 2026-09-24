@@ -410,10 +410,10 @@ const CATEGORIES: CategorySeed[] = [
           "Recognising London's TV presenters — the faces and voices the city grew up with. The 2026 edition — vote to crown London's most popular TV Presenter of the year.",
       },
       {
-        title: "London's Most Popular Fringe Theatre Performer 2026",
-        slug: "most-popular-fringe-theatre-performer-london-2026",
+        title: "London's Most Popular Soap Star 2026",
+        slug: "most-popular-soap-star-london-2026",
         description:
-          "Celebrating London's fringe theatre performers — the stages where tomorrow's stars are working tonight. The 2026 edition — vote to crown London's most popular Fringe Theatre Performer of the year.",
+          "Celebrating London's soap legends — EastEnders and beyond — the faces the nation argues about. Soap fans are the most loyal voters in Britain. The 2026 edition — vote to crown London's most popular Soap Star of the year.",
       },
       {
         title: "London's Most Popular Dancer 2026",
