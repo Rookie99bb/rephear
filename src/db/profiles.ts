@@ -103,6 +103,22 @@ export async function findNomineeByRankingAndName(
   return row ? toProfile(row) : null;
 }
 
+// Backfill for the official opening slates: sets a nominee's photo only
+// when it doesn't already have one, so a claimed user's own upload is
+// never overwritten by seed data. Idempotent.
+export async function setNomineePhotoIfEmpty(
+  profileId: string,
+  photoUrl: string
+): Promise<void> {
+  const url = photoUrl.trim();
+  if (!url) return;
+  await db
+    .prepare(
+      "UPDATE profiles SET photo_url = ? WHERE id = ? AND (photo_url IS NULL OR photo_url = '')"
+    )
+    .run(url, profileId);
+}
+
 export async function claimProfile(
   profileId: string,
   userId: string,

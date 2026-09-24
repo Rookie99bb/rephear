@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { findUserByEmail, createUser } from "./users";
 import { findRankingBySlug } from "./rankings";
-import { createProfile, findNomineeByRankingAndName } from "./profiles";
+import { createProfile, findNomineeByRankingAndName, setNomineePhotoIfEmpty } from "./profiles";
 import { recordAuditLog, AUDIT_ACTIONS } from "./auditLog";
 
 // -----------------------------------------------------------------------
@@ -40,6 +40,7 @@ const SYSTEM_ACCOUNT_NAME = "RepHear Team";
 interface NomineeSeed {
   name: string;
   bio: string;
+  photoUrl?: string;
 }
 
 interface SlateSeed {
@@ -388,12 +389,21 @@ export async function seedOpeningSlates(): Promise<void> {
           ranking.id,
           nomineeSeed.name
         );
-        if (existing) continue;
+        // Backfill the official photo for nominees seeded before photos
+        // existed. setNomineePhotoIfEmpty never overwrites a photo the
+        // nominee (or anyone) already set.
+        if (existing) {
+          if (nomineeSeed.photoUrl) {
+            await setNomineePhotoIfEmpty(existing.id, nomineeSeed.photoUrl);
+          }
+          continue;
+        }
 
         const profile = await createProfile({
           rankingId: ranking.id,
           name: nomineeSeed.name,
           bio: nomineeSeed.bio,
+          photoUrl: nomineeSeed.photoUrl,
           addedBy: systemUser.id,
         });
 
