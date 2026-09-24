@@ -43,7 +43,7 @@ export default function RaffleCreateForm({
         <input
           name="title"
           required
-          placeholder="e.g. Vote for London's Best Underground DJ — Win £50"
+          placeholder="e.g. Vote for London's Best Underground DJ — Win a plush toy"
           className={inputClass}
         />
       </label>
@@ -67,18 +67,18 @@ export default function RaffleCreateForm({
         <input
           name="prizeDescription"
           required
-          placeholder="e.g. £50 Rough Trade voucher"
+          placeholder="e.g. Limited-edition RepHear plush toy × 3"
           className={inputClass}
         />
       </label>
 
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-ink">
-          Sponsor (optional — local business footing the prize)
+          Sponsor (optional — leave empty when RepHear provides the prize itself)
         </span>
         <input
           name="sponsorName"
-          placeholder="e.g. Brew & Bean, Shoreditch"
+          placeholder="e.g. RepHear"
           className={inputClass}
         />
       </label>
