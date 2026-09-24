@@ -9,6 +9,13 @@ import { listPublicProfileIdsForSitemap } from "@/db/profiles";
 // Regenerated per-request (App Router calls this like any other route);
 // the site is small enough that this costs two lightweight queries, not
 // a real performance concern at MVP scale.
+// Generated per-request, never at build time: prerendering this route
+// would make `next build` depend on live database connectivity, and a
+// slow/hung connection trips Next.js's 60s static-generation timeout and
+// fails the whole deploy. Two lightweight queries per request is fine at
+// MVP scale; if the DB is unreachable we still serve the static routes.
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
 
@@ -17,10 +24,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/rankings`, changeFrequency: "hourly", priority: 0.9 },
   ];
 
-  const [rankings, profiles] = await Promise.all([
-    listAllRankings(),
-    listPublicProfileIdsForSitemap(),
-  ]);
+  let rankings: { id: string; createdAt: string }[] = [];
+  let profiles: { id: string; updatedAt: string }[] = [];
+  try {
+    [rankings, profiles] = await Promise.all([
+      listAllRankings(),
+      listPublicProfileIdsForSitemap(),
+    ]);
+  } catch {
+    return staticRoutes;
+  }
 
   const rankingRoutes: MetadataRoute.Sitemap = rankings.map((r) => ({
     url: `${siteUrl}/rankings/${r.id}`,
