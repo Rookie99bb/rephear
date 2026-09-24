@@ -6,6 +6,7 @@ import { seedNewYorkRankings } from "./newYorkRankings";
 import { seedViralRankings } from "./viralRankings";
 import { seedRivalryRankings } from "./rivalryRankings";
 import { seedTierOneRankings } from "./tierOneRankings";
+import { seedBeautyRankings } from "./beautyRankings";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
@@ -801,6 +802,9 @@ export async function ensureMigrated(): Promise<void> {
     // 21 Tier-1 cold-start Rankings (K-pop dance, uni societies,
     // underground rap, club nights, cosplay) — highest gunpowder circles.
     await seedTierOneRankings();
+    // 3 Beauty Creator Rankings — eighth cold-start circle: beauty
+    // creators and MUAs with real audiences (not local-service beauty).
+    await seedBeautyRankings();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
