@@ -58,14 +58,17 @@ const SLATES: SlateSeed[] = [
       {
         name: "UCL K-Pop Society",
         bio: "University College London's K-pop dance society — girl-group, boy-group and wildcard teams competing against 15+ UK universities, with term showcases at the Bloomsbury Theatre.",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/inline-images/IMG_1322.jpeg",
       },
       {
         name: "Imperial K Pop Society",
         bio: "Imperial College's K-pop dance team ICarus — 2nd place Girl Group at Steal The Stage 2025, competing on London's inter-uni K-pop circuit against UCL.",
+        photoUrl: "https://cdn.sanity.io/images/k7lmfnyj/production/64e41821e5240cc0717c45ae347e7bd87ec874c1-425x425.jpg?rect=0,60,425,319&w=800&h=600&q=75&auto=format",
       },
       {
         name: "Dal Segno",
         bio: "1st Place Group Dance at the New Malden K-POP Awards 2025.",
+        photoUrl: "https://yt3.ggpht.com/ytc/AIdro_l1_HUjOAI8U2GgL0pSsYC_dVHN94aJngkjCr5hd4Aowow=s400-c-k-c0x00ffffff-no-rj",
       },
       {
         name: "IVIX",
@@ -126,14 +129,17 @@ const SLATES: SlateSeed[] = [
       {
         name: "Higgo",
         bio: "London UK garage DJ/producer — 'Pretty Little Raver' (EA Sports FC 24), Radio 1 and Kiss FM airplay, Printworks and Ministry of Sound headline sets.",
+        photoUrl: "https://static.ra.co/images/profiles/square/higgo.jpg?dateUpdated=1710930590000",
       },
       {
         name: "Conducta",
         bio: "UK garage's pace-setter — producer of AJ Tracey's 'Ladbroke Grove', ran London's Kiwi Rekords 2019–2024. The benchmark the new wave is chasing.",
+        photoUrl: "https://static.ra.co/images/news/2021/conducta.png",
       },
       {
         name: "Riria",
         bio: "Tokyo-born, London-based — Rinse FM resident, viral Boiler Room set, Mixmag Top Breakthrough DJ 2025, bridging UK garage and amapiano.",
+        photoUrl: "https://image.rinse.fm/_/riria-1.jpg?w=600&h=600",
       },      {
         name: "DJ EZ",
         bio: "Tottenham-born UK garage DJ — long-running Kiss 100 show, mixed the 2m-copy-selling Pure Garage series and Fabriclive 71, Boiler Room sets watched by millions.",
@@ -191,10 +197,12 @@ const SLATES: SlateSeed[] = [
       {
         name: "Tim Reaper",
         bio: "London-born jungle producer/DJ — runs Future Retro London (DJ Mag Breakthrough Label 2021), NTS show, the new wave's vital talent.",
+        photoUrl: "https://crackmag.wpenginepowered.com/wp-content/uploads/2021/08/TIM-REAPER-CRACK-MIX-FRONT-scaled.jpg",
       },
       {
         name: "SHERELLE",
         bio: "Walthamstow-born 160bpm+ selector — viral Boiler Room, DJ Mag Best British DJ 2020, BBC 6 Music resident. Shared the HERE at Outernet 2025 bill with Tim Reaper.",
+        photoUrl: "https://static.ra.co/images/profiles/square/sherelle.jpg?dateUpdated=1758810268673",
       },      {
         name: "Nia Archives",
         bio: "Yorkshire jungle DJ/producer — 'Silence Is Loud' debut album (2024), first jungle artist to earn three BRIT Award nominations.",
@@ -255,18 +263,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Jungle Cakes",
         bio: "Ed Solo & Deekline's flagship jungle night — XOYO 360° takeover, Brixton Jamm. One of London's two defining jungle parties.",
+        photoUrl: "https://fixr-cdn.fixr.co/images/sales_account/logo/34bc63abcaa449b5b221e6257226cf9e.jpeg",
       },
       {
         name: "London Something",
         bio: "DJ Ron's jungle night at EartH Kitchen Hackney — booking the veteran guard: Aries, Breakage, Brockie.",
+        photoUrl: "https://skiddle.imgix.net/2/6/1/2261604_25053dcc_london-something-drum-bass-kenny-ken-kelvin-373-ic3-more_1024.jpg?auto=format%2Ccompress",
       },
       {
         name: "AMAPIANOLAND",
         bio: "Calls itself London's #1 Amapiano & Afrobeats party — sold-out OUTERNET, Studio 338 and Boxpark Croydon.",
+        photoUrl: "https://static.designmynight.com/uploads/2025/04/490178340_122219032988187182_3823829516233464287_n-1200x615-optimised.png",
       },
       {
         name: "Invasion Parties",
         bio: "Calls AFROLIFE London's biggest amapiano & afrohouse party (1000+ ravers) — Steel Yard, E1, Scala. The public claim-war with AMAPIANOLAND is real.",
+        photoUrl: "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F205659009%2F305005643115%2F1%2Foriginal.20211229-232206?w=2000&auto=format%2Ccompress&q=75&sharp=10&rect=0%2C0%2C10417%2C10417&s=75d5dd85e512f87325b2f8155b87e070",
       },      {
         name: "Rupture",
         bio: "Mantra & Double O's jungle and drum & bass night, running since 2006. Home of the Rupture label; a book celebrating its 20 years, We Are Rupture, arrives November 2026.",
@@ -320,14 +332,17 @@ const SLATES: SlateSeed[] = [
       {
         name: "The Windmill Brixton",
         bio: "150-cap Brixton grassroots flagship — 22 Blenheim Gardens. The south London institution every band has played.",
+        photoUrl: "https://licklist.s3-eu-west-2.amazonaws.com/images/original/000/000/073/126/005-62edhbsjgaahwolj.jpg",
       },
       {
         name: "The Shacklewell Arms",
         bio: "200-cap Dalston grassroots flagship — the east London answer to the Windmill.",
+        photoUrl: "https://d2s8km3brsjp0y.cloudfront.net/eyJidWNrZXQiOiJ3aGF0cHViIiwia2V5IjoiRUxDXC9FTEMrMTQ1MzctMTczNzE0MC0yMDczLTI0MDAuanBnIiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjo4MDAsImhlaWdodCI6NjAwLCJmaXQiOiJjb3ZlciJ9LCJyb3RhdGUiOm51bGx9fQ==",
       },
       {
         name: "EartH Kitchen",
         bio: "The small room in Hackney's EartH complex — home of London Something's jungle nights.",
+        photoUrl: "https://cdn.venuescanner.com/photos/c58L8/ae71524e48943f09b12a1e2593841b39.jpg",
       },      {
         name: "The Lexington",
         bio: "200-cap indie room above a pub in Islington. One of London's most respected guitar-music venues since 2009.",
@@ -384,14 +399,17 @@ const SLATES: SlateSeed[] = [
       {
         name: "UCL K-Pop Society",
         bio: "UCL's K-pop dance society — competing against 15+ universities on the national inter-uni K-pop circuit, term showcases at the Bloomsbury Theatre.",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/inline-images/IMG_1322.jpeg",
       },
       {
         name: "Imperial K Pop Society",
         bio: "Imperial's K-pop society (dance team ICarus) — Steal The Stage 2025 podium, UCL's direct rival on the inter-uni circuit.",
+        photoUrl: "https://cdn.sanity.io/images/k7lmfnyj/production/64e41821e5240cc0717c45ae347e7bd87ec874c1-425x425.jpg?rect=0,60,425,319&w=800&h=600&q=75&auto=format",
       },
       {
         name: "UCL Dance Society",
         bio: "7 shows a year including the annual Bloomsbury Theatre show — 34 trophies at Kingsnation '26, and hosts its own inter-uni competition TranscenDance.",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/inline-images/58c6904b-36dc-4aa9-b0ad-9343f42f365b.JPG",
       },
       {
         name: "KCL Dance Society",
@@ -400,18 +418,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "UCL African Caribbean Society",
         bio: "UCL's flagship ACS — competing with KCL on London's ACS awards and showcase circuit.",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/csc-directory-images/ucl_acs_logo_2018_0.png",
       },
       {
         name: "KCL African and Caribbean Society",
         bio: "King's ACS — consecutive 'ACS of the Year' awards and the annual two-night Culture Shock showcase.",
+        photoUrl: "https://www.kclsu.org/asset/Organisation/6141/Photo%2028-07-2017,%2015%2039%2001.jpg",
       },
       {
         name: "UCL Electronic Music Society",
         bio: "Home for UCL's DJs, producers and two-steppers — tutorials, open decks and club takeovers.",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/2025-09/97241BE6-E0F1-42B1-B398-92FDA577CBE8-6546-000002F4C8A1EFC1.jpg",
       },
       {
         name: "KCL DJ Society",
         bio: "King's DJ society — 300-capacity Platforms nights at Corsica Studios. The student club-night crown rival to UCL's electronic music society.",
+        photoUrl: "https://www.kclsu.org/asset/Organisation/6498/WhatsApp%20Image%202025-08-26%20at%2014.03.28.jpeg",
       },      {
         name: "Imperial African Caribbean Society",
         bio: "Imperial's African Caribbean Society (ICACS), founded in 1998 — runs an inter-university boat party with other London ACS societies and co-hosts Black Ascent, the flagship careers event, with LSE ACS.",
@@ -444,18 +466,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Cristale",
         bio: "South London — viral 'Bong Bing' with Laa Lee, MOBO Best Newcomer nominee, broke through a freestyle over Drake & Headie One's 'Only You'.",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2024/04/Clash127_4.5IG-_SingleImage75-scaled.jpg",
       },
       {
         name: "Kibo",
         bio: "Harrow — went bar-for-bar with Dave and Central Cee in the 2023 Victory Lap cypher; Dave co-signed him on camera.",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2026/08/Kibo-retouched-2-1024x731.jpg",
       },
       {
         name: "Rushy",
         bio: "West London — GRM Daily premiered 'LDN'; same Victory Lap cypher as Kibo. The documented head-to-head.",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2024/03/Rushy-2-683x1024.jpg",
       },
       {
         name: "Fimiguerrero",
         bio: "London underground — featured on Jim Legxacy's XL Recordings mixtape 'black british music', part of the Plaqueboymax-streamed new-gen circle.",
+        photoUrl: "https://static.ra.co/images/news/2026/fimig.png",
       },      {
         name: "Knucks",
         bio: "Kilburn — rapper-producer behind the debut album Alpha Place (featuring Stormzy) and the BPI Platinum single 'Los Pollos Hermanos'; MOBO-nominated, followed his 2020 London Class EP with breakout success.",
@@ -505,18 +531,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Kibo",
         bio: "Harrow — 'made freestyle rap his bread and butter' (NME). The anchor of this category.",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2026/08/Kibo-retouched-2-1024x731.jpg",
       },
       {
         name: "Cristale",
         bio: "South London — broke through a viral freestyle; MOBO Best Newcomer nominee.",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2024/04/Clash127_4.5IG-_SingleImage75-scaled.jpg",
       },
       {
         name: "Rushy",
         bio: "West London — cypher-circuit rapper, same Victory Lap cypher as Kibo.",
+        photoUrl: "https://www.clashmusic.com/wp-content/uploads/2024/03/Rushy-2-683x1024.jpg",
       },
       {
         name: "Sinn6r",
         bio: "South-east London — militant bar-heavy style, new project 'Federal' (Nov 2025), Victory Lap studio regular.",
+        photoUrl: "https://www.linesapp.co/_next/image?url=https%3A%2F%2Fstorage.googleapis.com%2Fbondilines.appspot.com%2Fevent%2Fimages%2Fa8cdd490-ff00-431d-98c1-5e44f994b6b6.webp&w=768&q=80",
       },      {
         name: "Len",
         bio: "Harrow — went bar-for-bar with Dave and Central Cee in the 2023 Victory Lap cypher; co-released the Conglomerate mixtape with Lancey Foux and Fimiguerrero, which hit UK Albums #23.",
@@ -573,18 +603,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Rose Magpie",
         bio: "UK cosplayer (@rosemagpie) — Insomnia 69 Cosplay Championship 2022 winner, official cosplay judge at Heroes Dutch Comic Con, MCM London panel guest.",
+        photoUrl: "https://cogconnected.com/wp-content/uploads/2024/07/rose-magpie-lux-feature.jpg",
       },
       {
         name: "Maria Jodicke",
         bio: "Cosplayer (@mariajodicke) — MCM London Comic Con 2025 standout, Radio Times-documented costume craft (the Dalek dress).",
+        photoUrl: "https://images.immediate.co.uk/production/volatile/sites/3/2025/10/dalek-pyramid-head-hellraiser-cosplayers-140c09f.jpg",
       },
       {
         name: "MossyPyramidHead",
         bio: "Cosplayer (@MossyPyramidHead) — MCM London 2025, floral Pyramid Head × Overwatch Bastion fusion, Radio Times-documented.",
+        photoUrl: "https://images.immediate.co.uk/production/volatile/sites/3/2025/10/dalek-pyramid-head-hellraiser-cosplayers-140c09f.jpg",
       },
       {
         name: "trashnim_",
         bio: "Cosplayer (@trashnim_) — MCM London 2025 Pinhead horror transformation, Radio Times-documented. The horror counterpart to MossyPyramidHead.",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/5cc994c90b77bd0f5aeb927c/1752176222504-W4P9NWNTB1JPW7ECWT9N/PinHead_1.jpg?format=500w",
       },      {
         name: "Jazzichan",
         bio: "Selected as the UK's representative for the 2024 World Cosplay Championship at MCM London Comic Con in October 2023.",
@@ -629,18 +663,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Robbie Lyle",
         bio: "Founder of AFTV (1.74M YouTube subscribers) — Arsenal's loudest voice; the channel was born from a 5–2 North London Derby win over Spurs.",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a3/Ty%2C_Claude_and_Robbie_AFTV_2017.png",
       },
       {
         name: "Troopz",
         bio: "AFTV star and Troopz TV host — known for explosive rants.",
+        photoUrl: "https://icdn.benchwarmers.ie/wp-content/uploads/2017/04/this-win-changes-nothing-no-new.jpg",
       },
       {
         name: "Rory Jennings",
         bio: "Chelsea YouTuber and talkSPORT presenter — the banter merchant who publicly spars with Arsenal fan media on camera.",
+        photoUrl: "https://yt3.googleusercontent.com/DVBpCXUmrtXLaWviRzQ_OvEBsD2-hQrEz_lXKfuERJNt6BJJomfizuOEipxpAsBW20wMvhqmrZ8=s900-c-k-c0x00ffffff-no-rj",
       },
       {
         name: "Chris Cowlin",
         bio: "Spurs Chat — the Tottenham answer to AFTV. North London Derby tribalism as content fuel.",
+        photoUrl: "https://www.soccerphile.com/public/web_images/content_images/chriscowlin3.jpg",
       },      {
         name: "Ty (Taiwo Ogunlabi)",
         bio: "Arsenal fan-channel host — long-running AFTV regular known for his relentlessly optimistic takes and his defence of Arsène Wenger.",
@@ -686,18 +724,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Arsenal FC",
         bio: "North London. The AFTV army votes — but Spurs fans vote against them harder.",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
       },
       {
         name: "Tottenham Hotspur",
         bio: "North London. Nobody mobilises a defensive vote like Spurs fans told Arsenal might win.",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/fr/7/7b/Logo_Tottenham_Hotspur_Football_Club_2024.svg",
       },
       {
         name: "Chelsea FC",
         bio: "West London. Rory Jennings' tribe — Fulham Road pride on the line.",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
       },
       {
         name: "West Ham United",
         bio: "East London. London Stadium-era grievances and the loudest away end in the city.",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/c/c2/West_Ham_United_FC_logo.svg",
       },      {
         name: "Crystal Palace",
         bio: "South London club — Premier League, Selhurst Park.",
@@ -755,18 +797,22 @@ const SLATES: SlateSeed[] = [
       {
         name: "Abby Roberts",
         bio: "London-based beauty creator — 16.8M TikTok followers, self-taught SFX/transformation MUA, brand collabs with Morphe, Too Faced, Charlotte Tilbury and L'Oréal.",
+        photoUrl: "https://images-prod.dazeddigital.com/1280/azure/dazed-prod/1290/3/1293658.jpg",
       },
       {
         name: "Nikki Wolff",
         bio: "London-based makeup artist (@nikki_makeup) — 1.7M+ Instagram followers, KVD Beauty Global Director of Artistry, MUA to Dua Lipa, Zendaya and the Kardashians.",
+        photoUrl: "https://chantecaille.co.uk/cdn/shop/files/Nikki_600x800_UP_600x_7cfeb0aa-19d9-4b92-9c71-f7c39f492c98_600x.jpg?v=1632398617",
       },
       {
         name: "Lisa Eldridge",
         bio: "London-based makeup legend — Lancôme global creative director, own makeup line, Vogue covers, NYT bestselling author; clients from Kate Winslet to Taylor Swift.",
+        photoUrl: "https://cdn.entertainmentdaily.com/uploads/2021/04/22280845-low_res-makeup-a-glamorous-history.jpg",
       },
       {
         name: "Uche Natori",
         bio: "London-based British-Nigerian beauty creator (@uchjn) — Fashion and Beauty Creator of the Year at the UK & Ireland TikTok Awards.",
+        photoUrl: "https://www.bellanaija.com/wp-content/uploads/2024/12/439631615_1167160514296975_4265686570595188783_n-e1733393931687-1000x600.jpg",
       },      {
         name: "Patricia Bright",
         bio: "London-born beauty YouTuber with ~2.86M subscribers; she appeared as a beauty expert on BBC One's The Wheel.",
@@ -816,14 +862,17 @@ const SLATES: SlateSeed[] = [
       {
         name: "Nikki Wolff",
         bio: "London-based makeup artist — KVD Beauty Global Director of Artistry, the red-carpet glow specialist behind Dua Lipa and Zendaya.",
+        photoUrl: "https://chantecaille.co.uk/cdn/shop/files/Nikki_600x800_UP_600x_7cfeb0aa-19d9-4b92-9c71-f7c39f492c98_600x.jpg?v=1632398617",
       },
       {
         name: "Lisa Eldridge",
         bio: "London-based editorial MUA — Lancôme global creative director, Vogue covers, the luxury establishment's pick.",
+        photoUrl: "https://cdn.entertainmentdaily.com/uploads/2021/04/22280845-low_res-makeup-a-glamorous-history.jpg",
       },
       {
         name: "Kaniz Ali",
         bio: "London-born award-winning MUA (Makeup Artist of the Year 2011/2015/2019) — bridal and Bollywood glam, MUA to Kareena Kapoor Khan and Sonam Kapoor, runs a London makeup academy.",
+        photoUrl: "https://www.khushmag.com/Images/ExtraImages/Kaniz-Ali-Beauty-Heroes.jpg",
       },
       {
         name: "Nency Makeup",
@@ -877,10 +926,12 @@ const SLATES: SlateSeed[] = [
       {
         name: "Charlotte Roberts",
         bio: "London-based TikTok makeup-transformation star (@charlottelooks) — fantasy and SFX looks with millions of followers.",
+        photoUrl: "https://i.axod.net/Kztm0M6G5rTldPvIUHWiScvW4a6zJQ.jpeg",
       },
       {
         name: "Uche Natori",
         bio: "London-based British-Nigerian creator — UK & Ireland TikTok Awards winner.",
+        photoUrl: "https://www.bellanaija.com/wp-content/uploads/2024/12/439631615_1167160514296975_4265686570595188783_n-e1733393931687-1000x600.jpg",
       },      {
         name: "Shania Parris",
         bio: "Winner of series 6 of BBC Three's Glow Up: Britain's Next Make-Up Star (2024); the Coventry MUA has ~190K TikTok followers, where a pointillism dot-work video went viral.",
