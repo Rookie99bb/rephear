@@ -72,49 +72,61 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "IVIX",
+        photoUrl: "https://i.ytimg.com/vi/gWDRKhyUj3k/hqdefault.jpg",
         bio: "K-pop dance crew — 3rd-place tie in Group Dance at the New Malden K-POP Awards 2025.",
       },
       {
         name: "NV",
+        photoUrl: "https://i.ytimg.com/vi/q2OGZ6WMimA/hqdefault.jpg",
         bio: "K-pop dance crew — 3rd-place tie in Group Dance at the New Malden K-POP Awards 2025; 1st Place (Dance) at the 2026 edition.",
       },      {
         name: "AZIZA Dance Crew",
+        photoUrl: "https://i.ytimg.com/vi/vKg-pegY1Jw/hqdefault.jpg",
         bio: "London K-pop cover dance crew; one of six dance teams at the 2022 K-Pop World Festival UK Round at Rich Mix, London, organised by the Korean Cultural Centre UK.",
       },
       {
         name: "COVE",
+        photoUrl: "https://i.ytimg.com/vi/KoRYfVGrJhI/hqdefault.jpg",
         bio: "London and Birmingham K-pop dance team founded in 2022, a troupe of 40+ dancers who travel across the country street dancing and entering competitions (Instagram @projectcove).",
       },
       {
         name: "BKT",
+        photoUrl: "https://i.ytimg.com/vi/E1xdyLado2w/hqdefault.jpg",
         bio: "London-based non-profit K-pop event organisers founded in 2021 by Katie and Bee; host 1-2 Random Play Dances in London per month and ran the RPD at MCM Comic Con London.",
       },
       {
         name: "LVL19",
+        photoUrl: "https://i.ytimg.com/vi/OVCYxbGVkvU/hqdefault.jpg",
         bio: "London K-pop cover crew; a dance team at the 2022 K-Pop World Festival UK Round at Rich Mix, London (KCCUK), still posting London one-take covers (Instagram @lvl19dance).",
       },
       {
         name: "44city",
+        photoUrl: "https://i.ytimg.com/vi/VEA2H4AJFb0/hqdefault.jpg",
         bio: "London K-pop dance cover group posting weekly one-take K-pop covers filmed in public across London (Instagram @_44city, TikTok @44c1ty).",
       },
       {
         name: "UJJN",
+        photoUrl: "https://i.ytimg.com/vi/e32rPeXD9v4/hqdefault.jpg",
         bio: "Long-running London K-pop dance crew; performed at the KBS K-POP World Festival prelims at the 2017 London Korean Festival and again at the 2022 K-Pop World Festival UK Round at Rich Mix.",
       },
       {
         name: "CYPHX",
+        photoUrl: "https://i.ytimg.com/vi/mkp0fJ75F3s/hqdefault.jpg",
         bio: "London-based K-pop dance cover group filming K-pop in public covers around London (YouTube: \"We are CYPHX, a London based dance cover group\").",
       },
       {
         name: "KVLT Dance Crew",
+        photoUrl: "https://i.ytimg.com/vi/C5UvCaK2e7I/hqdefault.jpg",
         bio: "London K-pop cover crew posting K-pop in public dance covers filmed in London (Instagram @the__kvlt).",
       },
       {
         name: "KMDC",
+        photoUrl: "https://i.ytimg.com/vi/fRgqt3jP1eU/hqdefault.jpg",
         bio: "London K-pop dance classes and community running since 2018, with studios in Marylebone, Elephant & Castle and The Place; describe themselves as one of London's largest K-pop dance communities.",
       },
       {
         name: "YDA DANCE",
+        photoUrl: "https://i.ytimg.com/vi/pjx2ftzJSD0/hqdefault.jpg",
         bio: "Semi-finalist in the dance category at the 3rd New Malden K-POP Awards 2026 in London (28 August 2026).",
       },
 
@@ -767,6 +779,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Nicky Hawkins",
+        photoUrl: "https://i.ytimg.com/vi/Y7WRmAWOWl0/maxresdefault.jpg",
         bio: "West Ham fan-channel host — co-founded West Ham Fan TV in 2014 with Ryan Archer and presents its fan cams and the \"Post Match Pint\" show.",
       },
       {
@@ -781,6 +794,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "George Achillea",
+        photoUrl: "https://pbs.twimg.com/profile_images/1833177118462664704/eykKsyGV.jpg",
         bio: "Tottenham fan YouTuber — runs an opinion-driven Spurs channel that has ranked among the biggest independent Spurs fan channels.",
       },
 
@@ -1557,6 +1571,46 @@ const SLATES: SlateSeed[] = [
         photoUrl: "https://roarnews.co.uk/wp-content/uploads/2025/11/MUN-photo-2--786x1024.jpeg",
         bio: "KCL international-affairs society running Model UN trips across the UK and Europe and its own London International MUN conference, building an international student community at King's.",
       },
+      {
+        name: "University College London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/0/0f/UCL_Crest.svg",
+        bio: "Founded in 1826 and based in Bloomsbury, central London, UCL is a Russell Group research university spanning sciences, engineering, humanities, law and medicine, with a large and diverse international student body.",
+      },
+      {
+        name: "King's College London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/14/King%27s_College_London_logo.svg",
+        bio: "Founded in 1829 and based at the Strand in central London, King's is a Russell Group university known for humanities, law, health and social sciences, with campuses across London.",
+      },
+      {
+        name: "Imperial College London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/de/Imperial_logo.svg",
+        bio: "Based in South Kensington and founded in 1907, Imperial is a Russell Group university focused on science, engineering, medicine and business.",
+      },
+      {
+        name: "London School of Economics and Political Science",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c7/London_school_of_economics_logo_with_name.svg",
+        bio: "Founded in 1895 and based in Westminster, central London, LSE is a University of London institution specialising in the social sciences, from economics and politics to law and sociology.",
+      },
+      {
+        name: "Queen Mary University of London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/3/38/Queen_Mary_University_of_London_logo.svg",
+        bio: "A Russell Group university based in Mile End, east London, and a member of the University of London, known for research across humanities, sciences, law and medicine.",
+      },
+      {
+        name: "SOAS University of London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f4/SOAS_Crest.png",
+        bio: "Founded in 1916 and based in Bloomsbury, SOAS is a University of London institution specialising in the study of Asia, Africa and the Middle East.",
+      },
+      {
+        name: "Goldsmiths, University of London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/4/40/Goldsmiths_College%2C_London_arms.svg",
+        bio: "Based in New Cross, south-east London, Goldsmiths is a University of London college known for creative arts, design, media, computing and social sciences.",
+      },
+      {
+        name: "University of the Arts London",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/ab/University_of_the_Arts_London_Logo.svg",
+        bio: "A specialist arts university made up of six colleges including Central Saint Martins and London College of Fashion, with sites across London.",
+      },
     ],
   },
   {
@@ -2129,6 +2183,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "EJ Knox",
+        photoUrl: "https://yt3.ggpht.com/Mx5e0Lo_MszV2Nguv2aXoBD7q6U3HB2gOGKg0DR5nAp-7U6-_cTtfJ4ohX_9tAAKNa3K07bNlw=s800-c-k-c0x00ffffff-no-rj-mo",
         bio: "UK cosplayer — winner at POWER Con, listed in the 2025 C3 Cosplay City Championship Hall of Fame.",
       },
       {
@@ -2137,6 +2192,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Cinnamon Cosplay",
+        photoUrl: "https://yt3.googleusercontent.com/ytc/AIdro_n9yTXSJ__mEG1bmDKB_u_BpRZflANtPNfEVDE0VxMmQQ=s800-c-k-c0x00ffffff-no-rj-mo",
         bio: "UK cosplayer — winner at Kaiju Con, listed in the 2025 C3 Cosplay City Championship Hall of Fame.",
       },
       {
@@ -2149,6 +2205,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Hardly Hollow",
+        photoUrl: "https://yt3.ggpht.com/zq25oFjafKfLwj9NqR6BWzUT8WJWVTlT_w-m-HvXGh18efcILGSyABns0sxqjdWOR27_cuDeim4=s800-c-k-c0x00ffffff-no-rj-mo",
         bio: "UK cosplayer — winner at EPIC Comic Con, listed in the 2025 C3 Cosplay City Championship Hall of Fame.",
       },
       {
@@ -2166,6 +2223,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "trashnim_",
+        photoUrl: "https://yt3.ggpht.com/RVHSe7zhJK-2KKidvKkxJ-iXaXZJx7f-zUnbZWaYRSAIDtU7-rRJ1gI06s-R6Fje0A6uv1t9=s800-c-k-c0x00ffffff-no-rj-mo",
         bio: "Cosplayer featured by Radio Times for a Pinhead costume worn at MCM London Comic Con 2025.",
       },
       {
@@ -2180,30 +2238,37 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "ETERNL",
+        photoUrl: "https://i.ytimg.com/vi/E6Xmpgsv31g/hqdefault.jpg",
         bio: "London K-pop cover crew with documented recent covers including 82MAJOR's \"Takeover\", performed by Paris, Stacie, Otto, Antonela, Paula and Nana.",
       },
       {
         name: "O.D.C",
+        photoUrl: "https://i.ytimg.com/vi/QbLcKgZXO1M/hqdefault.jpg",
         bio: "London K-pop dance crew with documented recent covers including CORTIS' \"GO!\", performed by Jamel, Moses, Morgan, Mario and Trev.",
       },
       {
         name: "IGNITE",
+        photoUrl: "https://i.ytimg.com/vi/zFfwvyRNM6Q/hqdefault.jpg",
         bio: "London K-pop cover crew with documented recent covers of NewJeans' \"Ditto\" and \"ETA\", featuring dancer Spriha.",
       },
       {
         name: "KWD Crew",
+        photoUrl: "https://i.ytimg.com/vi/AAlXpYJJZwA/hqdefault.jpg",
         bio: "London K-pop cover crew with documented recent covers of BTS' \"Swim\" and EXO's \"Crown\", featuring dancers including Shana and project lead Zosia.",
       },
       {
         name: "COVE",
+        photoUrl: "https://i.ytimg.com/vi/OP1FiFpRWig/hqdefault.jpg",
         bio: "K-pop cover team identifying itself as London/Birmingham-based, with a documented cover of ILLIT's \"Not Cute Anymore\".",
       },
       {
         name: "Cromer Crew",
+        photoUrl: "https://i.ytimg.com/vi/Exly8zSr6AU/hqdefault.jpg",
         bio: "London K-pop cover crew with a documented recent cover of XG's \"Hypnotize\", performed by Vivienne, Mirei, Skylar, Shannon, Mimi, Jenelle and Sela.",
       },
       {
         name: "ECHO Crew",
+        photoUrl: "https://i.ytimg.com/vi/V9R427sWmoc/hqdefault.jpg",
         bio: "London K-pop cover crew with a documented recent cover of ILLIT's \"It's Me\", performed by Jamie, Ene, Zosia, Keira and Lee.",
       },
       {
@@ -2500,6 +2565,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Dartford",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/9/9e/Dartford_FC.svg",
         bio: "South-east London non-league club; Isthmian Premier.",
       },
       {
@@ -2534,10 +2600,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Millwall supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/it/2/2d/Millwall_FC_logo.svg",
         bio: "The Den is famed for one of England's most intimidating, hostile atmospheres.",
       },
       {
         name: "Arsenal — Ashburton Army",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
         bio: "Arsenal supporters' group; part of the vocal Emirates crowd on the North Bank.",
       },
       {
@@ -2547,6 +2615,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "West Ham supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/c/c2/West_Ham_United_FC_logo.svg",
         bio: "London Stadium support; the Trevor Brooking Stand is the ground's loudest section.",
       },
       {
@@ -2556,10 +2625,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Chelsea supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
         bio: "Stamford Bridge support; the Matthew Harding Stand is the ground's loudest section.",
       },
       {
         name: "Charlton supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/f/f5/Charlton_Athletic_FC_crest.svg",
         bio: "The Valley support; rated above average for home atmosphere.",
       },
       {
@@ -2574,6 +2645,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "AFC Wimbledon supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/1/1b/AFC_Wimbledon_%282020%29_logo.svg",
         bio: "Plough Lane support; fan-owned club with a vocal home following.",
       },
       {
@@ -2583,10 +2655,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Bromley supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/3/35/Bromley_FC_crest.svg",
         bio: "Hayes Lane support; community club with a growing home following.",
       },
       {
         name: "QPR supporters",
+        photoUrl: "https://upload.wikimedia.org/wikipedia/en/3/31/Queens_Park_Rangers_crest.svg",
         bio: "Loftus Road support; one of London's tightest, most compact grounds.",
       },
     ],
@@ -2677,6 +2751,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "OneThabs",
+        photoUrl: "https://static.ra.co/images/profiles/square/onethabs.jpg?dateUpdated=1",
         bio: "Amapiano DJ active on the London scene.",
       },
       {
@@ -2691,6 +2766,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "RedHour",
+        photoUrl: "https://static.ra.co/images/profiles/square/redhour.jpg?dateUpdated=1",
         bio: "DJ on London's amapiano circuit, named on the line-up for the Sounds on the South amapiano party at E1 London.",
       },
       {
@@ -2716,6 +2792,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "DJ YB UK",
+        photoUrl: "https://www.addtoevent.co.uk/sites/default/files/styles/one-fourth/public/img_9094.png",
         bio: "London-based open-format DJ who lists amapiano and Afrobeats among his styles.",
       },
       {
@@ -2750,6 +2827,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Edd Kimber",
+        photoUrl: "https://pbs.twimg.com/profile_images/859493576375455749/eZD3ITJi_400x400.jpg",
         bio: "Winner of the first series of The Great British Bake Off; London-based baker and cookbook author.",
       },
       {
@@ -2928,6 +3006,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Jack Sotti",
+        photoUrl: "https://pbs.twimg.com/profile_images/2339804881/d8tbiav8d8d6hiqa3sen_400x400.jpeg",
         bio: "London bartender and cocktail creator, known for his online cocktail videos.",
       },
       {
@@ -2966,6 +3045,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Noel Venning",
+        photoUrl: "https://pbs.twimg.com/profile_images/794146043046793216/8XjwrKL2_400x400.jpg",
         bio: "London bartender; co-founder of the Three Sheets cocktail bar in Dalston.",
       },
       {
@@ -3677,6 +3757,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Lee Judges (Lee Gunner)",
+        photoUrl: "https://i.ytimg.com/vi/42vK6WuO05A/hqdefault.jpg",
         bio: "AFTV regular, often hosting the post-match fan interviews outside the Emirates.",
       },
       {
@@ -3696,6 +3777,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Paul Machin",
+        photoUrl: "https://i.ytimg.com/vi/Unk5GHzoy_s/maxresdefault.jpg",
         bio: "Co-founder of The Redmen TV, the pioneering Liverpool fan-led YouTube channel.",
       },
       {
@@ -3705,10 +3787,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Neil Atkinson",
+        photoUrl: "https://i.ytimg.com/vi/UcmwUfNRz4o/maxresdefault.jpg",
         bio: "Founder of The Anfield Wrap, Liverpool's fan media network of podcasts and live shows.",
       },
       {
         name: "Statman Dave",
+        photoUrl: "https://pbs.twimg.com/profile_images/1642870469480128516/aAlo5-Kx.jpg",
         bio: "Man United data creator; poached by MUTV.",
       },
       {
@@ -3723,6 +3807,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Chris Cowlin",
+        photoUrl: "https://www.soccerphile.com/public/web_images/content_images/chriscowlin3.jpg",
         bio: "Host of the Spurs Chat podcast; won Best Club Content Creator at the 2019 Football Blogging Awards.",
       },
     ],
@@ -3732,6 +3817,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Lydia Millen",
+        photoUrl: "https://lydiaelisemillen.com/wp-content/uploads/2023/02/KM-LYDIA-MILLEN-2023_SHOT_01_0120-1200x800.jpg",
         bio: "UK fashion creator — ~920k TikTok followers.",
       },
       {
@@ -3766,6 +3852,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Beth Bartram",
+        photoUrl: "https://medias.spotern.com/spots/w720/250/250908-1573553900.jpg",
         bio: "UK fashion creator — ~141k TikTok followers.",
       },
       {
@@ -3795,6 +3882,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Strateraa",
+        photoUrl: "https://yt3.ggpht.com/86oAtyvv5HuGG1EpwOGbA4BFpmO5tfk2r_N5xogLJrAC_YfWz2JoJfGDe9WD1BW3efM98BL6rw=s800-c-k-c0x00ffffff-no-rj",
         bio: "London fashion TikToker and vintage streetwear seller.",
       },
     ],
@@ -3814,6 +3902,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Rachel Ama",
+        photoUrl: "https://yt3.ggpht.com/WYtFWLkYpkOKswtsb6OV0i0E-nom-QERkPE0pR-ErRIqUzYVMz9rvPuU0epIx6Y2RjEHTSsVJp4=s240-c-k-c0x00ffffff-no-rj",
         bio: "London-based vegan food creator and cookbook author, known for sharing plant-based recipes with a large online audience.",
       },
       {
@@ -3828,6 +3917,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Gabie Kook",
+        photoUrl: "https://yt3.ggpht.com/WeUXatEqGQpVo2vBWjzN65sMA00SzRAg4hHWpCa5Ulu5rSY8DNOSpGepomo3se_aXRVcyHMUtQ=s240-c-k-c0x00ffffff-no-rj",
         bio: "London-based food creator and chef, known for her YouTube cooking channel and links to London restaurants.",
       },
       {
@@ -4154,38 +4244,47 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Cherrie",
+        photoUrl: "https://i.ytimg.com/vi/duTmB0itYzg/hqdefault.jpg",
         bio: "London-based K-pop cover dancer with HKZ Dance, appearing in the crew's covers of ILLIT's \"It's Me\", BLACKPINK's \"Don't Know What To Do\" and VIVIZ's \"SHHH!\". She placed fifth in the solo dance category at the New Malden K-pop Awards 2025.",
       },
       {
         name: "Hermione",
+        photoUrl: "https://i.ytimg.com/vi/4ZGBxnVmrjY/hqdefault.jpg",
         bio: "K-pop cover dancer active in London who dances with HKZ Dance and led a documented London cover of TWICE's \"Heart Shaker\" with eight other dancers.",
       },
       {
         name: "Hayden",
+        photoUrl: "https://i.ytimg.com/vi/AL7McmBoT1Y/hqdefault.jpg",
         bio: "K-pop cover dancer with HKZ Dance in London, appearing in the crew's covers of BLACKPINK's \"Don't Know What To Do\" alongside Anet, Nati and Cherrie.",
       },
       {
         name: "Anet",
+        photoUrl: "https://i.ytimg.com/vi/AL7McmBoT1Y/hqdefault.jpg",
         bio: "K-pop cover dancer with HKZ Dance in London, appearing in the crew's cover of BLACKPINK's \"Don't Know What To Do\".",
       },
       {
         name: "Nati",
+        photoUrl: "https://i.ytimg.com/vi/AL7McmBoT1Y/hqdefault.jpg",
         bio: "K-pop cover dancer with HKZ Dance in London, appearing in the crew's cover of BLACKPINK's \"Don't Know What To Do\".",
       },
       {
         name: "Spriha",
+        photoUrl: "https://i.ytimg.com/vi/CUBcmhtlZYE/hqdefault.jpg",
         bio: "Dancer with London K-pop cover crew IGNITE, appearing in the crew's covers of NewJeans' \"Ditto\" and \"ETA\".",
       },
       {
         name: "Shana",
+        photoUrl: "https://i.ytimg.com/vi/iKydCTgWg7Y/hqdefault.jpg",
         bio: "Member of London K-pop cover crew KWD Crew, appearing in the crew's covers of BTS' \"Swim\" and EXO's \"Crown\".",
       },
       {
         name: "Zosia",
+        photoUrl: "https://i.ytimg.com/vi/uoVPBftqVVk/hqdefault.jpg",
         bio: "London K-pop cover dancer who project-led KWD Crew's cover of EXO's \"Crown\" and dances with ECHO Crew, appearing in their cover of ILLIT's \"It's Me\".",
       },
       {
         name: "Skylar",
+        photoUrl: "https://i.ytimg.com/vi/Exly8zSr6AU/hqdefault.jpg",
         bio: "London K-pop cover dancer with Cromer Crew, appearing in the crew's seven-member cover of XG's \"Hypnotize\".",
       },
       {
@@ -4194,14 +4293,17 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Vi",
+        photoUrl: "https://i.ytimg.com/vi/NCFnojazmLw/hqdefault.jpg",
         bio: "London-based K-pop cover dancer appearing in a documented London cover of Hearts2Hearts' \"Lemon Tang\" alongside Zosia, Amelie, Louis, Sophie, Gracie, Gladys and Ailani.",
       },
       {
         name: "Jamie",
+        photoUrl: "https://i.ytimg.com/vi/uoVPBftqVVk/hqdefault.jpg",
         bio: "London K-pop cover dancer with ECHO Crew, appearing in the crew's five-member cover of ILLIT's \"It's Me\".",
       },
       {
         name: "Bartek",
+        photoUrl: "https://i.ytimg.com/vi/duTmB0itYzg/hqdefault.jpg",
         bio: "London K-pop cover dancer with HKZ Dance, appearing in the crew's cover of ILLIT's \"It's Me\" alongside Cherrie, Viola, Aimee and Theo.",
       },
     ],
@@ -4211,10 +4313,12 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "DJ AG Online",
+        photoUrl: "https://i.ytimg.com/vi/eQaYgmJrGgQ/hqdefault.jpg",
         bio: "UK DJ whose TikTok live sessions promote his London activity and AG Fest.",
       },
       {
         name: "DJ Katty London",
+        photoUrl: "https://i.ytimg.com/vi/PT_lDeBioM0/hqdefault.jpg",
         bio: "DJ broadcasting live sets on TikTok Live.",
       },
       {
@@ -4229,6 +4333,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "DJ Majestic",
+        photoUrl: "https://www.radikal.com/wp-content/uploads/2021/12/majestic-1-e1639076086341.jpg",
         bio: "KISS FM DJ who played the virtual KISSFest across three virtual stages.",
       },
       {
@@ -4243,10 +4348,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Sam Divine",
+        photoUrl: "https://i.ytimg.com/vi/OfyXcVDQ4dc/maxresdefault.jpg",
         bio: "UK house DJ who played Defected's 12-hour Virtual Festival livestream.",
       },
       {
         name: "Floating Points",
+        photoUrl: "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Floating_Points_at_Coachella_2017_%28cropped%29.jpg/960px-Floating_Points_at_Coachella_2017_%28cropped%29.jpg",
         bio: "London-based producer and DJ whose set aired via Boiler Room's Streaming From Isolation series.",
       },
       {
@@ -4256,10 +4363,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "The Heatwave",
+        photoUrl: "https://cdn.amsterdam-dance-event.nl/images/images/transforms/artists-speakers/_1200x630_crop_center-center_none/21174/The_Heatwave_Press_Shots_D_145499.webp",
         bio: "London dancehall duo who headlined a livestreamed Mixmag Lab carnival special.",
       },
       {
         name: "Erol Alkan",
+        photoUrl: "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/ErolAlkan.jpg/960px-ErolAlkan.jpg",
         bio: "London-based DJ who played the United We Stream lockdown livestream.",
       },
       {
@@ -4337,6 +4446,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "The Everyday Man",
+        photoUrl: "https://theeverydayman.co.uk/wp-content/uploads/2014/06/Web-Logo-Large.png",
         bio: "UK men's style blog covering classic menswear.",
       },
       {
@@ -4351,6 +4461,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Ali Gordon",
+        photoUrl: "https://imagnav.com/wp-content/uploads/2025/11/SnapInsta.to_567285695_18539652154005995_1957358835069192402_n-e1762546794353-874x1024.webp",
         bio: "UK men's style creator.",
       },
       {
@@ -4365,10 +4476,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Roel Rebello",
+        photoUrl: "https://fits4.com/wp-content/uploads/2023/10/Roel-roelrebello_-819x1024.jpg",
         bio: "London menswear and lifestyle creator — ~86k Instagram followers.",
       },
       {
         name: "Daily Touch of Class",
+        photoUrl: "https://mym-db.com/storage/mym/app/9600_Dailytouchofclass_avatard.jpg",
         bio: "London menswear and lifestyle account — ~64k Instagram followers.",
       },
       {
@@ -4378,10 +4491,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Tim Dessaint",
+        photoUrl: "https://onbrand.shopltk.com/hs-fs/hubfs/B2B%20Blog/Male%20Influencer%20Blog%20Images/Tim%20Dessaint-1.png?width=810&height=1440&name=Tim%20Dessaint-1.png",
         bio: "Menswear creator and M&S menswear ambassador.",
       },
       {
         name: "Nathan Griffiths",
+        photoUrl: "https://d5ik1gor6xydq.cloudfront.net/sellers/1338034/portfolio/17811706705218093.webp",
         bio: "Menswear creator and M&S menswear ambassador.",
       },
       {
@@ -4792,22 +4907,22 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "James Hillard",
-        photoUrl: "https://i.scdn.co/image/ab67616100005174301f8f153fb5d485418fcefc",
+        photoUrl: "https://media.k-dj.jp/kdj/djs/jameshillard/profilel.jpg",
         bio: "Member of the Horse Meat Disco DJ collective.",
       },
       {
         name: "Jim Stanton",
-        photoUrl: "https://i.scdn.co/image/ab67616100005174301f8f153fb5d485418fcefc",
+        photoUrl: "https://jaegeroslo.no/wp-content/uploads/2022/06/HORSEMEATDISCO_ROMURPHY_PRESSSHOTS-2-600x600.jpg",
         bio: "Member of the Horse Meat Disco DJ collective.",
       },
       {
         name: "Luke Howard",
-        photoUrl: "https://i.scdn.co/image/ab67616100005174301f8f153fb5d485418fcefc",
+        photoUrl: "https://media.k-dj.jp/kdj/djs/lukehoward/profilel.jpg",
         bio: "Member of the Horse Meat Disco DJ collective.",
       },
       {
         name: "Severino",
-        photoUrl: "https://i.scdn.co/image/ab67616100005174301f8f153fb5d485418fcefc",
+        photoUrl: "https://media.k-dj.jp/kdj/djs/severino/profilel.jpg",
         bio: "Member of the Horse Meat Disco DJ collective.",
       },
       {
@@ -4973,7 +5088,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Amber Gill",
-        photoUrl: "https://imgs.capitalfm.com/images/177701?crop=16_9&width=660&relax=1&format=webp&signature=-cf44pCEH7F-gkoUQghLqUeOYTs=",
+        photoUrl: "https://imgix.bustle.com/uploads/image/2019/5/28/ddbb1bec-c0da-4e57-aaaf-240b6a9cae26-amber-gill.jpg?w=1200",
         bio: "Won Love Island in 2019.",
       },
       {
@@ -5037,6 +5152,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Picky Glutton",
+        photoUrl: "https://pbs.twimg.com/profile_images/1505850378/IMG_1847_400x400.JPG",
         bio: "London restaurant reviewer and blogger covering the city's restaurant scene.",
       },
       {
@@ -5046,10 +5162,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "The Foodaholic",
+        photoUrl: "https://pbs.twimg.com/profile_images/929183348/foodaholicBanner1_400x400.jpg",
         bio: "London food blogger reviewing restaurants across the city.",
       },
       {
         name: "Cheese and Biscuits",
+        photoUrl: "https://scontent-lax3-2.cdninstagram.com/v/t51.2885-19/10542851_746104648783565_1918716881_a.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=100&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xNTAuQzMifQ%3D%3D&_nc_ohc=EWtfPb_mcL0Q7kNvwGvIHb-&_nc_oc=Adrvc_VdjaUCj24e6Hnso2Grnc-cNBqtSHZ009GKbYMHNyYOokxK-SX0KAXz9mQPOlGzea7fBfyIzYRatIcY_tgM&_nc_zt=24&_nc_ht=scontent-lax3-2.cdninstagram.com&_nc_ss=7960f&oh=00_AQIV84W2shDY4M8HfPylz4DOMkfr6HjUHItErpcvLVXFeA&oe=6ABB701B",
         bio: "London restaurant review blog covering dining across the capital.",
       },
       {
@@ -5059,18 +5177,22 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Halal Girl About Town",
+        photoUrl: "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/10848170_328874933982381_1370964284_a.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=108&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xNTAuQzMifQ%3D%3D&_nc_ohc=xvtPDfnyhhkQ7kNvwEOmzxT&_nc_oc=AdqgJALZtfKmUvstIYSK7JdRx211uqNjZ9zQGFdceOwEPdemeaL6JpmSIm2IQnSq3YgXPYOgdGOh1MeiNDZ7WErp&_nc_zt=24&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_ss=7960f&oh=00_AQIa8QT5qe5PqZ2GZkTo39FcwUFBWDy52GRcd9kV6sVa5w&oe=6ABB7220",
         bio: "London food reviewer focused on halal-friendly restaurants across the city.",
       },
       {
         name: "Samphire and Salsify",
+        photoUrl: "https://scontent-iad6-1.cdninstagram.com/v/t51.2885-19/455718326_1041271853532220_5194039279719647457_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=107&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=ZIP9RCIR8YcQ7kNvwGb2_f3&_nc_oc=AdpN0oWZEG2Itv4m995UtwKphAzQCXHeQhiiu6eAhuhcVjYwnDnvZlfuYX1fg1knuQAmHVb_XeP1eCcAKl7A_HMk&_nc_zt=24&_nc_ht=scontent-iad6-1.cdninstagram.com&_nc_ss=7960f&oh=00_AQJSOfhMnER2r3-R2qlRYpBzsLQ38MQYdXEuEgflnzqfNQ&oe=6ABB6145",
         bio: "London restaurant review blog covering the city's dining scene.",
       },
       {
         name: "London Eater",
+        photoUrl: "https://scontent-atl3-1.cdninstagram.com/v/t51.82787-19/574106530_18546201442050199_7359355382702392028_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=103&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=057thaI-8PsQ7kNvwGM2gfW&_nc_oc=AdoKgokRB9bJrXxrwPJ0hVNl0c6fPuXYDisAImb6z7JS1twShHU-45laKU3Hl6m3TO1-FK5qCL2m8fzc5Ld-obkY&_nc_zt=24&_nc_ht=scontent-atl3-1.cdninstagram.com&_nc_gid=YYkouHplw_IgaNxNR6YAKg&_nc_ss=7960f&oh=00_AQKVdc-HnbnEomFuoxljuKjKv_9tglO_7DSkeLF0plVeGA&oe=6ABB7A0C",
         bio: "London-based food reviewer covering the capital's restaurant scene on social media.",
       },
       {
         name: "Clerkenwell Boy",
+        photoUrl: "https://scontent-lax3-1.cdninstagram.com/v/t51.2885-19/411076805_1010475626696865_4348950130517668742_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=102&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=PWlW8PBXcEIQ7kNvwExfklg&_nc_oc=Adoh9v_gvV37K6ocf4C7Gov4E-SDKwMzDXR92G4sbv0u5bPvTQzlTmVUpsMcW9KGtAH37BK5-_QeSkac0CGkUUL1&_nc_zt=24&_nc_ht=scontent-lax3-1.cdninstagram.com&_nc_ss=7960f&oh=00_AQJZdDxeCjphk21M4MC1F--p7wxucOVsYxoiFZVWRtuI5A&oe=6ABB4D36",
         bio: "London food Instagrammer known for reviewing restaurants across the capital.",
       },
       {
@@ -5085,6 +5207,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "James Thompson",
+        photoUrl: "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/78790348_574894819995504_1764173003836358656_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=108&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=XaJRvi4SKXMQ7kNvwHJbYCZ&_nc_oc=Adp-wcXUaisK7UyvhGtUr2k5OeFZHiz_LC8RwXXdeh7CiogIrA7rka29TiVT_AQIN71GrU5z3cG34jJvT5iuakRT&_nc_zt=24&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_ss=7960f&oh=00_AQJPv9XL5LoqpiULih-77AgLzaMIraGnDKWZ3b_5ybnvoA&oe=6ABB5080",
         bio: "London food reviewer sharing restaurant recommendations from across the capital.",
       },
       {
@@ -5103,10 +5226,12 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "MikePairs (Michael Allen)",
+        photoUrl: "https://yt3.googleusercontent.com/ytc/AIdro_mDuGIK9xsh6EEXOZ-zn2WoPgYL9fvQASv0nR0Sn6sZ-kg=s900-c-k-c0x00ffffff-no-rj",
         bio: "UK-based sneaker collector and founder of the Pairs platform.",
       },
       {
         name: "Titi Finlay",
+        photoUrl: "https://static.wixstatic.com/media/03383c_66e68c7ecd414d62a4b6579171b98476~mv2.jpg/v1/fill/w_680,h_385,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-empty-state.jpg",
         bio: "London-born artist, graphic designer and art director whose work centres on sneakers and gender-neutral sneaker culture.",
       },
       {
@@ -5126,6 +5251,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Dan Kitchener",
+        photoUrl: "https://yt3.googleusercontent.com/ytc/AIdro_lZU-zXGDnCseSVFH9_eMSaSja9ArBm_T7iy-Rx3T5Z_J0=s900-c-k-c0x00ffffff-no-rj",
         bio: "London-based street and mural artist who customised a Nike Air Max 90 for a Farfetch trainer guide.",
       },
       {
@@ -5135,6 +5261,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "7igures",
+        photoUrl: "https://yt3.googleusercontent.com/ftBvbbXgfsTVzLXh2cAwyjd5IjAoE1esKUc8Vt7xDfCit-nm0i9zaAxOsF2_zKk933QE8F25YQ=s900-c-k-c0x00ffffff-no-rj",
         bio: "UK sneaker and streetwear media platform covering British trainer culture on YouTube.",
       },
       {
@@ -5149,6 +5276,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Beverley Tofuor",
+        photoUrl: "https://i.ytimg.com/vi/_dXaovSYdRU/hqdefault.jpg",
         bio: "Founder of British footwear brand Tobe Footwear.",
       },
       {
@@ -5458,6 +5586,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Clint Ogbenna (Clint 419)",
+        photoUrl: "https://snobette.com/wp-content/uploads/2023/08/supreme-corteiz-clint-fall-2023-.jpg",
         bio: "Founder of London streetwear label Corteiz.",
       },
       {
@@ -5477,38 +5606,47 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "ARIOUS MARIO",
+        photoUrl: "https://i.pinimg.com/originals/be/af/19/beaf190af4a818f740ff2b041e1eb295.jpg",
         bio: "London streetwear TikTok creator featured as a rising creator on StarScout.",
       },
       {
         name: "Strateraa",
+        photoUrl: "https://yt3.ggpht.com/86oAtyvv5HuGG1EpwOGbA4BFpmO5tfk2r_N5xogLJrAC_YfWz2JoJfGDe9WD1BW3efM98BL6rw=s800-c-k-c0x00ffffff-no-rj",
         bio: "London fashion TikToker and vintage streetwear seller.",
       },
       {
-        name: "Luca (Surfaceldn)",
+        name: "Surfaceldn",
+        photoUrl: "https://www.thecityceleb.com/wp-content/uploads/2026/05/17799724867816970759358248158708.jpg",
         bio: "London streetwear TikToker behind the @surfaceldn account.",
       },
       {
         name: "Emily Beaney",
+        photoUrl: "https://yt3.ggpht.com/ZPcdk4ZGoKRSZ1tusWOH_I0PWX6MDghLDziES7twkgaizIuVb4a0mcDhDGPfaagJXVvUhUlZew=s800-c-k-c0x00ffffff-no-rj",
         bio: "London streetwear influencer — ~80k Instagram followers.",
       },
       {
         name: "Daniel Darko",
+        photoUrl: "https://yt3.ggpht.com/9wDmAZ4uaSKhIJx_pklq0f96xbqPGxcE2_FXbs2Rj78IQNt5neGrk25u4fl1zzo4XVCo3kfwXDg=s800-c-k-c0x00ffffff-no-rj",
         bio: "London streetwear creator — ~81k Instagram followers.",
       },
       {
         name: "Bryan Perera",
+        photoUrl: "https://yt3.ggpht.com/CsofGOKbiEiyb_tOhx5E1FJ1pd7OoMLuNo3mXtZcZ_4z1HlJc-GCOC6vjdO2aVS-efBUbLzZ=s800-c-k-c0x00ffffff-no-rj",
         bio: "London streetwear creator — ~98k Instagram followers.",
       },
       {
         name: "Yosef",
+        photoUrl: "https://i.pinimg.com/originals/1a/24/8e/1a248e8b3c9951eab10d0cf698338c04.jpg",
         bio: "Streetwear creator based between London and Berlin — ~163k Instagram followers.",
       },
       {
         name: "Neto",
+        photoUrl: "https://yt3.ggpht.com/wo7ftWsP9rRjSYyLXYs-3LAkLVDvXWcSgNEJi3dNFkdz1HPzWO8-gBrq3JDScPX80MVnz_yltQ=s800-c-k-c0x00ffffff-no-rj",
         bio: "London streetwear creator — ~155k Instagram followers.",
       },
       {
         name: "Mikey Trapstar",
+        photoUrl: "https://media.checkfluence.com/influencers/photos/mikeytrapstar-1725396244-158YNMWHWArJEGqB0XVEinzShbiNku.jpg",
         bio: "London streetwear creator associated with the Trapstar label — ~195k Instagram followers.",
       },
     ],
@@ -5852,6 +5990,7 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Beyond Retro",
+        photoUrl: "https://www.theindustry.fashion/wp-content/uploads/2021/10/Beyond-Retro-Store-Sign-1024x1022.png",
         bio: "Large vintage clothing shop on Brick Lane, east London.",
       },
       {
@@ -5861,14 +6000,17 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Absolute Vintage",
+        photoUrl: "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/975fe08b-e890-4528-8a64-3934518d88d1.jpeg",
         bio: "Brick Lane vintage shop selling second-hand clothing.",
       },
       {
         name: "Nordic Poetry",
+        photoUrl: "https://loti.b-cdn.net/wp-content/uploads/2022/03/nordic-poetry.png",
         bio: "High-end vintage boutique just off Brick Lane on Bethnal Green Road.",
       },
       {
         name: "St Cyr Vintage",
+        photoUrl: "https://walnutlatte.com/wp-content/uploads/IMG_6814-768x1024.jpeg",
         bio: "Camden vintage shop known for one-off quality pieces.",
       },
       {
@@ -5877,10 +6019,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Greenwich Vintage Market",
+        photoUrl: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0c/e5/45/33/the-greenwich-vintage.jpg?w=1200&h=1200&s=1",
         bio: "Vintage market in Greenwich selling jewellery, homeware and clothing.",
       },
       {
         name: "Reign Vintage",
+        photoUrl: "https://i0.wp.com/reignvintage.com/wp-content/uploads/2021/02/ReignVintage.jpg?fit=800%2C608&ssl=1",
         bio: "Vintage clothing shop in Soho, central London.",
       },
       {
@@ -5889,10 +6033,12 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Serotonin",
+        photoUrl: "https://bsmnt.s3.eu-west-2.amazonaws.com/bsmnt/wp-content/uploads/2022/02/sero_webland-1024x682.jpg",
         bio: "East London vintage clothing shop.",
       },
       {
         name: "Hunky Dory",
+        photoUrl: "https://tripsteri.fi/wp-content/uploads/2016/12/cropped-cropped-cropped-hunkydoryvintage1.jpg",
         bio: "East London vintage clothing store.",
       },
       {
@@ -5902,6 +6048,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "Mero Retro",
+        photoUrl: "https://cdn.shopify.com/s/files/1/0107/2422/files/Window-Spring2017_window4.jpg?v=1493922537",
         bio: "East London vintage clothing shop.",
       },
       {

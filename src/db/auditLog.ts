@@ -48,6 +48,7 @@ export const AUDIT_ACTIONS = {
   FOUNDER_CLAIM_OVERRIDE: "founder_claim_override",
   RANKING_SOFT_DELETED: "ranking_soft_deleted",
   RANKING_RESTORED: "ranking_restored",
+  RANKING_HIDDEN: "ranking_hidden",
   NOMINEE_SOFT_DELETED: "nominee_soft_deleted",
   NOMINEE_RESTORED: "nominee_restored",
   SPAM_HIDDEN: "spam_hidden",
