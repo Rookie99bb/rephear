@@ -68,6 +68,7 @@ export default function NomineeCoverImage({
     <img
       src={photoUrl}
       alt={name}
+      referrerPolicy="no-referrer"
       onLoad={() => setLoaded(true)}
       onError={() => setErrored(true)}
       className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-[250ms] ease-out group-hover:scale-105 ${

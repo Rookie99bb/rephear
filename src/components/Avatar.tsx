@@ -15,6 +15,7 @@ export default function Avatar({
       <img
         src={photoUrl}
         alt={name}
+        referrerPolicy="no-referrer"
         width={size}
         height={size}
         style={{ width: size, height: size }}
