@@ -190,8 +190,9 @@ const FIXES: PhotoFix[] = [
 
 export async function fixSocietyNomineePhotos(): Promise<void> {
   const wrongList = WRONG_PHOTOS.map(() => "?").join(", ");
+  let fixed = 0;
   for (const fix of FIXES) {
-    await db
+    const result = await db
       .prepare(
         `UPDATE profiles
          SET photo_url = ?
@@ -201,5 +202,7 @@ export async function fixSocietyNomineePhotos(): Promise<void> {
            AND (photo_url IN (${wrongList}) OR photo_url IS NULL)`
       )
       .run(fix.photoUrl, fix.rankingSlug, fix.name, ...WRONG_PHOTOS);
+    fixed += result.changes;
   }
+  if (fixed > 0) console.log(`[fixSocietyNomineePhotos] updated ${fixed} profile photo(s)`);
 }
