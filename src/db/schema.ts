@@ -10,6 +10,7 @@ import { seedOpeningSlates } from "./openingSlates";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
 import { seedFakeLikes } from "./seedFakeLikes";
+import { fixSocietyNomineePhotos } from "./fixSocietyPhotos";
 import { backfillProfileShareTokens } from "./profileShare";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
@@ -859,6 +860,9 @@ export async function ensureMigrated(): Promise<void> {
     // Cold-start social proof: top every nominee up to a clustered 200+
     // like target (idempotent; real likes are never touched).
     await seedFakeLikes();
+    // Repair wrong generic-university photos on society nominees (only
+    // touches rows still carrying a known-wrong seed photo; idempotent).
+    await fixSocietyNomineePhotos();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();

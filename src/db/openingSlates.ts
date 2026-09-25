@@ -460,7 +460,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "KCL Dance Society",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/14/King%27s_College_London_logo.svg",
+        photoUrl: "https://www.kclsu.org/asset/Organisation/6449/Screenshot%202026-06-30%20at%2022.30.26.png",
         bio: "King's dance society (competition team Fusion) — 150+ dancers, hosts Just Dance It, the inter-uni competition UCL and Imperial travel to compete at.",
       },
       {
@@ -484,27 +484,27 @@ const SLATES: SlateSeed[] = [
         photoUrl: "https://www.kclsu.org/asset/Organisation/6498/WhatsApp%20Image%202025-08-26%20at%2014.03.28.jpeg",
       },      {
         name: "Imperial African Caribbean Society",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Shield_of_Imperial_College_London.svg",
+        photoUrl: "",
         bio: "Imperial's African Caribbean Society (ICACS), founded in 1998 — runs an inter-university boat party with other London ACS societies and co-hosts Black Ascent, the flagship careers event, with LSE ACS.",
       },
       {
         name: "KCL United Nations Association",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/14/King%27s_College_London_logo.svg",
+        photoUrl: "https://images.squarespace-cdn.com/content/v1/5e7526073373e1644f760717/8ad4419a-358f-499d-ae3f-06b4c855784b/Copy+of+KCLUNA+Transparent+Logo+%287%29.png?format=1500w",
         bio: "King's Model UN society (KCLUNA) — 100+ members, 8 international delegations, 23 awards in a single season; took 'Best Middle-Sized Delegation' at London International MUN against 1,500+ delegates.",
       },
       {
         name: "UCL Indian Dance Society",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "",
         bio: "UCL's Indian dance society — fields a competition team for Just Bollywood, the national inter-university Bollywood dance competition, taking 1st place in the Imperial-hosted edition; teaches Bollywood, Kathak and Bharatanatyam.",
       },
       {
         name: "UCL Film & TV Society",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/banner_image_1900/public/2025-07/Untitled%20design-4%20copy.png?h=ae183e10&itok=gLOq6yR2",
         bio: "Runs the award-winning Festival of the Moving Image at the Bloomsbury Theatre — an 18-edition student film festival screening almost 100 films a year; Christopher Nolan was its president.",
       },
       {
         name: "LSESU African & Caribbean Society",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/4/42/London_School_of_Economics_Coat_of_Arms.svg",
+        photoUrl: "https://www.lsesu.com/asset/Organisation/6090/IMG_0484.jpeg?thumbnail_width=540&thumbnail_height=540&resize_type=ResizeFitAllFill",
         bio: "LSE's African & Caribbean Society — hosts the Ablaze annual showcase, the Summer Shutdown and the end-of-year ACS Spring Ball, and co-hosts Black Ascent, the flagship careers event, with Imperial.",
       },
 
@@ -1538,32 +1538,32 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "KCL Southeast Asian Society",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/14/King%27s_College_London_logo.svg",
+        photoUrl: "https://www.kclsu.org/asset/Organisation/11645/Screenshot%202023-11-20%20at%2017.00.14.png",
         bio: "KCL society welcoming all students interested in exploring and addressing issues in Southeast Asia, running talks, workshops and social events including an annual Halloween movie event and Christmas events.",
       },
       {
         name: "KCL Taiwanese Society",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/14/King%27s_College_London_logo.svg",
+        photoUrl: "https://www.kclsu.org/asset/Organisation/7639/IMG_8406.jpeg",
         bio: "KCL society founded and run by Taiwanese students to showcase Taiwan's culture and help incoming Taiwanese friends adapt to life in London, with talks, field trips, festival celebrations and panels.",
       },
       {
         name: "ABACUS",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c7/London_school_of_economics_logo_with_name.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/2024-07/IMG_9853.jpeg",
         bio: "British-Chinese student society at LSE with a wider network recognised at Queen Mary, Goldsmiths, UCL, SOAS, Imperial, Brunel and KCL.",
       },
       {
         name: "UCL Japan Society",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/csc-directory-images/japan_soc_new_logo.png",
         bio: "UCL society whose constitution documents cultural workshops, language lessons, Japan Day and social events for students engaging with Japanese culture.",
       },
       {
         name: "Royal Holloway CSSA",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/en/e/ef/Royal_Holloway%2C_University_of_London_logo.png",
+        photoUrl: "",
         bio: "Royal Holloway's Chinese Students and Scholars Association, a public society page hosting cultural events and supporting Chinese students adapting to UK life.",
       },
       {
         name: "KCL Korean Society",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/14/King%27s_College_London_logo.svg",
+        photoUrl: "",
         bio: "Korean cultural community at King's documented by student media as an unofficial society with annual gatherings, Korean-language use and food and cultural activities.",
       },
       {
@@ -1588,7 +1588,7 @@ const SLATES: SlateSeed[] = [
       },
       {
         name: "London School of Economics and Political Science",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c7/London_school_of_economics_logo_with_name.svg",
+        photoUrl: "https://blogsmedia.lse.ac.uk/blogs.dir/65/files/2023/11/LSE-social-media-logo-2.jpg",
         bio: "Founded in 1895 and based in Westminster, central London, LSE is a University of London institution specialising in the social sciences, from economics and politics to law and sociology.",
       },
       {
@@ -2288,72 +2288,72 @@ const SLATES: SlateSeed[] = [
     nominees: [
       {
         name: "Quoc Anh Nguyen",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/IMG_3850.jpeg?itok=-qrG_t1V",
         bio: "Elected President of the UCL Vietnamese Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Yuki Zhou",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/%E6%88%AA%E5%B1%8F2025-03-07%2015.11.47.png?itok=Zs8C_0an",
         bio: "Elected President of the UCL Chinese Students and Scholars Association for 2025/26 in the Students' Union UCL leadership race, winning 85 of 115 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Emir Deniz Durahim",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/IMG_0638.JPG?itok=ZhjekQUo",
         bio: "Elected President of the UCL Turkish Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Yi Kang Chai",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/Manifesto%20pic%202.jpg?itok=sTAEu4pc",
         bio: "Elected President of the UCL Malaysian Society for 2025/26 in the Students' Union UCL leadership race, winning 41 of 81 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Chin Siang Yew",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/30A66E40-0573-4BB3-8492-C4FB73ED7DC5-94652-000023307D0B1820.JPG?itok=zQCPf33M",
         bio: "Elected President of the UCL Singapore Society for 2025/26 in the Students' Union UCL leadership race, winning 82 of 91 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Vishal Arun",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/IMG_5817.jpeg?itok=MQkia45G",
         bio: "Elected President of the UCL Hindu Society for 2025/26 in the Students' Union UCL leadership race, winning 76 of 114 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Megan Liao",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/IMG_9072.jpg?itok=OraDGbzM",
         bio: "Elected President of the UCL Taiwanese Society for 2025/26 in the Students' Union UCL leadership race, winning 18 of 34 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Maya Crasmaru",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/Screenshot%202025-03-08%20at%2021.40.32_1.png?itok=r8BwuDOp",
         bio: "Elected President of the UCL English Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Girish Kharal",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/Nomination%20.jpg?itok=vsMcrVYo",
         bio: "Elected President of the UCL Nepalese Society for 2025/26 in the Students' Union UCL leadership race, winning 17 of 23 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Ines Aissi",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "",
         bio: "Elected President of the UCL Muslimah Careers Society for 2025/26 in the Students' Union UCL leadership race, winning the count run on 21 March 2025.",
       },
       {
         name: "Conal Flannery",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/IMG_1335.jpeg?itok=Bp-ZOHdk",
         bio: "Elected President of the UCL Irish and Northern Irish Society for 2025/26 in the Students' Union UCL leadership race, winning 9 of 10 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Aryan Virdi",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/IMG_1069_0.jpeg?itok=oxlC8ga7",
         bio: "Elected President of the UCL Punjabi Society for 2025/26 in the Students' Union UCL leadership race, winning 28 of 44 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Hanna Johal",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/Hanna%20Johal.jpg?itok=ButNtWEv",
         bio: "Elected President of the UCL Real Estate Society for 2025/26 in the Students' Union UCL leadership race, winning 7 of 10 ballots in the count run on 21 March 2025.",
       },
       {
         name: "Izzie Moull",
-        photoUrl: "https://cdn.ucl.ac.uk/logos/ucl/ucl-logo--primary.svg",
+        photoUrl: "https://studentsunionucl.org/sites/default/files/styles/candidate_photo/public/2025-03/Screenshot%202025-03-05%20at%208.28.30%20pm.png?itok=QHq0uN8l",
         bio: "Named President of the UCL Cheese Grater Magazine Society in the June 2026 issue of the student publication; the society was awarded Best Publication in London (SPA Regional Awards 2025) and Best Publication in the UK and Ireland (SPA National Awards 2026).",
       },
     ],
