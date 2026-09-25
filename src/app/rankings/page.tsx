@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { listAllRankings, searchRankings } from "@/db/rankings";
-import { listCategories } from "@/db/categories";
+import { findCategoryBySlug, listCategories } from "@/db/categories";
 import RankingCard from "@/components/RankingCard";
 import type { Ranking } from "@/lib/types";
 
@@ -14,13 +14,16 @@ export const metadata: Metadata = {
 
 // London-only MVP: this page lists every ranking directly — no region
 // picker, no per-account city default, no directory views. A search
-// (?q=) filters by title/description and takes priority.
+// (?q=) filters by title/description and takes priority. A category
+// (?category=<slug>, linked from homepage category cards) shows just
+// that category's rankings.
 export default async function BrowseRankingsPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: { q?: string; category?: string };
 }) {
   const query = searchParams.q?.trim();
+  const categorySlug = searchParams.category?.trim();
   const rankings: Ranking[] = query
     ? await searchRankings(query)
     : await listAllRankings();
@@ -32,7 +35,14 @@ export default async function BrowseRankingsPage({
   // category isn't meaningful.
   let categoryGroups: { id: string; name: string; rankings: Ranking[] }[] = [];
   let uncategorizedRankings: Ranking[] = rankings;
-  if (!query && rankings.length > 0) {
+  // Homepage category cards link here with ?category=<slug>: show just
+  // that category's rankings, with a way back to the full browse view.
+  const activeCategory =
+    !query && categorySlug ? await findCategoryBySlug(categorySlug) : null;
+  const categoryRankings = activeCategory
+    ? rankings.filter((r) => r.categoryId === activeCategory.id)
+    : null;
+  if (!query && rankings.length > 0 && !activeCategory) {
     const categories = await listCategories();
     const rankingsByCategory = new Map<string, Ranking[]>();
     const leftover: Ranking[] = [];
@@ -90,7 +100,32 @@ export default async function BrowseRankingsPage({
         />
       </form>
 
-      {rankings.length === 0 ? (
+      {activeCategory ? (
+        <div>
+          <div className="mb-4">
+            <Link
+              href="/rankings"
+              className="text-sm font-medium text-ink hover:opacity-80"
+            >
+              ← All rankings
+            </Link>
+            <h2 className="mt-2 text-sm font-semibold uppercase tracking-wide text-subtle">
+              {activeCategory.name}
+            </h2>
+          </div>
+          {categoryRankings!.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {categoryRankings!.map((r) => (
+                <RankingCard key={r.id} ranking={r} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-subtle">
+              No rankings in this section yet.
+            </p>
+          )}
+        </div>
+      ) : rankings.length === 0 ? (
         query ? (
           <p className="text-sm text-subtle">
             No Rankings match &ldquo;{query}&rdquo;.
