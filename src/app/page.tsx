@@ -9,21 +9,20 @@ import type { Category, Ranking } from "@/lib/types";
 import RankingCard from "@/components/RankingCard";
 import CategoryCard from "@/components/CategoryCard";
 
-// Curated homepage lineup (set 2026-09-25): a mix of individual rankings
-// and category sections, in this exact order. Missing, hidden, or
-// soft-deleted entries are skipped at render time.
+// Curated homepage lineup (updated 2026-09-25): 8 individual rankings in
+// this exact order. Missing, hidden, or soft-deleted entries are skipped
+// at render time.
 const HOMEPAGE_SPOTS: ReadonlyArray<
   { kind: "ranking"; slug: string } | { kind: "category"; slug: string }
 > = [
   { kind: "ranking", slug: "best-international-student-community-london-2026" },
-  { kind: "category", slug: "cosplay" },
   { kind: "ranking", slug: "best-university-society-london-2026" },
-  { kind: "category", slug: "underground-rap" },
   { kind: "ranking", slug: "best-emerging-beauty-creator-london-2026" },
-  { kind: "category", slug: "kpop-dance" },
   { kind: "ranking", slug: "most-popular-livestream-dj-london-2026" },
   { kind: "ranking", slug: "best-society-president-london-2026" },
   { kind: "ranking", slug: "most-popular-student-performer-london-2026" },
+  { kind: "ranking", slug: "best-rap-producer-london-2026" },
+  { kind: "ranking", slug: "best-cosplay-performance-london-2026" },
 ];
 
 type HomepageSpot =
