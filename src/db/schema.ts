@@ -11,6 +11,7 @@ import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
 import { seedFakeLikes } from "./seedFakeLikes";
 import { fixSocietyNomineePhotos } from "./fixSocietyPhotos";
+import { fixDjRankingTitle } from "./fixDjRankingTitle";
 import { backfillProfileShareTokens } from "./profileShare";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
@@ -863,6 +864,9 @@ export async function ensureMigrated(): Promise<void> {
     // Repair wrong generic-university photos on society nominees (only
     // touches rows still carrying a known-wrong seed photo; idempotent).
     await fixSocietyNomineePhotos();
+    // Repair stale "Student DJ" title on the DJ ranking (seed renamed it to
+    // "Best DJ 2026" but never updates existing rows; idempotent).
+    await fixDjRankingTitle();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();
