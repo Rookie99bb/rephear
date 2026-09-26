@@ -405,6 +405,40 @@ CREATE INDEX IF NOT EXISTS idx_raffles_ranking ON raffles(ranking_id);
 CREATE INDEX IF NOT EXISTS idx_raffle_entries_raffle ON raffle_entries(raffle_id);
 CREATE INDEX IF NOT EXISTS idx_raffle_entries_user ON raffle_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_raffle_winners_raffle ON raffle_winners(raffle_id);
+
+-- Campaign ("support") short links: rephear.com/s/<slug>, one per nominee
+-- per campaign (e.g. /s/luna2026). The route logs each visit, drops an
+-- attribution cookie, then redirects to the nominee's /n/TOKEN page.
+CREATE TABLE IF NOT EXISTS campaign_links (
+id TEXT PRIMARY KEY,
+slug TEXT NOT NULL UNIQUE,
+profile_id TEXT NOT NULL REFERENCES profiles(id),
+ranking_id TEXT NOT NULL REFERENCES rankings(id),
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One row per visit to a campaign link. ip_hash is a salted SHA-256 of the
+-- visitor IP, used only for de-duplicated "unique visits" counting.
+CREATE TABLE IF NOT EXISTS campaign_link_visits (
+id TEXT PRIMARY KEY,
+link_id TEXT NOT NULL REFERENCES campaign_links(id),
+visited_at TEXT NOT NULL DEFAULT (datetime('now')),
+ip_hash TEXT
+);
+
+-- Registrations attributed to a campaign link (resolved from the rephear_s
+-- cookie at signup). Kept separate from the user-to-user referrals table,
+-- so nominee-driven signups never trigger referrer rewards.
+CREATE TABLE IF NOT EXISTS campaign_signups (
+id TEXT PRIMARY KEY,
+link_id TEXT NOT NULL REFERENCES campaign_links(id),
+new_user_id TEXT NOT NULL UNIQUE REFERENCES users(id),
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_campaign_links_slug ON campaign_links(slug);
+CREATE INDEX IF NOT EXISTS idx_campaign_link_visits_link ON campaign_link_visits(link_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_signups_link ON campaign_signups(link_id);
 `);
 }
 

@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/emails/welcome";
 import { getOrCreateInvitationForUser, findInvitationByCode, incrementSuccessfulInvites } from "@/db/invitations";
 import { createReferral } from "@/db/referrals";
+import { attributeCampaignSignup, CAMPAIGN_COOKIE } from "@/db/campaignLinks";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getRequestContext } from "@/lib/requestContext";
 
@@ -109,6 +110,15 @@ export async function signupAction(
     cookies().delete(REFERRAL_COOKIE);
     const { ipAddress } = getRequestContext();
     bonusLikesEarned = await applyReferral(user.id, referralCode, ipAddress);
+  }
+
+  // Campaign ("support") link attribution: the visitor arrived via a
+  // nominee's /s/<slug> link. Single-use, same as the referral cookie.
+  // attributeCampaignSignup never throws, so this can't block signup.
+  const campaignLinkId = cookies().get(CAMPAIGN_COOKIE)?.value;
+  if (campaignLinkId) {
+    cookies().delete(CAMPAIGN_COOKIE);
+    await attributeCampaignSignup(user.id, campaignLinkId);
   }
 
   // Fire-and-forget: a slow/failed email must never block signup. If
