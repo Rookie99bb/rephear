@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { notFound } from "next/navigation";
+import { getSiteUrl } from "@/lib/siteUrl";
 import {
   findCampaignLinkBySlug,
   recordCampaignVisit,
@@ -27,8 +28,12 @@ export async function GET(
     console.error("[campaign] visit log failed", err)
   );
 
+  // Use the canonical public origin, NOT request.nextUrl.origin: behind
+  // Render's reverse proxy the Next.js server sees the proxy's internal
+  // address (https://localhost:10000), which would send visitors to an
+  // unreachable localhost URL. See src/lib/siteUrl.ts.
   const response = NextResponse.redirect(
-    new URL(`/n/${link.shareToken}`, request.nextUrl.origin),
+    new URL(`/n/${link.shareToken}`, getSiteUrl()),
     302
   );
 

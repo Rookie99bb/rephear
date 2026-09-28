@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/admin";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { findRankingById } from "@/db/rankings";
 import { listNomineesForRanking } from "@/db/profiles";
 import {
@@ -13,9 +14,13 @@ import {
 // ranking that doesn't have one yet. Admin-only; the admin panel posts
 // a form here and lands back on /admin/campaigns.
 export async function POST(request: NextRequest) {
+  // Canonical public origin — never request.nextUrl.origin (behind
+  // Render's proxy the server sees https://localhost:10000; see
+  // src/lib/siteUrl.ts).
+  const base = getSiteUrl();
   const admin = await getCurrentAdmin();
   if (!admin) {
-    return NextResponse.redirect(new URL("/", request.nextUrl.origin));
+    return NextResponse.redirect(new URL("/", base));
   }
 
   const form = await request.formData();
@@ -23,7 +28,7 @@ export async function POST(request: NextRequest) {
   const ranking = rankingId ? await findRankingById(rankingId) : null;
   if (!ranking) {
     return NextResponse.redirect(
-      new URL("/admin/campaigns?error=noranking", request.nextUrl.origin)
+      new URL("/admin/campaigns?error=noranking", base)
     );
   }
 
@@ -47,6 +52,6 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.redirect(
-    new URL(`/admin/campaigns?created=${created}`, request.nextUrl.origin)
+    new URL(`/admin/campaigns?created=${created}`, base)
   );
 }

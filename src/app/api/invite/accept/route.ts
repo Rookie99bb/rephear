@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findInvitationByCode } from "@/db/invitations";
 import { getCurrentUser } from "@/lib/session";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 // Sets the referral-tracking cookie and sends the visitor on to sign up.
 // This is a Route Handler (not the /invite/[code] page itself) because
@@ -11,7 +12,10 @@ import { getCurrentUser } from "@/lib/session";
 // here is trusted at face value later.
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const base = request.nextUrl.origin;
+  // Canonical public origin — never request.nextUrl.origin (behind
+  // Render's proxy the server sees https://localhost:10000; see
+  // src/lib/siteUrl.ts).
+  const base = getSiteUrl();
 
   if (!code) {
     return NextResponse.redirect(new URL("/signup", base));
