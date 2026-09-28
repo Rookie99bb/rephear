@@ -11,6 +11,7 @@ import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
 import { seedFakeLikes } from "./seedFakeLikes";
 import { fixSocietyNomineePhotos } from "./fixSocietyPhotos";
+import { fixNomineePhotosBatch } from "./fixNomineePhotosBatch";
 import { fixDjRankingTitle } from "./fixDjRankingTitle";
 import { globalizeDjRankingTitle } from "./globalizeDjRankingTitle";
 import { ensureDjCampaignLinks } from "./ensureDjCampaignLinks";
@@ -1041,6 +1042,11 @@ export async function ensureMigrated(): Promise<void> {
     // Repair wrong generic-university photos on society nominees (only
     // touches rows still carrying a known-wrong seed photo; idempotent).
     await fixSocietyNomineePhotos();
+    // Backfill empty nominee photos from the 2026-09-28 research batches,
+    // replace confirmed 403/dead photo chains, and clear two known
+    // misattributed collage photos (only touches empty or known-bad rows;
+    // idempotent).
+    await fixNomineePhotosBatch();
     // Repair stale "Student DJ" title on the DJ ranking (seed renamed it to
     // "Best DJ 2026" but never updates existing rows; idempotent).
     await fixDjRankingTitle();
