@@ -369,7 +369,7 @@ export async function fixNomineePhotosBatch(): Promise<void> {
   }
   for (const c of CLEARS) {
     const res = await db.prepare(
-      `UPDATE profiles SET photo_url = NULL
+      `UPDATE profiles SET photo_url = ''
        WHERE ranking_id = (SELECT id FROM rankings WHERE slug = ?)
          AND name = ? AND deleted_at IS NULL AND photo_url = ?`
     ).run(c.rankingSlug, c.name, c.oldUrl);
