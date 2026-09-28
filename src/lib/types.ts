@@ -177,3 +177,99 @@ export interface AuditLog {
   userAgent: string | null;
   createdAt: string;
 }
+
+// ---- Referrer commission system (推荐官返佣 PRD v1.0) ----
+
+export type ReferrerProfileStatus = "active" | "paused";
+
+export interface ReferrerProfile {
+  id: string;
+  userId: string;
+  status: ReferrerProfileStatus;
+  termsVersion: number;
+  termsAcceptedAt: string | null;
+  createdAt: string;
+}
+
+export interface ReferralCommissionRule {
+  version: number;
+  rateBps: number;
+  windowDays: number;
+  freezeDays: number;
+  minPayoutCents: number;
+  currency: string;
+  effectiveFrom: string;
+}
+
+export type ReferralCommissionStatus =
+  | "pending"
+  | "available"
+  | "paid"
+  | "reversed";
+
+export interface ReferralCommission {
+  id: string;
+  referralId: string;
+  paymentId: string;
+  referrerId: string;
+  grossCents: number;
+  rateBps: number;
+  commissionCents: number;
+  status: ReferralCommissionStatus;
+  ruleVersion: number;
+  availableAt: string;
+  allocatedPayoutId: string | null;
+  createdAt: string;
+}
+
+export interface CommissionAdjustment {
+  id: string;
+  commissionId: string;
+  amountCents: number;
+  reason: string;
+  actorUserId: string;
+  createdAt: string;
+}
+
+export type ReferralPayoutStatus =
+  | "requested"
+  | "approved"
+  | "paid"
+  | "rejected";
+
+export interface ReferralPayout {
+  id: string;
+  userId: string;
+  amountCents: number;
+  currency: string;
+  status: ReferralPayoutStatus;
+  providerRef: string;
+  payoutContact: string;
+  requestedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  adminNotes: string;
+}
+
+export interface PayoutItem {
+  id: string;
+  payoutId: string;
+  commissionId: string;
+  allocatedAmountCents: number;
+  createdAt: string;
+}
+
+export type RiskFlagSeverity = "low" | "medium" | "high";
+export type RiskFlagStatus = "open" | "cleared" | "confirmed";
+
+export interface ReferralRiskFlag {
+  id: string;
+  userId: string;
+  type: string;
+  severity: RiskFlagSeverity;
+  evidenceRef: string;
+  status: RiskFlagStatus;
+  createdBy: string;
+  createdAt: string;
+  resolvedAt: string | null;
+}

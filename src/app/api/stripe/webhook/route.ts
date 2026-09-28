@@ -12,6 +12,10 @@ import {
   creditProfileForPayment,
   reverseCreditsForPayment,
 } from "@/db/creditTransactions";
+import {
+  bookCommissionForPayment,
+  reverseCommissionForPayment,
+} from "@/db/referrerCommissions";
 import { findUserById } from "@/db/users";
 import { findProfileById } from "@/db/profiles";
 import { sendEmail } from "@/lib/email";
@@ -71,6 +75,18 @@ export async function POST(request: NextRequest) {
         paymentId: payment.id,
         credits: payment.credits,
       });
+      // Referrer commission ledger (PRD 推荐官返佣): books a pending
+      // commission for the payer's referrer, if any. Idempotent via
+      // UNIQUE(payment_id); never throws and never blocks the webhook —
+      // a ledger failure must not disturb the Support/Credits flow above.
+      try {
+        await bookCommissionForPayment(payment.id);
+      } catch (err) {
+        console.error(
+          "[stripe webhook] bookCommissionForPayment failed (non-blocking):",
+          err
+        );
+      }
       if (granted) {
         emitNotificationEvent({
           type: "support_sent",
@@ -118,6 +134,9 @@ export async function POST(request: NextRequest) {
         if (payment && payment.status === "completed") {
           await markPaymentRefunded(payment.id, "refunded");
           await reverseCreditsForPayment(payment.id);
+          // Reverse any referral commission booked for this payment.
+          // Never throws; failures are logged inside.
+          await reverseCommissionForPayment(payment.id, "payment_refunded");
         }
       }
       break;
@@ -133,6 +152,7 @@ export async function POST(request: NextRequest) {
         if (payment && payment.status === "completed") {
           await markPaymentRefunded(payment.id, "disputed");
           await reverseCreditsForPayment(payment.id);
+          await reverseCommissionForPayment(payment.id, "payment_disputed");
         }
       }
       break;

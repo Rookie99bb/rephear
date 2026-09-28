@@ -125,6 +125,23 @@ export async function listActiveRafflesForRanking(
   return rows.map(toRaffle);
 }
 
+// Site-wide raffles currently accepting entries (ranking_id IS NULL).
+// Used by the referrer fast-feedback loop: a successful referral drops a
+// bonus entry for the referrer into the first active site-wide draw.
+export async function listActiveSitewideRaffles(): Promise<Raffle[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT * FROM raffles
+       WHERE status = 'active'
+         AND datetime('now') >= datetime(starts_at)
+         AND datetime('now') <= datetime(ends_at)
+         AND ranking_id IS NULL
+       ORDER BY created_at DESC`
+    )
+    .all()) as unknown as RaffleRow[];
+  return rows.map(toRaffle);
+}
+
 export async function countRaffleEntries(raffleId: string): Promise<number> {
   const row = (await db
     .prepare("SELECT COUNT(*) AS c FROM raffle_entries WHERE raffle_id = ?")

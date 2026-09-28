@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/emails/welcome";
 import { getOrCreateInvitationForUser, findInvitationByCode, incrementSuccessfulInvites } from "@/db/invitations";
 import { createReferral } from "@/db/referrals";
+import { listActiveSitewideRaffles, addRaffleEntry } from "@/db/raffles";
 import { attributeCampaignSignup, CAMPAIGN_COOKIE } from "@/db/campaignLinks";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getRequestContext } from "@/lib/requestContext";
@@ -66,9 +67,30 @@ export async function applyReferral(
     grantInviteBonusLikes(referrerId, INVITE_REWARD_LIKES),
     grantInviteBonusLikes(newUserId, INVITE_REWARD_LIKES),
     incrementSuccessfulInvites(referrerId),
+    // Zero-cash-cost instant feedback for the referrer (PRD 推荐官快通道):
+    // drop a bonus entry into the first active site-wide prize draw so
+    // sharing pays off immediately, long before any Support converts.
+    // Best-effort and silent — no active draw, no entry, no error.
+    grantReferralRaffleEntry(referrerId),
   ]);
 
   return INVITE_REWARD_LIKES;
+}
+
+// Referrer fast-feedback: one bonus prize-draw entry per successful
+// referral. Never throws, never blocks signup.
+async function grantReferralRaffleEntry(referrerId: string): Promise<void> {
+  try {
+    const raffles = await listActiveSitewideRaffles();
+    if (raffles.length === 0) return;
+    await addRaffleEntry({
+      raffleId: raffles[0].id,
+      userId: referrerId,
+      source: "referral",
+    });
+  } catch (err) {
+    console.error("[auth] grantReferralRaffleEntry failed (non-blocking):", err);
+  }
 }
 
 export async function signupAction(

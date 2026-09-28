@@ -72,6 +72,14 @@ export default async function InvitePage({
         >
           Browse without joining
         </Link>
+        {/* Referrer disclosure (PRD 推荐官返佣): the inviter may earn a
+            commission if you later support nominees — required whenever
+            a cash incentive sits behind an invite link. */}
+        <p className="mt-2 text-xs leading-relaxed text-subtle">
+          Heads up: {ownerName} may earn a commission from RepHear if you
+          sign up and support nominees. It doesn&apos;t cost you anything
+          extra.
+        </p>
       </div>
     </div>
   );

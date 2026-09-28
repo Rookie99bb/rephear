@@ -66,6 +66,15 @@ export const AUDIT_ACTIONS = {
   RAFFLE_CREATED: "raffle_created",
   RAFFLE_DRAWN: "raffle_drawn",
   RAFFLE_CANCELLED: "raffle_cancelled",
+  COMMISSION_REVERSED: "commission_reversed",
+  REFERRER_PAUSED: "referrer_paused",
+  REFERRER_RESUMED: "referrer_resumed",
+  RISK_FLAG_ADDED: "risk_flag_added",
+  RISK_FLAG_RESOLVED: "risk_flag_resolved",
+  PAYOUT_REQUESTED: "payout_requested",
+  PAYOUT_APPROVED: "payout_approved",
+  PAYOUT_PAID: "payout_paid",
+  PAYOUT_REJECTED: "payout_rejected",
 } as const;
 
 // Audit Logs are append-only: this module intentionally exposes no

@@ -39,6 +39,37 @@ export type NotificationEvent =
       rankingId: string;
       previousRank: number;
       newRank: number;
+    }
+  | {
+      type: "referral_commission_earned";
+      referrerUserId: string;
+      commissionId: string;
+      amountCents: number;
+      currency: string;
+    }
+  | {
+      type: "referral_commission_available";
+      referrerUserId: string;
+      commissionId: string;
+      amountCents: number;
+    }
+  | {
+      type: "payout_requested";
+      userId: string;
+      payoutId: string;
+      amountCents: number;
+    }
+  | {
+      type: "payout_paid";
+      userId: string;
+      payoutId: string;
+      amountCents: number;
+    }
+  | {
+      type: "commission_reversed";
+      referrerUserId: string;
+      commissionId: string;
+      reason: string;
     };
 
 // Fire-and-forget by design: never throws, so no call site needs to wrap

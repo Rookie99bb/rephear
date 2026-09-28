@@ -315,6 +315,131 @@ created_at TEXT NOT NULL DEFAULT (datetime('now'))
 CREATE INDEX IF NOT EXISTS idx_invitations_code ON invitations(invite_code);
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
 
+-- Referrer commission system (推荐官返佣, PRD v1.0 2026-09-28).
+-- Append-only financial ledger on top of the existing referrals table.
+-- referrals stays the single source of attribution truth; these tables
+-- only ever record money movement derived from it. Campaign (/s/) links
+-- are deliberately NOT represented here — they never generate cash
+-- commission, only the invite-link referrals table does.
+--
+-- Commission params (all拍板 per PRD defaults): 5% fixed rate
+-- (500 bps), 180-day attribution window from referee signup, T+14 day
+-- freeze after payment completion, $25 minimum payout, USD, monthly
+-- manual settlement. Candidates may double-dip (80% candidate share +
+-- 5% referral commission) unless flagged as a suspicious linked account.
+
+-- Versioned commission rules. rate_bps etc. are snapshotted onto each
+-- commission row at booking time, so a future rule change never rewrites
+-- history — the row carries the rule_version it was booked under.
+CREATE TABLE IF NOT EXISTS referral_commission_rules (
+version INTEGER PRIMARY KEY,
+rate_bps INTEGER NOT NULL,
+window_days INTEGER NOT NULL,
+freeze_days INTEGER NOT NULL,
+min_payout_cents INTEGER NOT NULL,
+currency TEXT NOT NULL,
+effective_from TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One profile per user who participates as a referrer. Created lazily on
+-- first commission booking (like invitations). status: 'active' |
+-- 'paused' (paused = no releases, no payouts until an admin resumes).
+-- terms_version tracks which T&Cs the user accepted; withdrawals require
+-- the current version.
+CREATE TABLE IF NOT EXISTS referrer_profiles (
+id TEXT PRIMARY KEY,
+user_id TEXT NOT NULL UNIQUE REFERENCES users(id),
+status TEXT NOT NULL DEFAULT 'active',
+terms_version INTEGER NOT NULL DEFAULT 0,
+terms_accepted_at TEXT,
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- One row per qualified payment. payment_id UNIQUE = idempotent booking:
+-- a redelivered Stripe webhook can never create a second commission for
+-- the same payment. status: 'pending' (in T+14 freeze) -> 'available'
+-- -> 'paid'; 'reversed' is the terminal state for refunded/disputed
+-- payments that were never paid out. allocated_payout_id marks rows
+-- locked inside an open payout request so the same cents can't be
+-- requested twice (payout_items.commission_id UNIQUE backstops this).
+CREATE TABLE IF NOT EXISTS referral_commissions (
+id TEXT PRIMARY KEY,
+referral_id TEXT NOT NULL REFERENCES referrals(id),
+payment_id TEXT NOT NULL UNIQUE REFERENCES payments(id),
+referrer_id TEXT NOT NULL REFERENCES users(id),
+gross_cents INTEGER NOT NULL,
+rate_bps INTEGER NOT NULL,
+commission_cents INTEGER NOT NULL,
+status TEXT NOT NULL DEFAULT 'pending',
+rule_version INTEGER NOT NULL REFERENCES referral_commission_rules(version),
+available_at TEXT NOT NULL,
+allocated_payout_id TEXT REFERENCES referral_payouts(id),
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Append-only adjustments (refunds after payout, manual corrections).
+-- amount_cents may be negative. History is never edited in place.
+CREATE TABLE IF NOT EXISTS commission_adjustments (
+id TEXT PRIMARY KEY,
+commission_id TEXT NOT NULL REFERENCES referral_commissions(id),
+amount_cents INTEGER NOT NULL,
+reason TEXT NOT NULL,
+actor_user_id TEXT NOT NULL,
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Cash-out requests. MVP: monthly MANUAL settlement — this table never
+-- moves money itself; an admin sends the payout externally (bank/Stripe)
+-- then marks it 'paid' here. status: 'requested' -> 'approved' -> 'paid'
+-- | 'rejected'. provider_ref holds the external transfer reference.
+CREATE TABLE IF NOT EXISTS referral_payouts (
+id TEXT PRIMARY KEY,
+user_id TEXT NOT NULL REFERENCES users(id),
+amount_cents INTEGER NOT NULL,
+currency TEXT NOT NULL,
+status TEXT NOT NULL DEFAULT 'requested',
+provider_ref TEXT NOT NULL DEFAULT '',
+payout_contact TEXT NOT NULL DEFAULT '',
+requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+reviewed_at TEXT,
+reviewed_by TEXT REFERENCES users(id),
+admin_notes TEXT NOT NULL DEFAULT ''
+);
+
+-- Which commissions a payout request locks. commission_id UNIQUE = a
+-- commission can only ever be allocated to one payout, no double-spend.
+CREATE TABLE IF NOT EXISTS payout_items (
+id TEXT PRIMARY KEY,
+payout_id TEXT NOT NULL REFERENCES referral_payouts(id),
+commission_id TEXT NOT NULL UNIQUE REFERENCES referral_commissions(id),
+allocated_amount_cents INTEGER NOT NULL,
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Risk flags. Advisory only: they gate automatic release/payout (a
+-- referrer with an open flag doesn't auto-release and can't withdraw)
+-- but never auto-punish — an admin must review and clear/confirm.
+CREATE TABLE IF NOT EXISTS referral_risk_flags (
+id TEXT PRIMARY KEY,
+user_id TEXT NOT NULL REFERENCES users(id),
+type TEXT NOT NULL,
+severity TEXT NOT NULL DEFAULT 'medium',
+evidence_ref TEXT NOT NULL DEFAULT '',
+status TEXT NOT NULL DEFAULT 'open',
+created_by TEXT NOT NULL DEFAULT 'system',
+created_at TEXT NOT NULL DEFAULT (datetime('now')),
+resolved_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_referrer_profiles_user ON referrer_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_commissions_referrer ON referral_commissions(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referral_commissions_payment ON referral_commissions(payment_id);
+CREATE INDEX IF NOT EXISTS idx_referral_commissions_release ON referral_commissions(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_referral_payouts_user ON referral_payouts(user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_payouts_status ON referral_payouts(status);
+CREATE INDEX IF NOT EXISTS idx_payout_items_payout ON payout_items(payout_id);
+CREATE INDEX IF NOT EXISTS idx_referral_risk_flags_user ON referral_risk_flags(user_id, status);
+
 -- Reputation Credit → real-money redemption (see src/lib/redemption.ts
 -- for the fee math). One row per redemption request from a claimed
 -- profile's owner. Amounts are computed and stored at request time, not
@@ -835,6 +960,20 @@ async function hideRankingsOutsideSupportedLocations() {
 // reseeded (rm data/app.db*), which is fine pre-launch with only demo
 // data in play.
 
+// Referrer commission rule v1 (PRD 推荐官返佣 v1.0, params approved
+// 2026-09-28): 5% fixed (500 bps), 180-day attribution window, T+14
+// freeze, $25 minimum payout, USD. INSERT OR IGNORE makes this
+// idempotent; future rule versions are added as new rows (never UPDATEs),
+// and each commission snapshots the rule_version it was booked under.
+async function seedReferralCommissionRuleV1(): Promise<void> {
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO referral_commission_rules
+      (version, rate_bps, window_days, freeze_days, min_payout_cents, currency)
+      VALUES (1, 500, 180, 14, 2500, 'USD')`,
+    args: [],
+  });
+}
+
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
 // import time, since the underlying Turso client is async and there's
@@ -859,6 +998,7 @@ export async function ensureMigrated(): Promise<void> {
     await addInviteBonusLikesColumnToUsersIfMissing();
     await addProfileShareTokenColumnIfMissing();
     await backfillProfileShareTokens();
+    await seedReferralCommissionRuleV1();
     await seedIfEmpty();
     // Always runs (unlike seedIfEmpty, which only fires on a totally
     // empty database) since this seeds a fixed, curated set of Rankings
