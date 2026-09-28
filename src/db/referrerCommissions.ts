@@ -205,16 +205,24 @@ export async function setReferrerStatus(
 
 export interface FunnelStats {
   clicksAllTime: number;
+  registrationsToday: number;
   registrations7d: number;
   registrations30d: number;
+  payingReferralsToday: number;
   payingReferrals7d: number;
   payingReferrals30d: number;
 }
 
 export async function getFunnelStats(userId: string): Promise<FunnelStats> {
-  const [inv, reg7, reg30, pay7, pay30] = await Promise.all([
+  const [inv, regToday, reg7, reg30, payToday, pay7, pay30] = await Promise.all([
     db
       .prepare("SELECT total_visits AS c FROM invitations WHERE owner_id = ?")
+      .get<{ c: number }>(userId),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM referrals
+         WHERE referrer_id = ? AND date(created_at) = date('now')`
+      )
       .get<{ c: number }>(userId),
     db
       .prepare(
@@ -226,6 +234,15 @@ export async function getFunnelStats(userId: string): Promise<FunnelStats> {
       .prepare(
         `SELECT COUNT(*) AS c FROM referrals
          WHERE referrer_id = ? AND datetime(created_at) >= datetime('now', '-30 days')`
+      )
+      .get<{ c: number }>(userId),
+    db
+      .prepare(
+        `SELECT COUNT(DISTINCT r.new_user_id) AS c
+         FROM referral_commissions c
+         JOIN referrals r ON r.id = c.referral_id
+         WHERE c.referrer_id = ? AND c.status != 'reversed'
+           AND date(c.created_at) = date('now')`
       )
       .get<{ c: number }>(userId),
     db
@@ -249,8 +266,10 @@ export async function getFunnelStats(userId: string): Promise<FunnelStats> {
   ]);
   return {
     clicksAllTime: inv?.c ?? 0,
+    registrationsToday: regToday?.c ?? 0,
     registrations7d: reg7?.c ?? 0,
     registrations30d: reg30?.c ?? 0,
+    payingReferralsToday: payToday?.c ?? 0,
     payingReferrals7d: pay7?.c ?? 0,
     payingReferrals30d: pay30?.c ?? 0,
   };

@@ -94,18 +94,20 @@ export default async function ReferralsPage() {
             </div>
             <div>
               <p className="text-xl font-semibold text-ink">
-                {funnel.registrations30d}
+                {funnel.registrationsToday}
               </p>
               <p className="text-xs text-subtle">
-                Joined · 30d ({funnel.registrations7d} in 7d)
+                Joined today · {funnel.registrations7d} in 7d ·{" "}
+                {funnel.registrations30d} in 30d
               </p>
             </div>
             <div>
               <p className="text-xl font-semibold text-ink">
-                {funnel.payingReferrals30d}
+                {funnel.payingReferralsToday}
               </p>
               <p className="text-xs text-subtle">
-                Supporters · 30d ({funnel.payingReferrals7d} in 7d)
+                Supporters today · {funnel.payingReferrals7d} in 7d ·{" "}
+                {funnel.payingReferrals30d} in 30d
               </p>
             </div>
             <div>
