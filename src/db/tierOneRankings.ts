@@ -174,10 +174,10 @@ const CATEGORIES: CategorySeed[] = [
     slug: "club-nights",
     rankings: [
       {
-        title: "London's Best DJ 2026",
+        title: "World's Best DJ 2026",
         slug: "best-student-dj-london-2026",
         description:
-          "The selectors moving London's dancefloors — from house and techno to jungle, garage and afro house. The 2026 edition — vote to crown London's best DJ of the year.",
+          "The selectors moving dancefloors worldwide — from house and techno to jungle, garage and afro house. The 2026 edition — vote to crown the world's best DJ of the year.",
       },
       {
         title: "London's Best Underground Party 2026",

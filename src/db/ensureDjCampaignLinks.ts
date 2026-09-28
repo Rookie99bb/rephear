@@ -6,8 +6,8 @@ import {
   findCampaignLinkByProfileAndRanking,
 } from "./campaignLinks";
 
-// Auto-create /s/ campaign short links for the 15 outreach DJs on
-// London's Best DJ 2026 (2026-09-28).
+// Auto-create /s/ campaign short links for the outreach DJs on
+// World's Best DJ 2026 (2026-09-28).
 //
 // The DJ outreach sprint needs one shareable short link per nominee
 // (rephear.com/s/<slug>) so each DJ can campaign to their own audience
