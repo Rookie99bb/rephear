@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { findRankingById } from "@/db/rankings";
-import { getMostLoved, getMostSupported } from "@/db/leaderboards";
+import { getLeaderboards } from "@/db/leaderboards";
 import { likeCountsForUser } from "@/db/likes";
 import { shareCountsForUser } from "@/db/shares";
 import { getCurrentUser } from "@/lib/session";
@@ -53,8 +53,8 @@ const user = await getCurrentUser();
 if ((ranking.isHidden || ranking.deletedAt) && !isAdminEmail(user?.email)) {
 notFound();
 }
-const mostLoved = await getMostLoved(ranking.id);
-const mostSupported = await getMostSupported(ranking.id);
+// One stats query feeds both boards (was two identical heavy queries).
+const { mostLoved, mostSupported } = await getLeaderboards(ranking.id);
 const likeCounts = user
 ? await likeCountsForUser(ranking.id, user.id)
 : new Map<string, number>();
@@ -112,6 +112,7 @@ city={ranking.city}
 country={ranking.country}
 engagement={engagement}
 loggedIn={!!user}
+eagerFirst={3}
 />
 <LeaderboardTable
 title="Most Supported"
