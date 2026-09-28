@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { initialsForName } from "@/lib/avatar";
 
@@ -27,6 +27,18 @@ export default function NomineeCoverImage({
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
   const hasPhoto = !!photoUrl && !errored;
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // If the image already settled (loaded or failed) before React attached
+  // onLoad/onError — e.g. it finished during SSR/hydration on a fast
+  // connection — neither handler fires and the photo would stay invisible
+  // forever behind `opacity-0`. Check on mount and recover.
+  const checkSettled = () => {
+    const el = imgRef.current;
+    if (!el || !el.complete) return;
+    if (el.naturalWidth > 0) setLoaded(true);
+    else setErrored(true);
+  };
 
   if (!hasPhoto) {
     return (
@@ -66,6 +78,10 @@ export default function NomineeCoverImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      ref={(el) => {
+        imgRef.current = el;
+        if (el) checkSettled();
+      }}
       src={photoUrl}
       alt={name}
       referrerPolicy="no-referrer"
