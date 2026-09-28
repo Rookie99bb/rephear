@@ -57,3 +57,30 @@ export async function getMostSupported(rankingId: string): Promise<LeaderboardEn
     )
     .map((r) => r.entry);
 }
+
+// One query, both leaderboards. getMostLoved/getMostSupported each run
+// getRankingStats on their own, so calling both on the ranking page meant
+// the same heavy stats query twice per load (Turso over HTTP: double the
+// round trips). Fetch once here and sort twice in JS instead — the sort
+// keys are the only difference between the two boards.
+export async function getLeaderboards(rankingId: string): Promise<{
+  mostLoved: LeaderboardEntry[];
+  mostSupported: LeaderboardEntry[];
+}> {
+  const stats = await getRankingStats(rankingId);
+  const mostLoved = [...stats]
+    .sort(
+      (a, b) =>
+        b.entry.likeCount - a.entry.likeCount ||
+        a.addedAt.localeCompare(b.addedAt)
+    )
+    .map((r) => r.entry);
+  const mostSupported = [...stats]
+    .sort(
+      (a, b) =>
+        b.entry.reputationCredits - a.entry.reputationCredits ||
+        a.addedAt.localeCompare(b.addedAt)
+    )
+    .map((r) => r.entry);
+  return { mostLoved, mostSupported };
+}

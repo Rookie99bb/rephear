@@ -12,6 +12,7 @@ export default function LeaderboardTable({
   country,
   engagement,
   loggedIn,
+  eagerFirst = 0,
 }: {
   title: string;
   subtitle?: string;
@@ -23,6 +24,9 @@ export default function LeaderboardTable({
   country: string;
   engagement: Map<string, { likeCount: number; allowedLikes: number }>;
   loggedIn: boolean;
+  // How many leading cards load their cover image eagerly (above the
+  // fold). The rest lazy-load. 0 = all lazy.
+  eagerFirst?: number;
 }) {
   return (
     <div>
@@ -46,6 +50,7 @@ export default function LeaderboardTable({
               allowedLikes={engagement.get(entry.profile.id)?.allowedLikes ?? 1}
               loggedIn={loggedIn}
               emphasis={emphasis}
+              priority={index < eagerFirst}
             />
           ))}
         </ol>

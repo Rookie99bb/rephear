@@ -16,6 +16,7 @@ export default function NomineeCoverImage({
   claimed,
   profileId,
   loggedIn,
+  priority = false,
 }: {
   name: string;
   photoUrl: string;
@@ -23,6 +24,9 @@ export default function NomineeCoverImage({
   claimed: boolean;
   profileId: string;
   loggedIn: boolean;
+  // Above-the-fold cards pass priority so the first few covers load
+  // eagerly; everything else lazy-loads to keep mobile LCP down.
+  priority?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -85,6 +89,9 @@ export default function NomineeCoverImage({
       src={photoUrl}
       alt={name}
       referrerPolicy="no-referrer"
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      fetchPriority={priority ? "high" : "auto"}
       onLoad={() => setLoaded(true)}
       onError={() => setErrored(true)}
       className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-[250ms] ease-out group-hover:scale-105 ${

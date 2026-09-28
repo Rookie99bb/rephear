@@ -12,6 +12,7 @@ import { hideRankingsFromPublic } from "./hideRankings";
 import { seedFakeLikes } from "./seedFakeLikes";
 import { fixSocietyNomineePhotos } from "./fixSocietyPhotos";
 import { fixDjRankingTitle } from "./fixDjRankingTitle";
+import { ensureDjCampaignLinks } from "./ensureDjCampaignLinks";
 import { backfillProfileShareTokens } from "./profileShare";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
 
@@ -901,6 +902,9 @@ export async function ensureMigrated(): Promise<void> {
     // Repair stale "Student DJ" title on the DJ ranking (seed renamed it to
     // "Best DJ 2026" but never updates existing rows; idempotent).
     await fixDjRankingTitle();
+    // Auto-create /s/ campaign links for the 15 DJ nominees (skips
+    // profiles that already have one; idempotent).
+    await ensureDjCampaignLinks();
     await backfillRankingDisplayOrder();
     await normalizeRankingCountries();
     await hideRankingsOutsideSupportedLocations();

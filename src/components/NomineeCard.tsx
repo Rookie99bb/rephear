@@ -38,6 +38,7 @@ export default function NomineeCard({
   allowedLikes,
   loggedIn,
   emphasis,
+  priority = false,
 }: {
   rank: number;
   entry: LeaderboardEntry;
@@ -48,6 +49,8 @@ export default function NomineeCard({
   allowedLikes: number;
   loggedIn: boolean;
   emphasis: "likes" | "credits";
+  // Set for above-the-fold cards so their cover image loads eagerly.
+  priority?: boolean;
 }) {
   const { profile } = entry;
   const podium = podiumStyles(rank);
@@ -70,6 +73,7 @@ export default function NomineeCard({
         claimed={profile.claimStatus === "claimed"}
         profileId={profile.id}
         loggedIn={loggedIn}
+        priority={priority}
       />
 
       {/* Premium gradient overlay: transparent at top, fully readable
