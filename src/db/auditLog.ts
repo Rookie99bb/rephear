@@ -75,6 +75,9 @@ export const AUDIT_ACTIONS = {
   PAYOUT_APPROVED: "payout_approved",
   PAYOUT_PAID: "payout_paid",
   PAYOUT_REJECTED: "payout_rejected",
+  // Phase 2 (public identity): profile moderation hiding.
+  USER_HIDDEN: "user_hidden",
+  USER_UNHIDDEN: "user_unhidden",
 } as const;
 
 // Audit Logs are append-only: this module intentionally exposes no

@@ -17,6 +17,11 @@ export interface User {
   // Both default to 'public' (2026-09-29 product decision).
   showLikes: Visibility;
   showSupports: Visibility;
+  // Phase 2 (public identity): moderation hiding. A hidden user renders
+  // "This profile is unavailable." to everyone (admins use the admin
+  // panel) and vanishes from supporter lists, taste-match sets, and
+  // every other identity-adjacent surface.
+  isHidden: boolean;
 }
 
 // Phase 1 (v2 redesign): visibility of a Like / paid Support.

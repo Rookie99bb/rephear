@@ -1138,6 +1138,50 @@ async function createBackingMomentsTableIfMissing() {
     args: [],
   });
 }
+
+// Phase 2 (public identity): minimal report/block moderation primitives.
+// user_reports: one row per report; status 'pending' | 'reviewed'.
+// user_blocks: idempotent block edges (UNIQUE blocker/blocked).
+// users.is_hidden: moderation hiding — hidden users vanish from every
+// identity-adjacent surface (see activeUserClause in ./visibility).
+async function createUserReportsAndBlocksIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS user_reports (
+      id TEXT PRIMARY KEY,
+      reporter_user_id TEXT NOT NULL REFERENCES users(id),
+      target_user_id TEXT NOT NULL REFERENCES users(id),
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status, created_at);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS user_blocks (
+      id TEXT PRIMARY KEY,
+      blocker_user_id TEXT NOT NULL REFERENCES users(id),
+      blocked_user_id TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (blocker_user_id, blocked_user_id)
+    );`,
+    args: [],
+  });
+}
+
+async function addUserIsHiddenColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE users ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;",
+      args: [],
+    });
+  } catch {
+    // Column already exists, nothing to do.
+  }
+}
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
 // import time, since the underlying Turso client is async and there's
@@ -1164,6 +1208,8 @@ export async function ensureMigrated(): Promise<void> {
     await createConvictionRecordsTableIfMissing();
     await addPhase51MomentColumnsIfMissing();
     await createBackingMomentsTableIfMissing();
+    await createUserReportsAndBlocksIfMissing();
+    await addUserIsHiddenColumnIfMissing();
     await addProfileShareTokenColumnIfMissing();
     await backfillProfileShareTokens();
     await seedReferralCommissionRuleV1();

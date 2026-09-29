@@ -1,6 +1,8 @@
 import { listAllRankingsForAdmin } from "@/db/rankings";
 import { listNomineesForRankingAdmin } from "@/db/profiles";
+import { listPendingReports } from "@/db/userReports";
 import ModerationRankingRow from "@/components/ModerationRankingRow";
+import UserReportRow from "@/components/UserReportRow";
 
 export default async function AdminModerationPage() {
   const rankings = await listAllRankingsForAdmin();
@@ -15,8 +17,24 @@ export default async function AdminModerationPage() {
     nomineesByRanking.set(ranking.id, await listNomineesForRankingAdmin(ranking.id));
   }
 
+  // Phase 2 (public identity): user report queue.
+  const pendingReports = await listPendingReports();
+
   return (
     <div>
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-subtle">
+        User reports
+      </h2>
+      {pendingReports.length === 0 ? (
+        <p className="mb-10 text-sm text-subtle">No pending user reports.</p>
+      ) : (
+        <ul className="mb-10 flex flex-col gap-3">
+          {pendingReports.map((report) => (
+            <UserReportRow key={report.id} report={report} />
+          ))}
+        </ul>
+      )}
+
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-subtle">
         Rankings &amp; Nominees
       </h2>

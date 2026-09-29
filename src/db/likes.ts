@@ -1,6 +1,7 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
 import type { Visibility } from "@/lib/types";
+import { pubClause, notSeedClause, activeUserClause } from "./visibility";
 
 // One Like per user per Nominee per Ranking, enforced by the UNIQUE
 // constraint on (ranking_id, profile_id, user_id) in the schema.
@@ -114,6 +115,7 @@ export interface LikedItem {
   rankingTitle: string;
   profileId: string;
   profileName: string;
+  profilePhotoUrl: string | null;
   count: number;
   createdAt: string;
 }
@@ -126,7 +128,8 @@ export async function likedItemsForUser(userId: string): Promise<LikedItem[]> {
   const rows = (await db
     .prepare(
       `SELECT l.ranking_id, r.title AS ranking_title, l.profile_id,
-              p.name AS profile_name, l.count, l.created_at
+              p.name AS profile_name, p.photo_url AS profile_photo_url,
+              l.count, l.created_at
        FROM likes l
        JOIN rankings r ON r.id = l.ranking_id
        JOIN profiles p ON p.id = l.profile_id
@@ -138,6 +141,7 @@ export async function likedItemsForUser(userId: string): Promise<LikedItem[]> {
     ranking_title: string;
     profile_id: string;
     profile_name: string;
+    profile_photo_url: string | null;
     count: number;
     created_at: string;
   }[];
@@ -146,6 +150,48 @@ export async function likedItemsForUser(userId: string): Promise<LikedItem[]> {
     rankingTitle: r.ranking_title,
     profileId: r.profile_id,
     profileName: r.profile_name,
+    profilePhotoUrl: r.profile_photo_url,
+    count: r.count,
+    createdAt: r.created_at,
+  }));
+}
+
+// Phase 2 (public identity): the effective-public subset of
+// likedItemsForUser — the only Like rows that may appear on anyone
+// else's view of this user's profile. Private rows are excluded from
+// the JOIN (invariant 3), never merely hidden in UI.
+export async function likedPublicItemsForUser(
+  userId: string
+): Promise<LikedItem[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT l.ranking_id, r.title AS ranking_title, l.profile_id,
+              p.name AS profile_name, p.photo_url AS profile_photo_url,
+              l.count, l.created_at
+       FROM likes l
+       JOIN users u ON u.id = l.user_id
+       JOIN rankings r ON r.id = l.ranking_id
+       JOIN profiles p ON p.id = l.profile_id
+       WHERE l.user_id = ? AND ${pubClause("l", "u", "likes")}
+         AND ${notSeedClause("u")} AND ${activeUserClause("u")}
+         AND r.deleted_at IS NULL AND p.deleted_at IS NULL
+       ORDER BY l.created_at DESC`
+    )
+    .all(userId)) as unknown as {
+    ranking_id: string;
+    ranking_title: string;
+    profile_id: string;
+    profile_name: string;
+    profile_photo_url: string | null;
+    count: number;
+    created_at: string;
+  }[];
+  return rows.map((r) => ({
+    rankingId: r.ranking_id,
+    rankingTitle: r.ranking_title,
+    profileId: r.profile_id,
+    profileName: r.profile_name,
+    profilePhotoUrl: r.profile_photo_url,
     count: r.count,
     createdAt: r.created_at,
   }));

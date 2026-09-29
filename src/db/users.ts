@@ -14,6 +14,7 @@ interface UserRow {
   invite_bonus_likes: number;
   show_likes: string | null;
   show_supports: string | null;
+  is_hidden: number | null;
 }
 
 function toUser(row: UserRow): User {
@@ -30,6 +31,8 @@ function toUser(row: UserRow): User {
     // defensive for rows predating the migration on exotic setups.
     showLikes: isVisibility(row.show_likes) ? row.show_likes : "public",
     showSupports: isVisibility(row.show_supports) ? row.show_supports : "public",
+    // Phase 2 column; defensive fallback for the same reason.
+    isHidden: !!row.is_hidden,
   };
 }
 

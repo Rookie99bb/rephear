@@ -8,6 +8,7 @@ import {
 } from "@/db/profiles";
 import Avatar from "@/components/Avatar";
 import ProfileVerificationStatus from "@/components/ProfileVerificationStatus";
+import SupporterList from "@/components/SupporterList";
 import { getCurrentUser } from "@/lib/session";
 import { findActiveRequestForUser } from "@/db/claimRequests";
 
@@ -116,6 +117,8 @@ export default async function ProfilePage({ params }: { params: { id: string } }
           </div>
         )}
       </div>
+
+      <SupporterList profileId={profile.id} />
 
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">

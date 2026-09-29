@@ -15,6 +15,11 @@ import {
 } from "@/db/profiles";
 import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
 import { getRequestContext } from "@/lib/requestContext";
+import { findUserById } from "@/db/users";
+import {
+  setReportStatus,
+  setUserHidden,
+} from "@/db/userReports";
 
 export interface ModerationResult {
   error?: string;
@@ -148,5 +153,75 @@ export async function restoreNomineeAction(
   });
 
   revalidateModerationPaths(rankingId);
+  return {};
+}
+
+// ── Phase 2 (public identity): user report / block moderation ────────
+
+function revalidateUserModerationPaths(userId: string) {
+  revalidatePath("/admin/moderation");
+  revalidatePath("/admin/audit");
+  revalidatePath(`/u/${userId}`);
+}
+
+// Dismiss a report: marks it reviewed. The profile is untouched.
+export async function dismissReportAction(
+  reportId: string
+): Promise<ModerationResult> {
+  const admin = await getCurrentAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  await setReportStatus(reportId, "reviewed");
+  revalidatePath("/admin/moderation");
+  return {};
+}
+
+// Hide a profile: the user renders "This profile is unavailable." to
+// everyone and vanishes from supporter lists, taste-match sets, and all
+// other identity-adjacent surfaces. Ranking totals are untouched —
+// hiding is about identity, never about numbers.
+export async function hideUserAction(
+  userId: string
+): Promise<ModerationResult> {
+  const admin = await getCurrentAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const target = await findUserById(userId);
+  if (!target) return { error: "User not found." };
+
+  await setUserHidden(userId, true);
+  await recordAuditLog({
+    actorUserId: admin.id,
+    action: AUDIT_ACTIONS.USER_HIDDEN,
+    targetType: "user",
+    targetId: userId,
+    details: { userName: target.name },
+    ...getRequestContext(),
+  });
+
+  revalidateUserModerationPaths(userId);
+  return {};
+}
+
+export async function unhideUserAction(
+  userId: string
+): Promise<ModerationResult> {
+  const admin = await getCurrentAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const target = await findUserById(userId);
+  if (!target) return { error: "User not found." };
+
+  await setUserHidden(userId, false);
+  await recordAuditLog({
+    actorUserId: admin.id,
+    action: AUDIT_ACTIONS.USER_UNHIDDEN,
+    targetType: "user",
+    targetId: userId,
+    details: { userName: target.name },
+    ...getRequestContext(),
+  });
+
+  revalidateUserModerationPaths(userId);
   return {};
 }

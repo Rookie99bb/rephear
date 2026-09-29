@@ -1,4 +1,5 @@
 import type { Visibility } from "@/lib/types";
+import { db } from "./client";
 
 // Phase 1 (v2 redesign): visibility plumbing shared by every read path
 // that renders Likes / paid Supports publicly.
@@ -45,4 +46,53 @@ export function effectiveVisibility(
 // `seed_community_%` would also match e.g. 'seedXcommunity...'.
 export function seedAccountExclusion(alias: string): string {
   return `${alias}.id NOT LIKE 'seed\\_community\\_%' ESCAPE '\\'`;
+}
+
+// ── Phase 2 (public identity) shared SQL fragments ────────────────────
+// Centralized so every Phase 2 read path uses the identical
+// effective-visibility contract. Never inline these fragments elsewhere.
+
+// Effective-public check for an action row (likes / credit_transactions):
+//   COALESCE(<action>.visibility, <user>.show_<kind>) = 'public'
+// NULL action visibility = inherit the user's account default at read
+// time (the §9 "curate my identity" promise).
+export function pubClause(
+  actionAlias: string,
+  userAlias: string,
+  kind: "supports" | "likes"
+): string {
+  const defCol = kind === "supports" ? "show_supports" : "show_likes";
+  return `COALESCE(${actionAlias}.visibility, ${userAlias}.${defCol}) = 'public'`;
+}
+
+// Canonical Phase 2 name for the seed exclusion above.
+export function notSeedClause(userAlias: string): string {
+  return seedAccountExclusion(userAlias);
+}
+
+// Moderation hiding (users.is_hidden, added in Phase 2): hidden users
+// vanish from every identity-adjacent surface (supporter lists, taste
+// match sets, profile pages).
+export function activeUserClause(userAlias: string): string {
+  return `${userAlias}.is_hidden = 0`;
+}
+
+// Effective visibility of a conviction record = effective visibility of
+// the FIRST paid Support (first_payment_id → payments.visibility_choice,
+// falling back to the user's show_supports default for pre-Phase-1
+// rows). First-wins: repeat supports never change it. Read-time, never
+// materialized.
+export async function getConvictionVisibility(
+  convictionId: string
+): Promise<Visibility> {
+  const row = (await db
+    .prepare(
+      `SELECT COALESCE(p.visibility_choice, u.show_supports, 'public') AS v
+       FROM conviction_records cr
+       JOIN payments p ON p.id = cr.first_payment_id
+       JOIN users u ON u.id = cr.user_id
+       WHERE cr.id = ?`
+    )
+    .get(convictionId)) as unknown as { v: string } | undefined;
+  return isVisibility(row?.v) ? row.v : "public";
 }
