@@ -51,6 +51,11 @@ export default function LeaderboardTable({
               loggedIn={loggedIn}
               emphasis={emphasis}
               priority={index < eagerFirst}
+              creditsGap={
+                emphasis === "credits" && index > 0
+                  ? entries[index - 1].reputationCredits - entry.reputationCredits
+                  : null
+              }
             />
           ))}
         </ol>

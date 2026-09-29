@@ -39,6 +39,7 @@ export default function NomineeCard({
   loggedIn,
   emphasis,
   priority = false,
+  creditsGap = null,
 }: {
   rank: number;
   entry: LeaderboardEntry;
@@ -51,6 +52,10 @@ export default function NomineeCard({
   emphasis: "likes" | "credits";
   // Set for above-the-fold cards so their cover image loads eagerly.
   priority?: boolean;
+  // Most Supported board only: credits behind the rank directly above
+  // (null for #1 and for the Most Loved board). Rendered as a plain
+  // server-side line — no interactivity needed.
+  creditsGap?: number | null;
 }) {
   const { profile } = entry;
   const podium = podiumStyles(rank);
@@ -130,6 +135,13 @@ export default function NomineeCard({
           credits={entry.reputationCredits}
           emphasis={emphasis}
         />
+        {emphasis === "credits" && creditsGap != null && (
+          <p className="mt-1 text-xs font-medium text-white/70">
+            {creditsGap > 0
+              ? `${creditsGap.toLocaleString()} credits away from #${rank - 1}`
+              : `Tied with #${rank - 1}`}
+          </p>
+        )}
       </div>
     </li>
   );
