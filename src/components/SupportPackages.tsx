@@ -126,20 +126,21 @@ export default function SupportPackages({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Like vs Support, stated plainly (§1, §14). Supporting is a
-          PAID action — the copy must never let it read as free. */}
+      {/* Like vs Backing, stated plainly (§1, §14). Backing is a
+          PAID action — the copy must never let it read as free. This is
+          the checkout surface, so money stays unambiguous. */}
       <div className="rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed">
         <p className="text-ink">
           <span className="font-semibold">👍 Like</span>
           <span className="text-subtle"> says “I recognise you.” — free.</span>
         </p>
         <p className="mt-1 text-ink">
-          <span className="font-semibold">❤️ Support</span>
+          <span className="font-semibold">❤️ Backing</span>
           <span className="text-subtle">
             {" "}
-            says “I stand behind you.” — a paid action. Your payment buys
-            Reputation Credits for {profileName}, counted toward Most
-            Supported.
+            says “I choose to stand behind you.” — a paid action. Your
+            payment buys Reputation Credits for {profileName}, counted
+            toward Most Supported.
           </span>
         </p>
       </div>
@@ -264,7 +265,7 @@ export default function SupportPackages({
             disabled={busy || customAmount.trim() === ""}
             className="ml-auto rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
           >
-            {customLoading ? "Redirecting…" : "Support"}
+            {customLoading ? "Redirecting…" : "Back them"}
           </button>
         </div>
         {showCustomPreview && (

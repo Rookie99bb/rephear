@@ -19,6 +19,22 @@ export interface CelebrationData {
   rankAfter?: number | null;
   isFirstSupport?: boolean;
   supporterNumber?: number | null;
+  // Phase 5.2 (Support Story): story-start celebration data. reasonKey /
+  // reasonText echo the supporter's own answer (author-only dialog, so
+  // custom text is safe here); momentSnapshot is the just-written
+  // backing_moments row; gapToTop10 feeds the credits-only gap line.
+  // amountCents/currency stay on the type (the status endpoint returns
+  // them for the private receipt) but the dialog renders Credits only.
+  reasonKey?: string | null;
+  reasonText?: string | null;
+  momentSnapshot?: {
+    rankAtSupport: number | null;
+    totalCreditsAtSupport: number | null;
+    backerCountAtSupport: number | null;
+    backerNumber: number | null;
+    growthStageAtSupport: string | null;
+  } | null;
+  gapToTop10?: number | null;
 }
 
 interface CelebrationContextValue {

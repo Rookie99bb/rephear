@@ -5,13 +5,21 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion, animate } from "framer-motion";
 import { useSupportCelebration } from "@/components/SupportCelebrationProvider";
-import { formatMoney } from "@/lib/money";
+import {
+  buildImpactCopy,
+  buildJourneyLines,
+  resolveReasonEcho,
+  wasOutsideTop10AtSupport,
+} from "@/lib/celebrationCopy";
 
 // §15 four-part post-support experience: Transaction → Impact →
-// Identity → Next action. Every claim below is computed from real data
-// passed in via CelebrationData (see /api/checkout/status) — rank
-// movement is only shown when rankBefore/rankAfter are both known and
-// differ; nothing is ever hardcoded or fabricated.
+// Identity → Next action. Phase 5.2 turns this into a STORY START
+// MOMENT — never "Payment Successful". Every claim below is computed
+// from real data passed in via CelebrationData (see
+// /api/checkout/status) — rank movement is only shown when
+// rankBefore/rankAfter are both known and differ; nothing is ever
+// hardcoded or fabricated. Fiat never appears here: outside checkout,
+// everything is Credits (§2.5).
 const AUTO_CLOSE_MS = 8000;
 const COUNTDOWN_RADIUS = 26;
 const COUNTDOWN_CIRCUMFERENCE = 2 * Math.PI * COUNTDOWN_RADIUS;
@@ -48,34 +56,41 @@ function CelebrationContent() {
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_CLOSE_MS / 1000));
 
   // §15 IMPACT + IDENTITY, computed from real data only.
-  const movedUp =
-    data.rankBefore != null &&
-    data.rankAfter != null &&
-    data.rankAfter < data.rankBefore;
-  let impactText: string | null = null;
-  if (movedUp) {
-    impactText = `${data.profileName} moved #${data.rankBefore} → #${data.rankAfter} in Most Supported.`;
-    if (data.rankAfter! <= 10 && data.rankBefore! > 10) {
-      impactText += " Top 10! 🎉";
-    }
-  } else if (data.rankAfter != null) {
-    impactText = `${data.profileName} is now #${data.rankAfter} in Most Supported.`;
-  }
-  // If neither rank is known (e.g. legacy payment), impactText stays
-  // null and the section is omitted — never fabricated.
+  // Phase 5.2: impact copy comes from the shared pure builders in
+  // lib/celebrationCopy (unit-tested) — real movement only, never
+  // "You moved Mia into Top 10." (§23).
+  const impact = buildImpactCopy({
+    profileName: data.profileName,
+    rankBefore: data.rankBefore,
+    rankAfter: data.rankAfter,
+    gapToTop10: data.gapToTop10,
+  });
 
+  // WHEN YOU JOINED THE JOURNEY (§6): from the just-written
+  // backing_moments row. Omitted entirely if the moment isn't there
+  // yet — never fabricated.
+  const journeyLines = data.momentSnapshot
+    ? buildJourneyLines(data.momentSnapshot)
+    : [];
+
+  // Reason echo (§6): the supporter's own answer. Custom text is safe
+  // here because this dialog is shown only to the author (Phase 2
+  // moderation staging: author-only until moderated).
+  const reasonEcho = resolveReasonEcho(data.reasonKey, data.reasonText);
+
+  // IDENTITY: "Backed Before Top 10" is DERIVED — the moment's growth
+  // stage was outside the Top 10 and the nominee is in the Top 10 now.
+  // Never a stored flag; the immutable moment row is untouched.
+  const backedBeforeTop10 =
+    data.momentSnapshot != null &&
+    wasOutsideTop10AtSupport(data.momentSnapshot.growthStageAtSupport) &&
+    data.rankAfter != null &&
+    data.rankAfter <= 10;
   const identityLines: string[] = [];
-  if (data.isFirstSupport && data.rankBefore != null && data.rankBefore > 10) {
+  if (backedBeforeTop10) {
     identityLines.push(
-      `🏆 Early Back recorded — you backed ${data.profileName} before they reached the Top 10.`
+      `🏆 You backed ${data.profileName} before the Top 10 — that's part of your backing story.`
     );
-  } else if (data.isFirstSupport && data.rankBefore != null) {
-    identityLines.push(
-      `You backed ${data.profileName} at #${data.rankBefore} — already in the Top 10.`
-    );
-  }
-  if (data.isFirstSupport && data.supporterNumber != null) {
-    identityLines.push(`You're their #${data.supporterNumber} supporter ❤️`);
   }
 
   async function handleShare() {
@@ -249,27 +264,22 @@ function CelebrationContent() {
             id="support-celebration-title"
             className="text-2xl font-bold tracking-tight text-ink"
           >
-            ❤️ You supported {data.profileName}
+            ❤️ You&apos;re backing {data.profileName}
           </h2>
 
-          {/* 1 — TRANSACTION: what the supporter paid, in credits. Never
-              mentions fees or payouts (commercial terms are not public);
-              the amount itself makes it unmistakable this was paid. */}
+          {/* 1 — TRANSACTION: what the backer did, in Credits. Never
+              "Payment Successful", never fiat: outside checkout,
+              everything is Credits (§2.5). The Credits amount itself
+              makes it unmistakable this was a paid action; commercial
+              terms stay private. */}
           <div className="mx-auto mt-4 max-w-xs rounded-2xl bg-white/70 px-5 py-3 text-left shadow-inner ring-1 ring-pink-200">
             <SectionLabel>Transaction</SectionLabel>
             <p className="mt-1 text-sm leading-relaxed text-ink">
-              {data.amountCents != null ? (
-                <>
-                  <span className="font-semibold">
-                    {formatMoney(data.amountCents, data.currency ?? "usd")}
-                  </span>{" "}
-                  →{" "}
-                </>
-              ) : null}
+              You backed {data.profileName} with{" "}
               <span className="font-semibold tabular-nums">
-                +{displayCredits.toLocaleString()} Credits
+                {displayCredits.toLocaleString()} Credits
               </span>{" "}
-              for {data.profileName}&apos;s Most Supported total.
+              — counted toward {data.profileName}&apos;s Most Supported total.
             </p>
             {data.visibility === "private" && (
               <p className="mt-1 text-xs text-subtle">
@@ -278,14 +288,39 @@ function CelebrationContent() {
             )}
           </div>
 
+          {/* WHEN YOU JOINED THE JOURNEY (§6): the immutable moment
+              snapshot — rank/credits/backers at support + "You became
+              Backer #N" + the supporter's own reason. Omitted when the
+              moment row isn't there yet; never fabricated. */}
+          {journeyLines.length > 0 && (
+            <div className="mx-auto mt-2 max-w-xs rounded-2xl bg-white/70 px-5 py-3 text-left shadow-inner ring-1 ring-pink-200">
+              <SectionLabel>When you joined the journey</SectionLabel>
+              {journeyLines.map((line, i) => (
+                <p key={i} className="mt-1 text-sm leading-relaxed text-ink">
+                  {line}
+                </p>
+              ))}
+              {reasonEcho && (
+                <p className="mt-1 text-sm italic leading-relaxed text-ink">
+                  Your reason: {reasonEcho}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* 2 — IMPACT: rank movement ONLY when computed from real data
               (rankBefore from the pre-payment conviction snapshot,
               rankAfter live). Never fabricated, never hardcoded. */}
-          {impactText && (
+          {impact && (
             <div className="mx-auto mt-2 max-w-xs rounded-2xl bg-white/70 px-5 py-3 text-left shadow-inner ring-1 ring-pink-200">
               <SectionLabel>Impact</SectionLabel>
-              <p className="mt-1 text-sm font-medium leading-relaxed text-ink">
-                {impactText}
+              {impact.headline && (
+                <p className="mt-1 text-sm font-bold leading-relaxed text-ink">
+                  {impact.headline}
+                </p>
+              )}
+              <p className="mt-1 text-sm leading-relaxed text-ink">
+                {impact.body}
               </p>
             </div>
           )}

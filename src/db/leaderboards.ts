@@ -145,3 +145,52 @@ export async function getSupportedRankSnapshot(
     totalCredits: row.mine,
   };
 }
+
+// Phase 5.2 (Support Story): credits total of the current #10 on Most
+// Supported — the "Top 10 threshold" behind support-page gap copy like
+// "140 Credits behind the current Top 10". Null when the ranking has
+// fewer than 10 nominees. Ordering mirrors getMostSupported (credits
+// DESC, earliest-added first) so the gap agrees with the public board.
+// Credits-only by construction: never fiat, never supporter counts.
+export async function getTop10CreditsThreshold(
+  rankingId: string
+): Promise<number | null> {
+  const row = (await db
+    .prepare(
+      `SELECT COALESCE(SUM(ct.credits), 0) AS total
+       FROM profiles p
+       LEFT JOIN credit_transactions ct
+         ON ct.profile_id = p.id AND ct.ranking_id = p.ranking_id
+       WHERE p.ranking_id = ? AND p.deleted_at IS NULL
+       GROUP BY p.id
+       ORDER BY total DESC, p.created_at ASC
+       LIMIT 1 OFFSET 9`
+    )
+    .get(rankingId)) as unknown as { total: number } | undefined;
+  return row ? row.total : null;
+}
+
+// Phase 5.2 (Support Story): Support Credits a nominee received in the
+// last `days` days — the only honest "rising" signal available before
+// Phase 3's milestone/discovery labels exist. Refunded payments
+// contribute 0 (same convention as the board totals); synthetic seed
+// accounts are excluded like everywhere else. Returns 0 when quiet,
+// in which case the caller omits the rising line entirely (no event,
+// no render — never fabricated).
+export async function getRecentCreditsMomentum(
+  rankingId: string,
+  profileId: string,
+  days = 7
+): Promise<number> {
+  const row = (await db
+    .prepare(
+      `SELECT COALESCE(SUM(ct.credits), 0) AS total
+       FROM credit_transactions ct
+       JOIN users u ON u.id = ct.supporter_user_id
+       WHERE ct.ranking_id = ? AND ct.profile_id = ?
+         AND ct.created_at >= datetime('now', '-' || ? || ' days')
+         AND ${seedAccountExclusion("u")}`
+    )
+    .get(rankingId, profileId, days)) as unknown as { total: number } | undefined;
+  return row?.total ?? 0;
+}

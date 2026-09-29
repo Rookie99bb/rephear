@@ -48,6 +48,7 @@ export default function CheckoutBanner() {
     let cancelled = false;
 
     async function poll() {
+      let momentWaits = 0;
       for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS && !cancelled; attempt++) {
         try {
           const res = await fetch(
@@ -56,23 +57,50 @@ export default function CheckoutBanner() {
           if (res.ok) {
             const data = await res.json();
             if (data.status === "completed") {
-              trigger({
-                profileId: data.profileId,
-                profileName: data.profileName,
-                rankingId: data.rankingId,
-                credits: data.credits,
-                totalCredits: data.totalCredits,
-                amountCents: data.amountCents,
-                currency: data.currency,
-                visibility: data.visibility,
-                rankBefore: data.rankBefore,
-                rankAfter: data.rankAfter,
-                isFirstSupport: data.isFirstSupport,
-                supporterNumber: data.supporterNumber,
-              });
-              setConfirming(false);
-              router.replace(pathname);
-              return;
+              // The webhook marks the payment completed BEFORE it inserts
+              // the backing_moments row, so the first "completed" poll can
+              // arrive with data.moment still null. Wait a few extra beats
+              // for the moment — the WHEN YOU JOINED THE JOURNEY block is
+              // the heart of the story-start celebration. After 3 extra
+              // waits we trigger anyway (the dialog omits the block rather
+              // than fabricating it).
+              if (!data.moment && momentWaits < 3) {
+                momentWaits++;
+              } else {
+                trigger({
+                  profileId: data.profileId,
+                  profileName: data.profileName,
+                  rankingId: data.rankingId,
+                  credits: data.credits,
+                  totalCredits: data.totalCredits,
+                  amountCents: data.amountCents,
+                  currency: data.currency,
+                  visibility: data.visibility,
+                  rankBefore: data.rankBefore,
+                  rankAfter: data.rankAfter,
+                  isFirstSupport: data.isFirstSupport,
+                  supporterNumber: data.supporterNumber,
+                  // Phase 5.2: story-start celebration data.
+                  reasonKey: data.moment?.supportReason ?? null,
+                  reasonText: data.moment?.supportReasonText ?? null,
+                  momentSnapshot: data.moment
+                    ? {
+                        rankAtSupport: data.moment.rankAtSupport ?? null,
+                        totalCreditsAtSupport:
+                          data.moment.totalCreditsAtSupport ?? null,
+                        backerCountAtSupport:
+                          data.moment.backerCountAtSupport ?? null,
+                        backerNumber: data.moment.backerNumber ?? null,
+                        growthStageAtSupport:
+                          data.moment.growthStageAtSupport ?? null,
+                      }
+                    : null,
+                  gapToTop10: data.gapToTop10 ?? null,
+                });
+                setConfirming(false);
+                router.replace(pathname);
+                return;
+              }
             }
             if (["failed", "cancelled", "refunded", "disputed"].includes(data.status)) {
               setConfirming(false);

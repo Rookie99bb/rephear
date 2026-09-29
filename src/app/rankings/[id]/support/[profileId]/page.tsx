@@ -7,6 +7,7 @@ import { findUserById } from "@/db/users";
 import { CREDIT_PACKAGES } from "@/lib/creditPackages";
 import Avatar from "@/components/Avatar";
 import SupportPackages from "@/components/SupportPackages";
+import SupportStoryContext from "@/components/SupportStoryContext";
 
 export default async function SupportPage({
   params,
@@ -36,10 +37,16 @@ export default async function SupportPage({
         <Avatar name={profile.name} photoUrl={profile.photoUrl} size={48} />
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-ink">
-            Support {profile.name}
+            Back {profile.name}
           </h1>
           <p className="text-sm text-subtle">in {ranking.title}</p>
         </div>
+      </div>
+
+      {/* Phase 5.2 (§4): story context — the nominee's current position
+          before payment. Aggregate public numbers only. */}
+      <div className="mt-4">
+        <SupportStoryContext rankingId={ranking.id} profileId={profile.id} />
       </div>
 
       <div className="mt-6">

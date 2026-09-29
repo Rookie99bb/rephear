@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findPaymentBySessionId } from "@/db/payments";
 import { findProfileById, getProfileStats } from "@/db/profiles";
-import { getSupportedRankSnapshot } from "@/db/leaderboards";
+import { getSupportedRankSnapshot, getTop10CreditsThreshold } from "@/db/leaderboards";
 import { getConvictionRecord } from "@/db/convictionRecords";
 import { getBackingMoment } from "@/db/backingMoments";
 import { getCurrentUser } from "@/lib/session";
@@ -58,6 +58,16 @@ export async function GET(request: NextRequest) {
     getBackingMoment(payment.id),
   ]);
 
+  // Phase 5.2: credits behind the current Top 10 (credits-only gap for
+  // the celebration's impact line). Computed from the same board
+  // totals; null when the nominee is already in the Top 10 or the
+  // ranking is too small to have one.
+  const top10Threshold = await getTop10CreditsThreshold(payment.rankingId);
+  const gapToTop10 =
+    top10Threshold != null
+      ? Math.max(0, top10Threshold - stats.totalReputationCredits)
+      : null;
+
   const isFirstSupport =
     conviction !== null && conviction.firstPaymentId === payment.id;
 
@@ -78,6 +88,8 @@ export async function GET(request: NextRequest) {
       isFirstSupport && conviction?.supporterCountAtFirstSupport != null
         ? conviction.supporterCountAtFirstSupport + 1
         : null,
+    // Phase 5.2: credits-only Top 10 gap for the celebration dialog.
+    gapToTop10,
     // Phase 5.1 moment snapshot (5.2 renders this; 5.1 only exposes
     // data). Null until the webhook has processed the payment.
     moment: moment
