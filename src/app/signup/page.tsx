@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { signupAction } from "@/lib/actions/auth";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -70,6 +71,7 @@ export default function SignupPage() {
       <h1 className="mb-6 text-sm font-medium text-subtle">
         Create your account
       </h1>
+      <GoogleSignInButton />
       <form action={handleSubmit} className="flex flex-col gap-4">
         <Field label="Name" name="name" type="text" autoComplete="name" />
         <Field label="Email" name="email" type="email" autoComplete="email" />

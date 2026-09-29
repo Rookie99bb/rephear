@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function LoginPage() {
       <h1 className="mb-6 text-xl font-semibold tracking-tight text-ink">
         Log in
       </h1>
+      <GoogleSignInButton />
       <form action={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium text-ink">Email</span>

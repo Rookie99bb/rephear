@@ -1,8 +1,30 @@
 import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
-import { findUserByEmail } from "@/db/users";
+import { cookies } from "next/headers";
+import { createUser, findUserByEmail } from "@/db/users";
+import { getOrCreateInvitationForUser } from "@/db/invitations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { attributeCampaignSignup, CAMPAIGN_COOKIE } from "@/db/campaignLinks";
+import { applyReferral } from "@/lib/actions/auth";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail } from "@/emails/welcome";
+import { getRequestContext } from "@/lib/requestContext";
+import type { User } from "@/lib/types";
+
+// Duplicated from src/lib/actions/auth.ts (which is "use server" and
+// therefore can't export a plain constant). Keep in sync.
+const REFERRAL_COOKIE = "rephear_ref";
+
+// Google OAuth credentials come from the Google Cloud Console
+// (APIs & Services -> Credentials -> OAuth 2.0 Client ID, type "Web
+// application"). The authorized redirect URI must be:
+//   https://rephear.com/api/auth/callback/google
+// (NEXTAUTH_URL + "/api/auth/callback/google"). Set GOOGLE_CLIENT_ID and
+// GOOGLE_CLIENT_SECRET in Render's env vars afterwards.
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
 export const authOptions: AuthOptions = {
   session: { strategy: "jwt" },
@@ -10,6 +32,19 @@ export const authOptions: AuthOptions = {
     signIn: "/login",
   },
   providers: [
+    // Deliberately conditional: if the Google credentials aren't set
+    // (e.g. local dev before they're created), the provider is simply
+    // absent instead of crashing auth for everyone. One misconfigured
+    // step must never take down the whole site (see the 2026-09-28
+    // photo-migration incident for why this matters).
+    ...(googleClientId && googleClientSecret
+      ? [
+          GoogleProvider({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -54,6 +89,16 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
+    // Never let an OAuth login through with an unverified email.
+    // (Google accounts always have verified emails in practice; this is
+    // defense-in-depth so a future provider can't sneak one past.)
+    async signIn({ account, profile }) {
+      if (account?.provider === "google") {
+        const p = profile as { email_verified?: boolean } | null;
+        if (p && p.email_verified === false) return false;
+      }
+      return true;
+    },
     // `user` is only populated on initial sign-in (Credentials provider's
     // authorize() return value above) — on every later request this
     // callback just receives the still-encrypted `token` from the
@@ -65,7 +110,21 @@ export const authOptions: AuthOptions = {
     // the DB — won't see a *promotion* until that user's next sign-in.
     // A *revocation* is still enforced immediately regardless, because
     // getCurrentAdmin() re-checks the DB on every admin page/action.
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // First sign-in via Google: `user` here is NextAuth's provider
+      // profile (id = Google's sub), NOT our DB row. Find-or-create our
+      // own user by the verified email and anchor the token to OUR user
+      // id, so sessions, middleware, votes, etc. all work unchanged.
+      // Runs once per login — not on every request.
+      if (account?.provider === "google" && token.email) {
+        const dbUser = await findOrCreateGoogleUser({
+          email: token.email,
+          name: user?.name,
+        });
+        token.id = dbUser.id;
+        token.isAdmin = dbUser.isAdmin;
+        return token;
+      }
       if (user) {
         token.id = user.id;
         token.isAdmin = (user as { isAdmin?: boolean }).isAdmin ?? false;
@@ -81,3 +140,76 @@ export const authOptions: AuthOptions = {
     },
   },
 };
+
+// Look up the user by their Google-verified email, creating the account
+// on first Google sign-in. An existing password-based account with the
+// same email is simply signed in (email matching = account linking;
+// Google guarantees the email is verified, so this is safe).
+//
+// New Google users get the same new-account side effects as the password
+// signup form: their own invite link, referral-cookie credit, campaign
+// (/s/<slug>) attribution, and the welcome email. Every step is
+// best-effort — none may block the login.
+async function findOrCreateGoogleUser({
+  email,
+  name,
+}: {
+  email: string;
+  name?: string | null;
+}): Promise<User> {
+  const normalized = email.toLowerCase().trim();
+  const existing = await findUserByEmail(normalized);
+  if (existing) return existing;
+
+  // password_hash is NOT NULL in the schema, so store ''. bcrypt.compare
+  // against '' is always false, which means a Google-only account can
+  // never log in through the credentials form. The forgot-password flow
+  // can set a real password later if they ever want one.
+  const user = await createUser({
+    email: normalized,
+    passwordHash: "",
+    name: (name ?? "").trim() || normalized.split("@")[0],
+  });
+
+  try {
+    // Every account automatically gets its own invite link, created right
+    // away rather than lazily (same as signupAction).
+    await getOrCreateInvitationForUser(user.id);
+  } catch (err) {
+    console.error("[auth] google signup: invitation failed (non-blocking):", err);
+  }
+
+  try {
+    // Referral credit — single-use cookie, same as the password form.
+    const referralCode = cookies().get(REFERRAL_COOKIE)?.value;
+    if (referralCode) {
+      cookies().delete(REFERRAL_COOKIE);
+      const { ipAddress } = getRequestContext();
+      await applyReferral(user.id, referralCode, ipAddress);
+    }
+  } catch (err) {
+    console.error("[auth] google signup: referral failed (non-blocking):", err);
+  }
+
+  try {
+    // Campaign ("support") link attribution — single-use, same as signup.
+    const campaignLinkId = cookies().get(CAMPAIGN_COOKIE)?.value;
+    if (campaignLinkId) {
+      cookies().delete(CAMPAIGN_COOKIE);
+      await attributeCampaignSignup(user.id, campaignLinkId);
+    }
+  } catch (err) {
+    console.error(
+      "[auth] google signup: campaign attribution failed (non-blocking):",
+      err
+    );
+  }
+
+  // Fire-and-forget: a slow/failed email must never block login.
+  const { subject, html } = welcomeEmail(user.name);
+  sendEmail({ to: user.email, subject, html }).catch((err) =>
+    console.error("[auth] google signup: welcome email failed (non-blocking):", err)
+  );
+
+  return user;
+}
