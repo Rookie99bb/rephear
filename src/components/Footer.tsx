@@ -12,6 +12,9 @@ export default function Footer() {
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-subtle sm:px-6">
         <p>&copy; {new Date().getFullYear()} RepHear. Recognition belongs to everyone.</p>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <Link href="/privacy" className="hover:text-ink">
+            Privacy Policy
+          </Link>
           <Link href="/legal/dmca" className="hover:text-ink">
             DMCA / Takedown Request
           </Link>
