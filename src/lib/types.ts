@@ -104,6 +104,15 @@ export interface Payment {
   // payment completes — so the async webhook can store it on the
   // credit_transactions row without a race.
   visibilityChoice: Visibility;
+  // Phase 5.1 (Support Story): optional "Why are you backing them?"
+  // answer. supportReason is a preset key (see
+  // src/lib/supportReasons.ts; "custom" when free text was used);
+  // supportReasonText is the custom text (author-only until moderated).
+  // Both NULL when the supporter skipped. Recorded at checkout creation
+  // like visibilityChoice so the webhook can snapshot them into
+  // backing_moments without a race.
+  supportReason: string | null;
+  supportReasonText: string | null;
   stripeCheckoutSessionId: string;
   stripePaymentIntentId: string | null;
   status: PaymentStatus;

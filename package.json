@@ -12,7 +12,8 @@
     "lint": "next lint",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
-    "test:phase1": "DATA_DIR=$(mktemp -d /tmp/rephear-phase1-test.XXXXXX) tsx scripts/phase1-privacy.test.ts"
+    "test:phase1": "DATA_DIR=$(mktemp -d /tmp/rephear-phase1-test.XXXXXX) tsx scripts/phase1-privacy.test.ts",
+    "test:phase5": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5-test.XXXXXX) tsx scripts/smoke-phase5-moments.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

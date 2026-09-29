@@ -10,6 +10,11 @@ import {
   currencySymbol,
   type SupportCurrency,
 } from "@/lib/creditPackages";
+import {
+  SUPPORT_REASON_PRESETS,
+  SUPPORT_REASON_CUSTOM,
+  SUPPORT_REASON_TEXT_MAX,
+} from "@/lib/supportReasons";
 import type { Visibility } from "@/lib/types";
 
 const CURRENCIES: SupportCurrency[] = ["usd", "gbp"];
@@ -34,6 +39,10 @@ export default function SupportPackages({
   const [customError, setCustomError] = useState<string | null>(null);
   const [currency, setCurrency] = useState<SupportCurrency>("usd");
   const [showPublic, setShowPublic] = useState(defaultVisibility === "public");
+  // Phase 5.1: optional "Why are you backing them?" — never blocks
+  // checkout. null = skipped. Selecting the ✍️ chip reveals free text.
+  const [reasonKey, setReasonKey] = useState<string | null>(null);
+  const [reasonText, setReasonText] = useState("");
 
   const busy = loadingId !== null || customLoading;
   const symbol = currencySymbol(currency);
@@ -48,6 +57,11 @@ export default function SupportPackages({
         profileId,
         currency,
         visibilityChoice: (showPublic ? "public" : "private") as Visibility,
+        // Phase 5.1 reason: preset key or "custom" + free text; nulls
+        // when skipped. Server validates the key and trims/caps text.
+        supportReason: reasonKey,
+        supportReasonText:
+          reasonKey === SUPPORT_REASON_CUSTOM ? reasonText : null,
         ...body,
       }),
     });
@@ -128,6 +142,63 @@ export default function SupportPackages({
             Supported.
           </span>
         </p>
+      </div>
+
+      {/* Phase 5.1: optional "Why are you backing them?" — skippable,
+          never blocks checkout. The answer becomes part of the supporter's
+          backing story (identity data over time, never an instant badge). */}
+      <div className="rounded-xl border border-border px-4 py-3">
+        <p className="text-sm font-medium text-ink">
+          Why are you backing {profileName}?
+          <span className="ml-1.5 text-xs font-normal text-subtle">(optional)</span>
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(
+            Object.entries(SUPPORT_REASON_PRESETS) as [string, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              disabled={busy}
+              onClick={() => setReasonKey(reasonKey === key ? null : key)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                reasonKey === key
+                  ? "border-ink bg-ink text-white"
+                  : "border-border text-subtle hover:border-ink hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            key={SUPPORT_REASON_CUSTOM}
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              setReasonKey(
+                reasonKey === SUPPORT_REASON_CUSTOM ? null : SUPPORT_REASON_CUSTOM
+              )
+            }
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+              reasonKey === SUPPORT_REASON_CUSTOM
+                ? "border-ink bg-ink text-white"
+                : "border-border text-subtle hover:border-ink hover:text-ink"
+            }`}
+          >
+            ✍️ Say it in your own words
+          </button>
+        </div>
+        {reasonKey === SUPPORT_REASON_CUSTOM && (
+          <textarea
+            value={reasonText}
+            disabled={busy}
+            maxLength={SUPPORT_REASON_TEXT_MAX}
+            rows={2}
+            placeholder="What made you believe in them?"
+            onChange={(e) => setReasonText(e.target.value)}
+            className="mt-2 w-full rounded-lg border border-border px-3 py-2 text-sm text-ink outline-none focus:border-ink disabled:opacity-50"
+          />
+        )}
       </div>
 
       <div className="flex items-center gap-2">

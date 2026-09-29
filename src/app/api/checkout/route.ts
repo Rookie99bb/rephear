@@ -20,6 +20,10 @@ import { findUserById } from "@/db/users";
 import { createPendingPayment } from "@/db/payments";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { isVisibility, type Visibility } from "@/db/visibility";
+import {
+  isSupportReason,
+  normalizeSupportReasonText,
+} from "@/lib/supportReasons";
 
 // Creates a real Stripe Checkout Session (test mode while STRIPE_SECRET_KEY
 // is a test key) for purchasing Reputation Credits in support of one
@@ -129,6 +133,20 @@ export async function POST(request: NextRequest) {
     if (fullUser) visibilityChoice = fullUser.showSupports;
   }
 
+  // Phase 5.1: optional "Why are you backing them?" reason. Preset key
+  // validated against the allowlist (unknown keys are rejected, not
+  // silently stored); free text is trimmed and capped at 280 chars and
+  // never blocks checkout. Both ride the same pre-payment plumbing as
+  // visibilityChoice so the webhook can snapshot them without a race.
+  let supportReason: string | null = null;
+  if (body.supportReason !== undefined && body.supportReason !== null) {
+    if (!isSupportReason(body.supportReason)) {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    supportReason = body.supportReason;
+  }
+  const supportReasonText = normalizeSupportReasonText(body.supportReasonText);
+
   // Must be the app's real public origin, not request.nextUrl.origin —
   // behind Render's proxy that reflects the container's internal address
   // (localhost:<PORT>), which broke the post-payment redirect. See
@@ -169,6 +187,10 @@ export async function POST(request: NextRequest) {
       credits: String(pkg.credits),
       currency,
       visibilityChoice,
+      // Phase 5.1: reason backup in Stripe metadata (payments row is the
+      // primary source; the webhook reads the payment row).
+      supportReason: supportReason ?? "",
+      supportReasonText: supportReasonText ?? "",
     },
   });
 
@@ -181,6 +203,8 @@ export async function POST(request: NextRequest) {
     amountCents: pkg.priceCents,
     currency,
     visibilityChoice,
+    supportReason,
+    supportReasonText,
     stripeCheckoutSessionId: session.id,
   });
 

@@ -2,6 +2,7 @@ import { db } from "./client";
 import { newId } from "@/lib/id";
 import type { Payment, PaymentStatus, Visibility } from "@/lib/types";
 import { isVisibility } from "./visibility";
+import { normalizeSupportReasonText, isSupportReason } from "@/lib/supportReasons";
 
 interface PaymentRow {
   id: string;
@@ -13,6 +14,8 @@ interface PaymentRow {
   amount_cents: number;
   currency: string;
   visibility_choice: string | null;
+  support_reason: string | null;
+  support_reason_text: string | null;
   stripe_checkout_session_id: string;
   stripe_payment_intent_id: string | null;
   status: string;
@@ -34,6 +37,9 @@ function toPayment(row: PaymentRow): Payment {
     visibilityChoice: isVisibility(row.visibility_choice)
       ? row.visibility_choice
       : "public",
+    // Phase 5.1 columns are nullable; absent on pre-5.1 rows.
+    supportReason: row.support_reason ?? null,
+    supportReasonText: row.support_reason_text ?? null,
     stripeCheckoutSessionId: row.stripe_checkout_session_id,
     stripePaymentIntentId: row.stripe_payment_intent_id,
     status: row.status as PaymentStatus,
@@ -57,13 +63,16 @@ export async function createPendingPayment(params: {
   visibilityChoice: Visibility;
   stripeCheckoutSessionId: string;
   createdAt?: string;
+  // Phase 5.1: optional reason, defaults to null (skipped).
+  supportReason?: string | null;
+  supportReasonText?: string | null;
 }): Promise<Payment> {
   const id = newId();
   await db
     .prepare(
       `INSERT INTO payments
-      (id, user_id, ranking_id, profile_id, package_id, credits, amount_cents, currency, visibility_choice, stripe_checkout_session_id, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', COALESCE(?, datetime('now')))`
+      (id, user_id, ranking_id, profile_id, package_id, credits, amount_cents, currency, visibility_choice, support_reason, support_reason_text, stripe_checkout_session_id, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', COALESCE(?, datetime('now')))`
     )
     .run(
       id,
@@ -75,6 +84,12 @@ export async function createPendingPayment(params: {
       params.amountCents,
       params.currency,
       params.visibilityChoice,
+      // Unknown keys never stored (the checkout API rejects them with
+      // 400; this is the backstop for any direct caller).
+      isSupportReason(params.supportReason) ? params.supportReason : null,
+      // Defense in depth: the checkout API already trims/caps, but any
+      // direct caller gets the same ≤280 invariant.
+      normalizeSupportReasonText(params.supportReasonText),
       params.stripeCheckoutSessionId,
       params.createdAt ?? null
     );

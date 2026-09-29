@@ -3,6 +3,7 @@ import { findPaymentBySessionId } from "@/db/payments";
 import { findProfileById, getProfileStats } from "@/db/profiles";
 import { getSupportedRankSnapshot } from "@/db/leaderboards";
 import { getConvictionRecord } from "@/db/convictionRecords";
+import { getBackingMoment } from "@/db/backingMoments";
 import { getCurrentUser } from "@/lib/session";
 
 // Polled by CheckoutBanner right after Stripe redirects back to
@@ -45,11 +46,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ status: payment.status });
   }
 
-  const [profile, stats, snapshot, conviction] = await Promise.all([
+  const [profile, stats, snapshot, conviction, moment] = await Promise.all([
     findProfileById(payment.profileId),
     getProfileStats(payment.profileId),
     getSupportedRankSnapshot(payment.rankingId, payment.profileId),
     getConvictionRecord(payment.userId, payment.rankingId, payment.profileId),
+    // Phase 5.1: the immutable moment snapshot for THIS payment, for
+    // the 5.2 story-start celebration to render. Scoped to the
+    // requesting user's own payment (checked above), so including their
+    // own reason text is author-only, not a public exposure.
+    getBackingMoment(payment.id),
   ]);
 
   const isFirstSupport =
@@ -72,5 +78,19 @@ export async function GET(request: NextRequest) {
       isFirstSupport && conviction?.supporterCountAtFirstSupport != null
         ? conviction.supporterCountAtFirstSupport + 1
         : null,
+    // Phase 5.1 moment snapshot (5.2 renders this; 5.1 only exposes
+    // data). Null until the webhook has processed the payment.
+    moment: moment
+      ? {
+          rankAtSupport: moment.rankAtSupport,
+          totalCreditsAtSupport: moment.totalCreditsAtSupport,
+          backerCountAtSupport: moment.backerCountAtSupport,
+          backerNumber: moment.backerNumber,
+          growthStageAtSupport: moment.growthStageAtSupport,
+          supportReason: moment.supportReason,
+          supportReasonText: moment.supportReasonText,
+          visibilityAtSupport: moment.visibilityAtSupport,
+        }
+      : null,
   });
 }

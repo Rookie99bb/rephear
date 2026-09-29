@@ -1061,6 +1061,81 @@ async function createConvictionRecordsTableIfMissing() {
   });
 }
 
+// Phase 5.1 (Support Story & Backing Journey): optional "Why are you
+// backing them?" reason, captured at checkout creation like
+// visibility_choice (BEFORE Stripe payment completes) so the async
+// webhook can snapshot it into backing_moments without a race.
+// support_reason: preset key (see src/lib/supportReasons.ts), NULL when
+// skipped. support_reason_text: custom free text (author-only until
+// Phase 2 moderation primitives exist), NULL when not given.
+async function addPhase51MomentColumnsIfMissing() {
+  const alters: [string, string][] = [
+    ["payments", "support_reason TEXT"],
+    ["payments", "support_reason_text TEXT"],
+  ];
+  for (const [table, def] of alters) {
+    try {
+      await rawClient.execute({
+        sql: `ALTER TABLE ${table} ADD COLUMN ${def};`,
+        args: [],
+      });
+    } catch {
+      // Column already exists, nothing to do.
+    }
+  }
+}
+
+// Phase 5.1 (Support Story & Backing Journey): backing_moments — one
+// IMMUTABLE row per completed paid Support (not first-only like
+// conviction_records, which stays untouched as the first-back index).
+// Captures "the moment someone chose to believe in someone else": the
+// nominee's Most-Supported rank, total credits, and distinct supporter
+// count BEFORE this payment's credits land (pre-payment state = the
+// world the supporter actually judged), the supporter's backer number,
+// the growth stage at that instant, their reason, and the effective
+// visibility at payment time (audit field — rendering ALWAYS uses
+// read-time effective visibility, so a later privacy flip retroactively
+// hides the moment from public surfaces).
+//
+// One row per payment (UNIQUE(payment_id) + INSERT OR IGNORE =
+// idempotent webhook redelivery). Rows are NEVER updated — a
+// re-insert attempt must not overwrite the snapshot.
+// Tracking starts at deploy — history is never fabricated or backfilled.
+async function createBackingMomentsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS backing_moments (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      payment_id TEXT NOT NULL REFERENCES payments(id),
+      credits INTEGER NOT NULL,
+      supported_at TEXT NOT NULL DEFAULT (datetime('now')),
+      rank_at_support INTEGER,
+      total_credits_at_support INTEGER,
+      backer_count_at_support INTEGER,
+      backer_number INTEGER,
+      growth_stage_at_support TEXT,
+      support_reason TEXT,
+      support_reason_text TEXT,
+      visibility_at_support TEXT,
+      UNIQUE (payment_id)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_moments_user ON backing_moments(user_id, supported_at);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_moments_profile ON backing_moments(ranking_id, profile_id, supported_at);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_moments_user_profile ON backing_moments(user_id, profile_id, supported_at);`,
+    args: [],
+  });
+}
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
 // import time, since the underlying Turso client is async and there's
@@ -1085,6 +1160,8 @@ export async function ensureMigrated(): Promise<void> {
     await addInviteBonusLikesColumnToUsersIfMissing();
     await addPhase1VisibilityColumnsIfMissing();
     await createConvictionRecordsTableIfMissing();
+    await addPhase51MomentColumnsIfMissing();
+    await createBackingMomentsTableIfMissing();
     await addProfileShareTokenColumnIfMissing();
     await backfillProfileShareTokens();
     await seedReferralCommissionRuleV1();

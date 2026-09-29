@@ -14,6 +14,8 @@ import {
 } from "@/db/creditTransactions";
 import { getSupportedRankSnapshot } from "@/db/leaderboards";
 import { recordConviction } from "@/db/convictionRecords";
+import { recordBackingMoment } from "@/db/backingMoments";
+import { effectiveVisibility } from "@/db/visibility";
 import {
   bookCommissionForPayment,
   reverseCommissionForPayment,
@@ -109,6 +111,38 @@ export async function POST(request: NextRequest) {
         } catch (err) {
           console.error(
             "[stripe webhook] recordConviction failed (non-blocking):",
+            err
+          );
+        }
+        // Phase 5.1 (Support Story): immutable per-payment moment
+        // snapshot, fed by the SAME pre-insert snapshot as the
+        // conviction record above — one call, two inserts. INSERT OR
+        // IGNORE on UNIQUE(payment_id) makes redelivery a no-op and the
+        // snapshot is never rewritten. visibility_at_support is an audit
+        // field: effective visibility at payment time
+        // (explicit choice → user's show_supports default → public);
+        // rendering always re-derives effective visibility at read time.
+        try {
+          const supporter = await findUserById(payment.userId);
+          await recordBackingMoment({
+            userId: payment.userId,
+            rankingId: payment.rankingId,
+            profileId: payment.profileId,
+            paymentId: payment.id,
+            credits: payment.credits,
+            rankAtSupport: snapshot?.rank ?? null,
+            totalCreditsAtSupport: snapshot?.totalCredits ?? null,
+            backerCountAtSupport: snapshot?.supporterCount ?? null,
+            supportReason: payment.supportReason,
+            supportReasonText: payment.supportReasonText,
+            visibilityAtSupport: effectiveVisibility(
+              payment.visibilityChoice,
+              supporter?.showSupports ?? null
+            ),
+          });
+        } catch (err) {
+          console.error(
+            "[stripe webhook] recordBackingMoment failed (non-blocking):",
             err
           );
         }
