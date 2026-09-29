@@ -7,6 +7,7 @@ import { VIRAL_RANKING_SLUGS } from "./viralRankings";
 import { RIVALRY_RANKING_SLUGS } from "./rivalryRankings";
 import { TIER_ONE_RANKING_SLUGS } from "./tierOneRankings";
 import { BEAUTY_RANKING_SLUGS } from "./beautyRankings";
+import { FANDOM_RANKING_SLUGS } from "./fandomRankings";
 
 // -----------------------------------------------------------------------
 // Prune legacy rankings: soft-delete pre-launch rankings that are NOT part
@@ -49,6 +50,7 @@ const KEEP_SLUGS: ReadonlySet<string> = new Set([
   ...RIVALRY_RANKING_SLUGS,
   ...TIER_ONE_RANKING_SLUGS,
   ...BEAUTY_RANKING_SLUGS,
+  ...FANDOM_RANKING_SLUGS,
 ]);
 
 async function getOrCreateSystemAccount() {

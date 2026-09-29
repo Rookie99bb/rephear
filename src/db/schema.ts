@@ -6,6 +6,7 @@ import { seedRivalryRankings } from "./rivalryRankings";
 import { seedTierOneRankings } from "./tierOneRankings";
 import { applyCategoryOrder } from "./categoryOrder";
 import { seedBeautyRankings } from "./beautyRankings";
+import { seedFandomRankings } from "./fandomRankings";
 import { seedOpeningSlates } from "./openingSlates";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
@@ -1184,6 +1185,12 @@ export async function ensureMigrated(): Promise<void> {
     // 3 Beauty Creator Rankings — eighth cold-start circle: beauty
     // creators and MUAs with real audiences (not local-service beauty).
     await seedBeautyRankings();
+    // 11 Fandom Rankings (2026-09-29 user-approved research round 1:
+    // anime/gaming/tabletop hooks, identity, tribe, recognition, and
+    // time-sensitive event anticipation for AnimeCon London 2026 +
+    // Noli TCG Card Show). Structure-only, zero nominees; must run
+    // before pruneLegacyRankings() so the new slugs survive pruning.
+    await seedFandomRankings();
     // Apply the user-defined display order of category sections on the
     // /rankings page (University Societies first … Club Nights last).
     // Idempotent: plain UPDATEs keyed off category slug.
