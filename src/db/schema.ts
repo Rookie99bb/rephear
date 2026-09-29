@@ -8,6 +8,7 @@ import { applyCategoryOrder } from "./categoryOrder";
 import { seedBeautyRankings } from "./beautyRankings";
 import { seedFandomRankings } from "./fandomRankings";
 import { seedOpeningSlates } from "./openingSlates";
+import { seedFandomCandidates } from "./seedFandomCandidates";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
 import { seedFakeLikes } from "./seedFakeLikes";
@@ -1199,6 +1200,10 @@ export async function ensureMigrated(): Promise<void> {
     // lands once its candidates finish verification) — natural-rival
     // Nominees placed by the RepHear Team so no Ranking starts empty.
     await seedOpeningSlates();
+    // Fandom candidate backfill (research round 2): official candidates for
+    // the 9 ready Fandom rankings. Idempotent; only fills empty photo_urls
+    // on existing nominees, never overwrites.
+    await seedFandomCandidates();
     // Soft-delete every ranking that isn't one of the 89 cold-start
     // rankings (runs last so seeds always win; idempotent no-op afterwards).
     await pruneLegacyRankings();
