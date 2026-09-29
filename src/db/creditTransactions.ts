@@ -1,5 +1,7 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
+import type { Visibility } from "@/lib/types";
+import { seedAccountExclusion } from "./visibility";
 
 // Append-only ledger. This is the ONLY place Reputation Credits are
 // created — always server-side, always tied to a specific completed
@@ -7,19 +9,27 @@ import { newId } from "@/lib/id";
 // delivered/retried any number of times and credits are only ever
 // granted once (idempotent by construction).
 // createdAt is an optional override used only by the demo seed data.
+//
+// visibility: the supporter's choice from the Support page
+// ("Show that I back X on my profile" vs "Keep private"), carried
+// through the payments row by the Stripe webhook. NULL = inherit the
+// user's account default at read time (see src/db/visibility.ts).
+// It NEVER affects ranking totals — see the SUM() read sites, which
+// deliberately do not filter on it.
 export async function creditProfileForPayment(params: {
   profileId: string;
   rankingId: string;
   supporterUserId: string;
   paymentId: string;
   credits: number;
+  visibility?: Visibility | null;
   createdAt?: string;
 }): Promise<boolean> {
   const result = await db
     .prepare(
       `INSERT OR IGNORE INTO credit_transactions
-        (id, profile_id, ranking_id, supporter_user_id, payment_id, credits, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
+        (id, profile_id, ranking_id, supporter_user_id, payment_id, credits, visibility, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
     )
     .run(
       newId(),
@@ -28,6 +38,7 @@ export async function creditProfileForPayment(params: {
       params.supporterUserId,
       params.paymentId,
       params.credits,
+      params.visibility ?? null,
       params.createdAt ?? null
     );
   return result.changes > 0;
@@ -100,4 +111,68 @@ export async function supportedItemsForUser(
     totalCredits: r.total_credits,
     lastSupportedAt: r.last_supported_at,
   }));
+}
+
+export interface PublicSupporter {
+  userId: string;
+  name: string;
+}
+
+export interface SupporterSummary {
+  // Distinct real supporters with a net-positive credit balance.
+  // Private supporters are INCLUDED here — privacy affects identity
+  // visibility, never ranking contribution (§10 equality).
+  totalSupporters: number;
+  // Only supporters whose EFFECTIVE visibility is 'public'
+  // (COALESCE(ct.visibility, u.show_supports)), seed accounts excluded,
+  // ordered by first support. Render as "Emma · James · Alex · +N
+  // others" where N = totalSupporters - shown — NEVER as "N private
+  // supporters" and never with any private identity attached.
+  publicSupporters: PublicSupporter[];
+}
+
+// Privacy-safe supporter list building block (Phase 2 renders it on
+// nominee pages). Private supporters contribute to totalSupporters but
+// their identities can never appear in publicSupporters — they are
+// excluded in the JOIN, not filtered in UI, so no response, log, or
+// hover-card can ever leak them.
+export async function getSupporterSummary(
+  rankingId: string,
+  profileId: string,
+  limit: number
+): Promise<SupporterSummary> {
+  const seedExcl = seedAccountExclusion("u");
+  const totalRow = (await db
+    .prepare(
+      `SELECT COUNT(DISTINCT ct.supporter_user_id) AS n
+       FROM credit_transactions ct
+       JOIN users u ON u.id = ct.supporter_user_id
+       WHERE ct.ranking_id = ? AND ct.profile_id = ?
+         AND ct.credits > 0 AND ${seedExcl}`
+    )
+    .get(rankingId, profileId)) as unknown as { n: number } | undefined;
+
+  const rows = (await db
+    .prepare(
+      `SELECT DISTINCT ct.supporter_user_id AS user_id, u.name AS name,
+              MIN(ct.created_at) AS first_supported_at
+       FROM credit_transactions ct
+       JOIN users u ON u.id = ct.supporter_user_id
+       WHERE ct.ranking_id = ? AND ct.profile_id = ?
+         AND ct.credits > 0
+         AND COALESCE(ct.visibility, u.show_supports, 'public') = 'public'
+         AND ${seedExcl}
+       GROUP BY ct.supporter_user_id
+       ORDER BY first_supported_at ASC
+       LIMIT ?`
+    )
+    .all(rankingId, profileId, limit)) as unknown as {
+    user_id: string;
+    name: string;
+  }[];
+
+  return {
+    totalSupporters: totalRow?.n ?? 0,
+    publicSupporters: rows.map((r) => ({ userId: r.user_id, name: r.name })),
+  };
 }

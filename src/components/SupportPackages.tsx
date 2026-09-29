@@ -4,32 +4,52 @@ import { useState } from "react";
 import type { CreditPackage } from "@/lib/creditPackages";
 import {
   CREDITS_PER_DOLLAR,
-  CUSTOM_AMOUNT_MIN_DOLLARS,
-  CUSTOM_AMOUNT_MAX_DOLLARS,
+  CREDITS_PER_POUND,
+  CUSTOM_AMOUNT_MIN_UNITS,
+  CUSTOM_AMOUNT_MAX_UNITS,
+  currencySymbol,
+  type SupportCurrency,
 } from "@/lib/creditPackages";
+import type { Visibility } from "@/lib/types";
+
+const CURRENCIES: SupportCurrency[] = ["usd", "gbp"];
 
 export default function SupportPackages({
   rankingId,
   profileId,
+  profileName,
   packages,
+  defaultVisibility,
 }: {
   rankingId: string;
   profileId: string;
+  profileName: string;
   packages: CreditPackage[];
+  defaultVisibility: Visibility;
 }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [customLoading, setCustomLoading] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<SupportCurrency>("usd");
+  const [showPublic, setShowPublic] = useState(defaultVisibility === "public");
 
   const busy = loadingId !== null || customLoading;
+  const symbol = currencySymbol(currency);
+  const perUnit = currency === "gbp" ? CREDITS_PER_POUND : CREDITS_PER_DOLLAR;
 
   async function startCheckout(body: Record<string, unknown>) {
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rankingId, profileId, ...body }),
+      body: JSON.stringify({
+        rankingId,
+        profileId,
+        currency,
+        visibilityChoice: (showPublic ? "public" : "private") as Visibility,
+        ...body,
+      }),
     });
     const data = await res.json();
     if (!res.ok || !data.url) {
@@ -53,38 +73,84 @@ export default function SupportPackages({
     e.preventDefault();
     setCustomError(null);
 
-    const dollars = Number(customAmount);
+    const units = Number(customAmount);
     if (
-      !Number.isInteger(dollars) ||
-      dollars < CUSTOM_AMOUNT_MIN_DOLLARS ||
-      dollars > CUSTOM_AMOUNT_MAX_DOLLARS
+      !Number.isInteger(units) ||
+      units < CUSTOM_AMOUNT_MIN_UNITS ||
+      units > CUSTOM_AMOUNT_MAX_UNITS
     ) {
       setCustomError(
-        `Enter a whole dollar amount between $${CUSTOM_AMOUNT_MIN_DOLLARS} and $${CUSTOM_AMOUNT_MAX_DOLLARS}.`
+        `Enter a whole amount between ${symbol}${CUSTOM_AMOUNT_MIN_UNITS} and ${symbol}${CUSTOM_AMOUNT_MAX_UNITS}.`
       );
       return;
     }
 
     setCustomLoading(true);
     try {
-      await startCheckout({ customAmountDollars: dollars });
+      await startCheckout({ customAmount: units });
     } catch (err) {
       setCustomError(err instanceof Error ? err.message : "Could not start checkout.");
       setCustomLoading(false);
     }
   }
 
-  // Live preview of the Credits a custom dollar amount would grant —
-  // purely cosmetic, the server independently computes (and is the only
-  // source of truth for) the real amount in api/checkout/route.ts.
-  const customDollarsPreview = Number(customAmount);
+  // Live preview of the Credits a custom amount would grant — purely
+  // cosmetic, the server independently computes (and is the only source
+  // of truth for) the real amount in api/checkout/route.ts.
+  const customUnitsPreview = Number(customAmount);
   const showCustomPreview =
     customAmount.trim() !== "" &&
-    Number.isInteger(customDollarsPreview) &&
-    customDollarsPreview > 0;
+    Number.isInteger(customUnitsPreview) &&
+    customUnitsPreview > 0;
+
+  // Fixed packages are defined by credit grant; the price in the chosen
+  // currency follows the same unit rate (£1 = 10 credits, like $1 = 10).
+  function packagePrice(pkg: CreditPackage): string {
+    const minor = currency === "usd" ? pkg.priceCents : pkg.credits * 10;
+    return `${symbol}${(minor / 100).toFixed(2)}`;
+  }
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Like vs Support, stated plainly (§1, §14). Supporting is a
+          PAID action — the copy must never let it read as free. */}
+      <div className="rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed">
+        <p className="text-ink">
+          <span className="font-semibold">👍 Like</span>
+          <span className="text-subtle"> says “I recognise you.” — free.</span>
+        </p>
+        <p className="mt-1 text-ink">
+          <span className="font-semibold">❤️ Support</span>
+          <span className="text-subtle">
+            {" "}
+            says “I stand behind you.” — a paid action. Your payment buys
+            Reputation Credits for {profileName}, counted toward Most
+            Supported.
+          </span>
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-subtle">Currency</span>
+        <div className="flex rounded-lg border border-border p-0.5">
+          {CURRENCIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              disabled={busy}
+              onClick={() => setCurrency(c)}
+              className={`rounded-md px-3 py-1 text-sm font-medium transition disabled:opacity-50 ${
+                currency === c
+                  ? "bg-ink text-white"
+                  : "text-subtle hover:text-ink"
+              }`}
+            >
+              {c === "usd" ? "USD $" : "GBP £"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {packages.map((pkg) => (
         <button
           key={pkg.id}
@@ -94,9 +160,7 @@ export default function SupportPackages({
         >
           <span className="text-sm font-medium text-ink">{pkg.label}</span>
           <span className="text-sm text-subtle">
-            {loadingId === pkg.id
-              ? "Redirecting…"
-              : `$${(pkg.priceCents / 100).toFixed(2)}`}
+            {loadingId === pkg.id ? "Redirecting…" : packagePrice(pkg)}
           </span>
         </button>
       ))}
@@ -110,15 +174,15 @@ export default function SupportPackages({
           Custom amount
         </label>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-subtle">$</span>
+          <span className="text-sm text-subtle">{symbol}</span>
           <input
             id="custom-amount"
             type="number"
             inputMode="numeric"
-            min={CUSTOM_AMOUNT_MIN_DOLLARS}
-            max={CUSTOM_AMOUNT_MAX_DOLLARS}
+            min={CUSTOM_AMOUNT_MIN_UNITS}
+            max={CUSTOM_AMOUNT_MAX_UNITS}
             step={1}
-            placeholder={`${CUSTOM_AMOUNT_MIN_DOLLARS}–${CUSTOM_AMOUNT_MAX_DOLLARS}`}
+            placeholder={`${CUSTOM_AMOUNT_MIN_UNITS}–${CUSTOM_AMOUNT_MAX_UNITS}`}
             value={customAmount}
             disabled={busy}
             onChange={(e) => setCustomAmount(e.target.value)}
@@ -134,11 +198,34 @@ export default function SupportPackages({
         </div>
         {showCustomPreview && (
           <p className="text-xs text-subtle">
-            = {(customDollarsPreview * CREDITS_PER_DOLLAR).toLocaleString()} Reputation Credits
+            = {(customUnitsPreview * perUnit).toLocaleString()} Reputation Credits
           </p>
         )}
         {customError && <p className="text-sm text-red-600">{customError}</p>}
       </form>
+
+      {/* Visibility choice (§9, §14). Private is control, not status:
+          a private Support counts exactly the same toward the ranking. */}
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border px-4 py-3">
+        <input
+          type="checkbox"
+          checked={showPublic}
+          disabled={busy}
+          onChange={(e) => setShowPublic(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-pink-600"
+        />
+        <span className="text-sm">
+          <span className="font-medium text-ink">
+            Show that I back {profileName} on my profile
+          </span>
+          <span className="block text-xs text-subtle">
+            {showPublic
+              ? "This Support may appear as part of your public RepHear identity."
+              : "🔒 Kept private — it still counts fully toward Most Supported, but stays in your history only."}{" "}
+            You can change this anytime in Settings → Privacy.
+          </span>
+        </span>
+      </label>
 
       <p className="text-xs text-subtle">
         Payments are processed securely by Stripe. Reputation Credits are

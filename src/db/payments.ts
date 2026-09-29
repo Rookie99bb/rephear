@@ -1,6 +1,7 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
-import type { Payment, PaymentStatus } from "@/lib/types";
+import type { Payment, PaymentStatus, Visibility } from "@/lib/types";
+import { isVisibility } from "./visibility";
 
 interface PaymentRow {
   id: string;
@@ -11,6 +12,7 @@ interface PaymentRow {
   credits: number;
   amount_cents: number;
   currency: string;
+  visibility_choice: string | null;
   stripe_checkout_session_id: string;
   stripe_payment_intent_id: string | null;
   status: string;
@@ -28,6 +30,10 @@ function toPayment(row: PaymentRow): Payment {
     credits: row.credits,
     amountCents: row.amount_cents,
     currency: row.currency,
+    // Column is NOT NULL DEFAULT 'public'; fallback is defensive.
+    visibilityChoice: isVisibility(row.visibility_choice)
+      ? row.visibility_choice
+      : "public",
     stripeCheckoutSessionId: row.stripe_checkout_session_id,
     stripePaymentIntentId: row.stripe_payment_intent_id,
     status: row.status as PaymentStatus,
@@ -48,6 +54,7 @@ export async function createPendingPayment(params: {
   credits: number;
   amountCents: number;
   currency: string;
+  visibilityChoice: Visibility;
   stripeCheckoutSessionId: string;
   createdAt?: string;
 }): Promise<Payment> {
@@ -55,8 +62,8 @@ export async function createPendingPayment(params: {
   await db
     .prepare(
       `INSERT INTO payments
-      (id, user_id, ranking_id, profile_id, package_id, credits, amount_cents, currency, stripe_checkout_session_id, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', COALESCE(?, datetime('now')))`
+      (id, user_id, ranking_id, profile_id, package_id, credits, amount_cents, currency, visibility_choice, stripe_checkout_session_id, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', COALESCE(?, datetime('now')))`
     )
     .run(
       id,
@@ -67,6 +74,7 @@ export async function createPendingPayment(params: {
       params.credits,
       params.amountCents,
       params.currency,
+      params.visibilityChoice,
       params.stripeCheckoutSessionId,
       params.createdAt ?? null
     );

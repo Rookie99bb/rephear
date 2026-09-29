@@ -491,6 +491,7 @@ async function insertSeedData(): Promise<void> {
           credits: pkg.credits,
           amountCents: pkg.priceCents,
           currency: "usd",
+          visibilityChoice: "public",
           stripeCheckoutSessionId: sessionId,
           createdAt: daysAgo(paymentDaysAgo),
         });

@@ -62,6 +62,13 @@ export default function CheckoutBanner() {
                 rankingId: data.rankingId,
                 credits: data.credits,
                 totalCredits: data.totalCredits,
+                amountCents: data.amountCents,
+                currency: data.currency,
+                visibility: data.visibility,
+                rankBefore: data.rankBefore,
+                rankAfter: data.rankAfter,
+                isFirstSupport: data.isFirstSupport,
+                supporterNumber: data.supporterNumber,
               });
               setConfirming(false);
               router.replace(pathname);

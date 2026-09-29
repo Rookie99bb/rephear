@@ -1,6 +1,7 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
-import type { User } from "@/lib/types";
+import type { User, Visibility } from "@/lib/types";
+import { isVisibility } from "./visibility";
 
 interface UserRow {
   id: string;
@@ -11,6 +12,8 @@ interface UserRow {
   location: string | null;
   is_admin: number;
   invite_bonus_likes: number;
+  show_likes: string | null;
+  show_supports: string | null;
 }
 
 function toUser(row: UserRow): User {
@@ -23,6 +26,10 @@ function toUser(row: UserRow): User {
     location: row.location,
     isAdmin: !!row.is_admin,
     inviteBonusLikes: row.invite_bonus_likes ?? 0,
+    // Columns are NOT NULL DEFAULT 'public'; the fallback is purely
+    // defensive for rows predating the migration on exotic setups.
+    showLikes: isVisibility(row.show_likes) ? row.show_likes : "public",
+    showSupports: isVisibility(row.show_supports) ? row.show_supports : "public",
   };
 }
 
@@ -69,6 +76,41 @@ export async function createUser(params: {
 // and can change it any time from Settings.
 export async function setUserLocation(userId: string, location: string): Promise<void> {
   await db.prepare("UPDATE users SET location = ? WHERE id = ?").run(location, userId);
+}
+
+// Phase 1 (v2 redesign): account-level visibility defaults ("Show my
+// Likes" / "Show my Supports", Settings → Privacy). Only the supplied
+// fields are updated; values are validated to 'public' | 'private'.
+// Flipping a default retroactively re-curates the user's public identity
+// because effective visibility is computed at read time (see
+// src/db/visibility.ts) — no backfill needed.
+export async function getUserVisibility(
+  userId: string
+): Promise<{ showLikes: Visibility; showSupports: Visibility }> {
+  const user = await findUserById(userId);
+  if (!user) throw new Error("User not found");
+  return { showLikes: user.showLikes, showSupports: user.showSupports };
+}
+
+export async function setUserVisibility(
+  userId: string,
+  patch: { showLikes?: Visibility; showSupports?: Visibility }
+): Promise<void> {
+  const sets: string[] = [];
+  const args: (string | number)[] = [];
+  if (patch.showLikes !== undefined) {
+    if (!isVisibility(patch.showLikes)) throw new Error("Invalid visibility");
+    sets.push("show_likes = ?");
+    args.push(patch.showLikes);
+  }
+  if (patch.showSupports !== undefined) {
+    if (!isVisibility(patch.showSupports)) throw new Error("Invalid visibility");
+    sets.push("show_supports = ?");
+    args.push(patch.showSupports);
+  }
+  if (sets.length === 0) return;
+  args.push(userId);
+  await db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...args);
 }
 
 // Used by the forgot-password flow once a reset code has been verified

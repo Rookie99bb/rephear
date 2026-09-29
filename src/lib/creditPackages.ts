@@ -26,6 +26,35 @@ export function findCreditPackage(id: string): CreditPackage | undefined {
 // Credits the exact same way instead of hardcoding "10" a second time.
 export const CREDITS_PER_DOLLAR = 10;
 
+// Phase 1 (v2 redesign): GBP support (2026-09-29 product decision).
+// Same unit economics as USD — £1 = 10 credits, NO foreign-exchange
+// conversion. Different currencies are never added together; the
+// payments row records which currency was actually charged.
+export const CREDITS_PER_POUND = 10;
+
+export const SUPPORTED_CURRENCIES = ["usd", "gbp"] as const;
+export type SupportCurrency = (typeof SUPPORTED_CURRENCIES)[number];
+
+export function isSupportCurrency(value: unknown): value is SupportCurrency {
+  return value === "usd" || value === "gbp";
+}
+
+export function currencySymbol(currency: string): string {
+  return currency === "gbp" ? "£" : "$";
+}
+
+// Credits granted per whole unit of the given currency.
+export function creditsPerUnit(currency: SupportCurrency): number {
+  return currency === "gbp" ? CREDITS_PER_POUND : CREDITS_PER_DOLLAR;
+}
+
+// Whole-unit bounds for a custom Support amount (same in both
+// currencies). Minimum keeps every charge comfortably above Stripe's own
+// minimums; maximum is a sanity ceiling against a fat-fingered extra
+// zero, not a real spending limit.
+export const CUSTOM_AMOUNT_MIN_UNITS = 1;
+export const CUSTOM_AMOUNT_MAX_UNITS = 1000;
+
 // Whole-dollar bounds for a custom Support amount. Minimum keeps every
 // charge comfortably above Stripe's own $0.50 minimum; maximum is a
 // sanity ceiling against a fat-fingered extra zero, not a real spending

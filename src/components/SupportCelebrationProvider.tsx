@@ -9,6 +9,16 @@ export interface CelebrationData {
   rankingId: string;
   credits: number;
   totalCredits?: number;
+  // Phase 1 (v2 redesign): §15 four-part post-support experience. Every
+  // field is computed from real data by /api/checkout/status — the
+  // dialog never fabricates rank movement or milestones.
+  amountCents?: number;
+  currency?: string;
+  visibility?: "public" | "private";
+  rankBefore?: number | null;
+  rankAfter?: number | null;
+  isFirstSupport?: boolean;
+  supporterNumber?: number | null;
 }
 
 interface CelebrationContextValue {

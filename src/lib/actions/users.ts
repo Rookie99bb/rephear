@@ -12,6 +12,42 @@ import {
 import { isValidLocation } from "@/lib/locations";
 import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
 import { getRequestContext } from "@/lib/requestContext";
+import { setUserVisibility } from "@/db/users";
+import { isVisibility } from "@/db/visibility";
+
+// Visibility defaults (Settings → Privacy, Phase 1). showLikes controls
+// the default visibility of Likes; showSupports the default Support
+// visibility pre-checked at checkout. Neither is a status — a private
+// Like/Support counts exactly the same toward the ranking; it only
+// stays in the user's own history.
+export async function setVisibilityAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "You must be logged in to change privacy settings." };
+  }
+
+  const showLikes = String(formData.get("showLikes") || "");
+  const showSupports = String(formData.get("showSupports") || "");
+  if (!isVisibility(showLikes) || !isVisibility(showSupports)) {
+    return { error: "Please choose a valid visibility option." };
+  }
+
+  await setUserVisibility(user.id, {
+    showLikes,
+    showSupports,
+  });
+  revalidatePath("/settings");
+  return {};
+}
+
+// Plain (formData) => Promise<void> wrapper for binding directly to a
+// native <form action={...}> without useFormState.
+export async function submitVisibilityAction(formData: FormData): Promise<void> {
+  await setVisibilityAction({}, formData);
+}
 
 export interface ActionResult {
   error?: string;

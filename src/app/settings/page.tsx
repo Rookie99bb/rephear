@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentFullUser } from "@/lib/session";
-import { submitLocationAction } from "@/lib/actions/users";
+import {
+  submitLocationAction,
+  submitVisibilityAction,
+} from "@/lib/actions/users";
 import { LOCATIONS } from "@/lib/locations";
 import { likedItemsForUser, type LikedItem } from "@/db/likes";
 import {
@@ -88,6 +91,74 @@ export default async function SettingsPage() {
               {location}
             </button>
           ))}
+        </form>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-subtle">
+          Privacy
+        </h2>
+        <p className="mb-3 text-sm text-subtle">
+          Who can see your Likes and Supports. Private is control, not
+          status — a private Like or Support still counts fully toward the
+          ranking; it only stays in your own history.
+        </p>
+        <form action={submitVisibilityAction} className="flex flex-col gap-4">
+          {(
+            [
+              {
+                name: "showLikes" as const,
+                label: "My Likes",
+                current: user.showLikes,
+                publicText: "Public — my Likes may appear on my public profile",
+                privateText: "Private — my Likes stay in my history only",
+              },
+              {
+                name: "showSupports" as const,
+                label: "My Supports",
+                current: user.showSupports,
+                publicText:
+                  "Public — pre-check “Show that I back them” at checkout",
+                privateText: "Private — pre-check “Keep this Support private”",
+              },
+            ]
+          ).map((field) => (
+            <div key={field.name}>
+              <p className="mb-1 text-sm font-medium text-ink">{field.label}</p>
+              <div className="flex flex-col gap-2">
+                {(
+                  [
+                    { value: "public", text: field.publicText },
+                    { value: "private", text: field.privateText },
+                  ] as const
+                ).map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                      field.current === opt.value
+                        ? "border-ink bg-surface font-medium text-ink"
+                        : "border-border text-subtle hover:border-ink"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={field.name}
+                      value={opt.value}
+                      defaultChecked={field.current === opt.value}
+                      className="accent-pink-600"
+                    />
+                    {opt.text}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            type="submit"
+            className="w-fit rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+          >
+            Save privacy settings
+          </button>
         </form>
       </div>
 

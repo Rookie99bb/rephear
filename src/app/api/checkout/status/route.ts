@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findPaymentBySessionId } from "@/db/payments";
 import { findProfileById, getProfileStats } from "@/db/profiles";
+import { getSupportedRankSnapshot } from "@/db/leaderboards";
+import { getConvictionRecord } from "@/db/convictionRecords";
 import { getCurrentUser } from "@/lib/session";
 
 // Polled by CheckoutBanner right after Stripe redirects back to
@@ -10,6 +12,17 @@ import { getCurrentUser } from "@/lib/session";
 // the time the browser lands back on the page), so the client polls
 // this a few times until status flips to "completed" before firing the
 // celebration dialog / card glow.
+//
+// Phase 1 (v2 redesign): on completion this also returns the data for
+// the §15 four-part post-support experience, ALL computed from real
+// data — nothing is hardcoded or fabricated:
+//  - amountCents/currency: what the supporter actually paid
+//  - visibility: the choice they made at checkout
+//  - rankBefore: the nominee's Most-Supported rank BEFORE this payment
+//    (from conviction_records, captured pre-payment by the webhook)
+//  - rankAfter: the live rank NOW (after the credits landed)
+//  - isFirstSupport: whether this payment created the conviction record
+//  - supporterNumber: Nth supporter (only meaningful on first support)
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
@@ -32,10 +45,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ status: payment.status });
   }
 
-  const [profile, stats] = await Promise.all([
+  const [profile, stats, snapshot, conviction] = await Promise.all([
     findProfileById(payment.profileId),
     getProfileStats(payment.profileId),
+    getSupportedRankSnapshot(payment.rankingId, payment.profileId),
+    getConvictionRecord(payment.userId, payment.rankingId, payment.profileId),
   ]);
+
+  const isFirstSupport =
+    conviction !== null && conviction.firstPaymentId === payment.id;
 
   return NextResponse.json({
     status: "completed",
@@ -44,5 +62,15 @@ export async function GET(request: NextRequest) {
     rankingId: payment.rankingId,
     credits: payment.credits,
     totalCredits: stats.totalReputationCredits,
+    amountCents: payment.amountCents,
+    currency: payment.currency,
+    visibility: payment.visibilityChoice,
+    rankBefore: conviction?.rankAtFirstSupport ?? null,
+    rankAfter: snapshot?.rank ?? null,
+    isFirstSupport,
+    supporterNumber:
+      isFirstSupport && conviction?.supporterCountAtFirstSupport != null
+        ? conviction.supporterCountAtFirstSupport + 1
+        : null,
   });
 }

@@ -12,6 +12,8 @@ import {
   creditProfileForPayment,
   reverseCreditsForPayment,
 } from "@/db/creditTransactions";
+import { getSupportedRankSnapshot } from "@/db/leaderboards";
+import { recordConviction } from "@/db/convictionRecords";
 import {
   bookCommissionForPayment,
   reverseCommissionForPayment,
@@ -68,13 +70,49 @@ export async function POST(request: NextRequest) {
       // redelivery of an event we already processed — only fire the
       // notification/email the first time Credits are actually granted,
       // never on a Stripe retry of the same event.
+      //
+      // Phase 1 (v2 redesign): the supporter's visibility choice was
+      // recorded on the payments row at checkout creation (BEFORE Stripe
+      // payment completed), so there is no race — the webhook just reads
+      // it and stores it on the credit row. The conviction snapshot is
+      // taken BEFORE the credits land (pre-payment state = the world the
+      // supporter actually judged).
+      const snapshot = await getSupportedRankSnapshot(
+        payment.rankingId,
+        payment.profileId
+      );
       const granted = await creditProfileForPayment({
         profileId: payment.profileId,
         rankingId: payment.rankingId,
         supporterUserId: payment.userId,
         paymentId: payment.id,
         credits: payment.credits,
+        visibility: payment.visibilityChoice,
       });
+      if (granted) {
+        // Non-blocking like the commission ledger below: a conviction-
+        // record failure must never disturb the Support/Credits flow.
+        // (Stripe redeliveries no-op here anyway via INSERT OR IGNORE +
+        // the granted gate.)
+        try {
+          await recordConviction({
+            userId: payment.userId,
+            rankingId: payment.rankingId,
+            profileId: payment.profileId,
+            rankAtSupport: snapshot?.rank ?? null,
+            supporterCountAtSupport: snapshot?.supporterCount ?? null,
+            paymentId: payment.id,
+            amountCents: payment.amountCents,
+            currency: payment.currency,
+            visibility: payment.visibilityChoice,
+          });
+        } catch (err) {
+          console.error(
+            "[stripe webhook] recordConviction failed (non-blocking):",
+            err
+          );
+        }
+      }
       // Referrer commission ledger (PRD 推荐官返佣): books a pending
       // commission for the payer's referrer, if any. Idempotent via
       // UNIQUE(payment_id); never throws and never blocks the webhook —

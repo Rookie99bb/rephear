@@ -1,25 +1,34 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
+import type { Visibility } from "@/lib/types";
 
 // One Like per user per Nominee per Ranking, enforced by the UNIQUE
 // constraint on (ranking_id, profile_id, user_id) in the schema.
 // createdAt is an optional override used only by the demo seed data.
+//
+// visibility: per-action override, NULL = inherit the user's
+// show_likes default at read time (see src/db/visibility.ts). likeAction
+// deliberately does not set it (no per-Like UI in Phase 1) — and the
+// vote-to-enter raffle hook in likeAction never consults it, so a
+// private Like still earns its raffle entry exactly like a public one.
 export async function addLike(params: {
   rankingId: string;
   profileId: string;
   userId: string;
+  visibility?: Visibility | null;
   createdAt?: string;
 }): Promise<boolean> {
   const result = await db
     .prepare(
-      `INSERT OR IGNORE INTO likes (id, ranking_id, profile_id, user_id, created_at)
-VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')))`
+      `INSERT OR IGNORE INTO likes (id, ranking_id, profile_id, user_id, visibility, created_at)
+VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`
     )
     .run(
       newId(),
       params.rankingId,
       params.profileId,
       params.userId,
+      params.visibility ?? null,
       params.createdAt ?? null
     );
   return result.changes > 0;
@@ -74,16 +83,19 @@ export async function likeCountForUser(
 // same UNIQUE (ranking_id, profile_id, user_id) row as a plain Like always
 // has, the first Like inserts count=1, every Like after that (unlocked by
 // a Share, see likeAction) increments count on that same row via upsert.
+// visibility is only written on the initial INSERT — a later increment
+// never changes it (per-action visibility UI arrives in a later phase).
 export async function incrementLike(params: {
   rankingId: string;
   profileId: string;
   userId: string;
+  visibility?: Visibility | null;
   createdAt?: string;
 }): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO likes (id, ranking_id, profile_id, user_id, created_at, count)
-VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), 1)
+      `INSERT INTO likes (id, ranking_id, profile_id, user_id, visibility, created_at, count)
+VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')), 1)
 ON CONFLICT (ranking_id, profile_id, user_id)
 DO UPDATE SET count = count + 1`
     )
@@ -92,6 +104,7 @@ DO UPDATE SET count = count + 1`
       params.rankingId,
       params.profileId,
       params.userId,
+      params.visibility ?? null,
       params.createdAt ?? null
     );
 }

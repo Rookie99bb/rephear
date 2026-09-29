@@ -11,7 +11,21 @@ export interface User {
   // grantInviteBonusLikes in src/db/users.ts). Stacks on top of the
   // existing Share-based unlock in likeAction, never spent/decremented.
   inviteBonusLikes: number;
+  // Phase 1 (v2 redesign): account-level visibility defaults for the
+  // user's public RepHear identity. 'public' = this kind of action may
+  // appear publicly; 'private' = it stays in private history/taste only.
+  // Both default to 'public' (2026-09-29 product decision).
+  showLikes: Visibility;
+  showSupports: Visibility;
 }
+
+// Phase 1 (v2 redesign): visibility of a Like / paid Support.
+// 'public'  → may become part of the user's public RepHear identity.
+// 'private' → remains in the user's private history; still counts fully
+//             toward ranking totals. Privacy is control, not status:
+//             private actions are NEVER worth less, ranked lower, or
+//             labelled as a lesser category.
+export type Visibility = "public" | "private";
 
 export interface Ranking {
   id: string;
@@ -84,6 +98,12 @@ export interface Payment {
   credits: number;
   amountCents: number;
   currency: string;
+  // Phase 1 (v2 redesign): the visibility choice the supporter made on
+  // the Support page ("Show that I back X on my profile" vs "Keep this
+  // Support private"), recorded at checkout creation — BEFORE Stripe
+  // payment completes — so the async webhook can store it on the
+  // credit_transactions row without a race.
+  visibilityChoice: Visibility;
   stripeCheckoutSessionId: string;
   stripePaymentIntentId: string | null;
   status: PaymentStatus;

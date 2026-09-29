@@ -978,6 +978,89 @@ async function seedReferralCommissionRuleV1(): Promise<void> {
   });
 }
 
+// Phase 1 (v2 redesign): privacy foundation. Account-level visibility
+// defaults plus per-action overrides. All additive, all guarded, safe to
+// run on every boot:
+//
+// - users.show_likes / users.show_supports: 'public' | 'private',
+//   NOT NULL DEFAULT 'public' — the user's chosen default for how their
+//   Likes / paid Supports appear in their public identity. 'public' is
+//   the default per the 2026-09-29 product decision.
+// - likes.visibility / credit_transactions.visibility: NULL | 'public' |
+//   'private'. NULL means "inherit the user's account default at read
+//   time" (see effectiveVisibility in src/db/visibility.ts) — so adding
+//   per-action visibility UI later needs no new migration.
+// - payments.visibility_choice: the Support-page visibility choice,
+//   recorded at checkout creation (BEFORE Stripe payment completes) so
+//   the async webhook can store it on the credit row without a race.
+//
+// - conviction_records.first_amount_cents / first_currency /
+//   first_visibility: the amount, currency actually charged, and the
+//   visibility choice of the FIRST paid Support (immutable, like the
+//   rest of the first-support snapshot).
+//
+// Ranking aggregates must NEVER filter on any of these columns — private
+// actions count exactly like public ones (see plan-v2.md invariant #1).
+async function addPhase1VisibilityColumnsIfMissing() {
+  const alters: [string, string][] = [
+    ["users", "show_likes TEXT NOT NULL DEFAULT 'public'"],
+    ["users", "show_supports TEXT NOT NULL DEFAULT 'public'"],
+    ["likes", "visibility TEXT"],
+    ["credit_transactions", "visibility TEXT"],
+    ["payments", "visibility_choice TEXT NOT NULL DEFAULT 'public'"],
+    ["conviction_records", "first_amount_cents INTEGER"],
+    ["conviction_records", "first_currency TEXT NOT NULL DEFAULT 'usd'"],
+    ["conviction_records", "first_visibility TEXT"],
+  ];
+  for (const [table, def] of alters) {
+    try {
+      await rawClient.execute({
+        sql: `ALTER TABLE ${table} ADD COLUMN ${def};`,
+        args: [],
+      });
+    } catch {
+      // Column already exists, nothing to do.
+    }
+  }
+}
+
+// Phase 1 (v2 redesign): conviction record — one row per
+// (user, ranking, nominee), created on their FIRST paid Support.
+// Captures the §4 "conviction record" snapshot at payment completion:
+// the nominee's Most-Supported rank and distinct supporter count BEFORE
+// this payment's credits land (pre-payment state = the world the user
+// actually judged). rank_at_first_support / supporter_count_at_first_support
+// are NEVER rewritten; repeat supports only bump last_supported_at.
+// Tracking starts at deploy — history is never fabricated or backfilled.
+async function createConvictionRecordsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS conviction_records (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      first_supported_at TEXT NOT NULL DEFAULT (datetime('now')),
+      rank_at_first_support INTEGER,
+      supporter_count_at_first_support INTEGER,
+      first_payment_id TEXT NOT NULL REFERENCES payments(id),
+      first_amount_cents INTEGER,
+      first_currency TEXT NOT NULL DEFAULT 'usd',
+      first_visibility TEXT,
+      last_supported_at TEXT,
+      UNIQUE (user_id, ranking_id, profile_id)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_conviction_user ON conviction_records(user_id);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_conviction_profile ON conviction_records(ranking_id, profile_id);`,
+    args: [],
+  });
+}
+
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
 // import time, since the underlying Turso client is async and there's
@@ -1000,6 +1083,8 @@ export async function ensureMigrated(): Promise<void> {
     await addLikesCountColumnIfMissing();
     await addIsAdminColumnIfMissing();
     await addInviteBonusLikesColumnToUsersIfMissing();
+    await addPhase1VisibilityColumnsIfMissing();
+    await createConvictionRecordsTableIfMissing();
     await addProfileShareTokenColumnIfMissing();
     await backfillProfileShareTokens();
     await seedReferralCommissionRuleV1();

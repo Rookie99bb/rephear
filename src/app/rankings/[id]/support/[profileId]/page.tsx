@@ -3,6 +3,7 @@ import Link from "next/link";
 import { findRankingById } from "@/db/rankings";
 import { findProfileById } from "@/db/profiles";
 import { getCurrentUser } from "@/lib/session";
+import { findUserById } from "@/db/users";
 import { CREDIT_PACKAGES } from "@/lib/creditPackages";
 import Avatar from "@/components/Avatar";
 import SupportPackages from "@/components/SupportPackages";
@@ -20,6 +21,7 @@ export default async function SupportPage({
   if (!user) {
     redirect(`/login`);
   }
+  const fullUser = await findUserById(user.id);
 
   return (
     <div className="mx-auto max-w-md">
@@ -44,7 +46,9 @@ export default async function SupportPage({
         <SupportPackages
           rankingId={ranking.id}
           profileId={profile.id}
+          profileName={profile.name}
           packages={CREDIT_PACKAGES}
+          defaultVisibility={fullUser?.showSupports ?? "public"}
         />
       </div>
     </div>
