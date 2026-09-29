@@ -1139,6 +1139,141 @@ async function createBackingMomentsTableIfMissing() {
   });
 }
 
+// Phase 3 (milestones, notifications, movement, discovery, follows):
+// milestone_events — the factual event stream for timelines (5.4),
+// notifications (5.5) and share cards (5.6). Written ONLY by the
+// milestone cron; each threshold fires once per (ranking, nominee) EVER
+// (UNIQUE key + INSERT OR IGNORE). Verbatim DDL from the integration
+// plan §4.
+async function createMilestoneEventsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS milestone_events (
+      id TEXT PRIMARY KEY,
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      type TEXT NOT NULL,
+      rank_at_event INTEGER,
+      credits_at_event INTEGER,
+      backers_at_event INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (ranking_id, profile_id, type)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_milestone_profile ON milestone_events(ranking_id, profile_id, created_at);`,
+    args: [],
+  });
+}
+
+// Phase 3 (§7 Early Backer recognition): one row per user/nominee/
+// threshold crossed. Basis is WHEN (first backing moment predates the
+// crossing), never HOW MUCH. UNIQUE key makes cron re-runs idempotent.
+async function createEarlyBackerAwardsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS early_backer_awards (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      milestone_type TEXT NOT NULL,
+      awarded_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, ranking_id, profile_id, milestone_type)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_early_backer_user ON early_backer_awards(user_id, awarded_at);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_early_backer_profile ON early_backer_awards(ranking_id, profile_id);`,
+    args: [],
+  });
+}
+
+// Phase 3 (§16): in-app notification center. Email/push are explicitly
+// LATER — new channels need their own opt-in; never piggyback digest
+// email consent. users.notify_milestones defaults to 1 (conservative
+// default: milestones only).
+async function createNotificationsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      link TEXT,
+      read_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at);`,
+    args: [],
+  });
+}
+
+async function addNotifyMilestonesColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: `ALTER TABLE users ADD COLUMN notify_milestones INTEGER NOT NULL DEFAULT 1;`,
+      args: [],
+    });
+  } catch {
+    // Column already exists, nothing to do.
+  }
+}
+
+// Phase 3 (§23/§26): daily rank snapshots powering movement ↑↓ and
+// momentum on ranking pages. One row per (ranking, nominee, board, day);
+// the snapshot job is idempotent via the UNIQUE key.
+async function createRankingSnapshotsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS ranking_snapshots (
+      id TEXT PRIMARY KEY,
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      board TEXT NOT NULL,
+      rank INTEGER NOT NULL,
+      snapshot_date TEXT NOT NULL,
+      UNIQUE (ranking_id, profile_id, board, snapshot_date)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_ranking_snapshots_lookup ON ranking_snapshots(ranking_id, board, snapshot_date);`,
+    args: [],
+  });
+}
+
+// Phase 3 (§19): follows — rankings + communities (categories) ONLY.
+// User-follows are explicitly out of scope; target_type is allowlisted
+// in src/db/follows.ts.
+async function createFollowsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS follows (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, target_type, target_id)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_follows_target ON follows(target_type, target_id, created_at);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_follows_user ON follows(user_id, created_at);`,
+    args: [],
+  });
+}
+
 // Phase 2 (public identity): minimal report/block moderation primitives.
 // user_reports: one row per report; status 'pending' | 'reviewed'.
 // user_blocks: idempotent block edges (UNIQUE blocker/blocked).
@@ -1208,6 +1343,12 @@ export async function ensureMigrated(): Promise<void> {
     await createConvictionRecordsTableIfMissing();
     await addPhase51MomentColumnsIfMissing();
     await createBackingMomentsTableIfMissing();
+    await createMilestoneEventsTableIfMissing();
+    await createEarlyBackerAwardsTableIfMissing();
+    await createNotificationsTableIfMissing();
+    await addNotifyMilestonesColumnIfMissing();
+    await createRankingSnapshotsTableIfMissing();
+    await createFollowsTableIfMissing();
     await createUserReportsAndBlocksIfMissing();
     await addUserIsHiddenColumnIfMissing();
     await addProfileShareTokenColumnIfMissing();

@@ -6,8 +6,11 @@ import { likeCountsForUser } from "@/db/likes";
 import { shareCountsForUser } from "@/db/shares";
 import { getCurrentUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import { getMovement } from "@/db/rankingSnapshots";
+import { isFollowing } from "@/db/follows";
 import AddNomineeForm from "@/components/AddNomineeForm";
 import LeaderboardTable from "@/components/LeaderboardTable";
+import FollowButton from "@/components/FollowButton";
 import CheckoutBanner from "@/components/CheckoutBanner";
 import RaffleBanner from "@/components/RaffleBanner";
 import { Suspense } from "react";
@@ -70,6 +73,17 @@ allowedLikes: 1 + (shareCounts.get(entry.profile.id) ?? 0),
 },
 ])
 );
+// Phase 3 (§23/§26): snapshot-backed movement for both boards. Empty
+// maps when fewer than two daily snapshots exist — LeaderboardTable
+// then renders no arrows (never inferred).
+const [lovedMovement, supportedMovement] = await Promise.all([
+getMovement(ranking.id, "loved"),
+getMovement(ranking.id, "supported"),
+]);
+// Phase 3 (§19): follow-this-ranking state for the signed-in user.
+const following = user
+? await isFollowing(user.id, "ranking", ranking.id)
+: false;
 
 return (
 <div>
@@ -90,6 +104,15 @@ return (
 {ranking.description}
 </p>
 )}
+<div className="mt-3">
+<FollowButton
+targetType="ranking"
+targetId={ranking.id}
+targetName={ranking.title}
+initialFollowing={following}
+loggedIn={!!user}
+/>
+</div>
 
 {user && (
 <div className="mt-8 rounded-xl border border-border p-5">
@@ -113,6 +136,7 @@ country={ranking.country}
 engagement={engagement}
 loggedIn={!!user}
 eagerFirst={3}
+movement={lovedMovement}
 />
 <LeaderboardTable
 title="Most Supported"
@@ -125,6 +149,7 @@ city={ranking.city}
 country={ranking.country}
 engagement={engagement}
 loggedIn={!!user}
+movement={supportedMovement}
 />
 </div>
 </div>

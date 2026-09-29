@@ -2,7 +2,7 @@ import { db } from "./client";
 import { newId } from "@/lib/id";
 import type { Ranking } from "@/lib/types";
 
-interface RankingRow {
+export interface RankingRow {
   id: string;
   title: string;
   country: string;
@@ -18,7 +18,7 @@ interface RankingRow {
   display_order: number | null;
 }
 
-function toRanking(row: RankingRow): Ranking {
+export function toRanking(row: RankingRow): Ranking {
   return {
     id: row.id,
     title: row.title,

@@ -2,7 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { listAllRankings, searchRankings } from "@/db/rankings";
 import { findCategoryBySlug, listCategories } from "@/db/categories";
+import { getCurrentUser } from "@/lib/session";
+import { isFollowing } from "@/db/follows";
 import RankingCard from "@/components/RankingCard";
+import DiscoverySections from "@/components/DiscoverySections";
+import FollowButton from "@/components/FollowButton";
+import NotificationBell from "@/components/NotificationBell";
 import type { Ranking } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -42,6 +47,13 @@ export default async function BrowseRankingsPage({
   const categoryRankings = activeCategory
     ? rankings.filter((r) => r.categoryId === activeCategory.id)
     : null;
+  // Phase 3 (§19): category-follow state for the signed-in user (shown
+  // in the active-category view below).
+  const user = await getCurrentUser();
+  const followingCategory =
+    user && activeCategory
+      ? await isFollowing(user.id, "category", activeCategory.id)
+      : false;
   if (!query && rankings.length > 0 && !activeCategory) {
     const categories = await listCategories();
     const rankingsByCategory = new Map<string, Ranking[]>();
@@ -88,6 +100,9 @@ export default async function BrowseRankingsPage({
         >
           Create Ranking
         </Link>
+        {/* Phase 3: notification bell (global header is owned by the
+            in-flight homepage redesign; mounted here + /u/[id] for now). */}
+        <NotificationBell />
       </div>
 
       <form action="/rankings" method="GET" className="mb-6">
@@ -99,6 +114,10 @@ export default async function BrowseRankingsPage({
           className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
         />
       </form>
+
+      {/* Phase 3 (§22): discovery surfaces on the default browse view
+          only (not search / category-filtered views). */}
+      {!query && !activeCategory && <DiscoverySections />}
 
       {activeCategory ? (
         <div>
@@ -112,6 +131,15 @@ export default async function BrowseRankingsPage({
             <h2 className="mt-2 text-sm font-semibold uppercase tracking-wide text-subtle">
               {activeCategory.name}
             </h2>
+            <div className="mt-2">
+              <FollowButton
+                targetType="category"
+                targetId={activeCategory.id}
+                targetName={activeCategory.name}
+                initialFollowing={followingCategory}
+                loggedIn={!!user}
+              />
+            </div>
           </div>
           {categoryRankings!.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

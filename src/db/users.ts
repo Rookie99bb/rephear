@@ -15,6 +15,7 @@ interface UserRow {
   show_likes: string | null;
   show_supports: string | null;
   is_hidden: number | null;
+  notify_milestones: number | null;
 }
 
 function toUser(row: UserRow): User {
@@ -33,6 +34,9 @@ function toUser(row: UserRow): User {
     showSupports: isVisibility(row.show_supports) ? row.show_supports : "public",
     // Phase 2 column; defensive fallback for the same reason.
     isHidden: !!row.is_hidden,
+    // Phase 3 column (NOT NULL DEFAULT 1); defensive fallback for rows
+    // predating the migration.
+    notifyMilestones: (row.notify_milestones ?? 1) === 1,
   };
 }
 

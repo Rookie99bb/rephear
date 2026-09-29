@@ -22,6 +22,9 @@ export interface User {
   // panel) and vanishes from supporter lists, taste-match sets, and
   // every other identity-adjacent surface.
   isHidden: boolean;
+  // Phase 3 (§16): in-app milestone notification preference.
+  // Conservative default: milestones only (default ON).
+  notifyMilestones: boolean;
 }
 
 // Phase 1 (v2 redesign): visibility of a Like / paid Support.

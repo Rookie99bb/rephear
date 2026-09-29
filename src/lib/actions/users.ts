@@ -13,6 +13,7 @@ import { isValidLocation } from "@/lib/locations";
 import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
 import { getRequestContext } from "@/lib/requestContext";
 import { setUserVisibility } from "@/db/users";
+import { setNotifyMilestonesPref } from "@/db/notifications";
 import { isVisibility } from "@/db/visibility";
 
 // Visibility defaults (Settings → Privacy, Phase 1). showLikes controls
@@ -131,4 +132,17 @@ export async function setUserAdminAction(
   revalidatePath("/admin/users");
   revalidatePath("/admin/audit");
   return {};
+}
+
+// Phase 3 (§16): milestone notification preference (Settings). In-app
+// only; email/push are explicitly later and need their own opt-in.
+export async function submitNotificationPrefAction(
+  formData: FormData
+): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const value = String(formData.get("notifyMilestones") || "");
+  if (value !== "on" && value !== "off") return;
+  await setNotifyMilestonesPref(user.id, value === "on");
+  revalidatePath("/settings");
 }

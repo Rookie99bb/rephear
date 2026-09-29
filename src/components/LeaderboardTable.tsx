@@ -13,6 +13,7 @@ export default function LeaderboardTable({
   engagement,
   loggedIn,
   eagerFirst = 0,
+  movement,
 }: {
   title: string;
   subtitle?: string;
@@ -27,6 +28,13 @@ export default function LeaderboardTable({
   // How many leading cards load their cover image eagerly (above the
   // fold). The rest lazy-load. 0 = all lazy.
   eagerFirst?: number;
+  // Phase 3 (§23/§26): per-nominee movement vs the previous daily
+  // snapshot, keyed by profile id. Omit/undefined = no snapshot data =
+  // no arrows (never infer movement).
+  movement?: Map<
+    string,
+    { direction: "up" | "down" | "same" | "new"; delta: number }
+  >;
 }) {
   return (
     <div>
@@ -56,6 +64,7 @@ export default function LeaderboardTable({
                   ? entries[index - 1].reputationCredits - entry.reputationCredits
                   : null
               }
+              movement={movement?.get(entry.profile.id) ?? null}
             />
           ))}
         </ol>

@@ -4,6 +4,7 @@ import { getCurrentFullUser } from "@/lib/session";
 import {
   submitLocationAction,
   submitVisibilityAction,
+  submitNotificationPrefAction,
 } from "@/lib/actions/users";
 import { LOCATIONS } from "@/lib/locations";
 import { likedItemsForUser, type LikedItem } from "@/db/likes";
@@ -158,6 +159,55 @@ export default async function SettingsPage() {
             className="w-fit rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
           >
             Save privacy settings
+          </button>
+        </form>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-subtle">
+          Notifications
+        </h2>
+        <p className="mb-3 text-sm text-subtle">
+          Milestone moments only — when someone you backed hits a
+          milestone, or a ranking you follow heats up. Never marketing,
+          never &ldquo;support again&rdquo; nudges.
+        </p>
+        <form action={submitNotificationPrefAction} className="flex flex-col gap-2">
+          {(
+            [
+              {
+                value: "on",
+                text: "On — send me milestone notifications",
+              },
+              {
+                value: "off",
+                text: "Off — no milestone notifications",
+              },
+            ] as const
+          ).map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                (user.notifyMilestones ? "on" : "off") === opt.value
+                  ? "border-ink bg-surface font-medium text-ink"
+                  : "border-border text-subtle hover:border-ink"
+              }`}
+            >
+              <input
+                type="radio"
+                name="notifyMilestones"
+                value={opt.value}
+                defaultChecked={(user.notifyMilestones ? "on" : "off") === opt.value}
+                className="accent-pink-600"
+              />
+              {opt.text}
+            </label>
+          ))}
+          <button
+            type="submit"
+            className="w-fit rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+          >
+            Save notification settings
           </button>
         </form>
       </div>

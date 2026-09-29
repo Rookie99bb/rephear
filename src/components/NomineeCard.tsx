@@ -40,6 +40,7 @@ export default function NomineeCard({
   emphasis,
   priority = false,
   creditsGap = null,
+  movement = null,
 }: {
   rank: number;
   entry: LeaderboardEntry;
@@ -56,6 +57,10 @@ export default function NomineeCard({
   // (null for #1 and for the Most Loved board). Rendered as a plain
   // server-side line — no interactivity needed.
   creditsGap?: number | null;
+  // Phase 3 (§23/§26): rank movement vs the previous daily snapshot
+  // (from ranking_snapshots). Undefined = no snapshot data = no arrow
+  // (never infer movement from a single data point).
+  movement?: { direction: "up" | "down" | "same" | "new"; delta: number } | null;
 }) {
   const { profile } = entry;
   const podium = podiumStyles(rank);
@@ -90,11 +95,27 @@ export default function NomineeCard({
           full-screen celebration dialog back to this exact card. */}
       <NomineeCardGlow profileId={profile.id} />
 
-      {/* Top-left: rank badge */}
-      <div className="absolute left-3 top-3 z-20">
+      {/* Top-left: rank badge + movement arrow (Phase 3: snapshot-backed only) */}
+      <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5">
         <span className="inline-flex items-center rounded-full bg-black/35 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md">
           {rankBadgeLabel(rank)}
         </span>
+        {movement && movement.direction !== "same" && (
+          <span
+            title={movementTitle(movement)}
+            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold backdrop-blur-md ${
+              movement.direction === "up"
+                ? "bg-green-600/70 text-white"
+                : movement.direction === "down"
+                  ? "bg-red-600/70 text-white"
+                  : "bg-blue-600/70 text-white"
+            }`}
+          >
+            {movement.direction === "up" && `↑ ${movement.delta}`}
+            {movement.direction === "down" && `↓ ${movement.delta}`}
+            {movement.direction === "new" && "NEW"}
+          </span>
+        )}
       </div>
 
       {/* Top-right: Support / Like / Share / More */}
@@ -152,6 +173,20 @@ function rankBadgeLabel(rank: number): string {
   if (rank === 2) return "🥈 #2";
   if (rank === 3) return "🥉 #3";
   return `#${rank}`;
+}
+
+// Phase 3: accessible label for the movement arrow — always describes
+// the snapshot-backed change, never implies a cause. (Says "last
+// snapshot", not "yesterday": the cron may occasionally skip a day.)
+function movementTitle(movement: {
+  direction: "up" | "down" | "same" | "new";
+  delta: number;
+}): string {
+  if (movement.direction === "up")
+    return `Up ${movement.delta} since the last snapshot`;
+  if (movement.direction === "down")
+    return `Down ${movement.delta} since the last snapshot`;
+  return "New to this ranking";
 }
 
 function podiumStyles(rank: number): { card: string } {

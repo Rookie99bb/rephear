@@ -70,6 +70,42 @@ export type NotificationEvent =
       referrerUserId: string;
       commissionId: string;
       reason: string;
+    }
+  // Phase 3 (§16 milestone notifications): typed events for the
+  // milestone cron. The cron writes in-app notification rows via
+  // src/db/notifications.ts (which enforces prefs + rate caps) and
+  // ALSO emits these typed events so the existing event-stream
+  // contract keeps working for future channels (5.5 story templates
+  // reuse these shapes).
+  | {
+      type: "early_backer_milestone";
+      userId: string;
+      profileId: string;
+      rankingId: string;
+      milestoneType: string;
+      rankAtSupport: number | null;
+    }
+  | {
+      type: "backed_nominee_milestone";
+      userId: string;
+      profileId: string;
+      rankingId: string;
+      milestoneType: string;
+      rankAtSupport: number | null;
+    }
+  | {
+      type: "ranking_milestone";
+      profileId: string;
+      rankingId: string;
+      milestoneType: string;
+      rankAtEvent: number | null;
+    }
+  | {
+      type: "follow_update";
+      userId: string;
+      profileId: string;
+      rankingId: string;
+      milestoneType: string;
     };
 
 // Fire-and-forget by design: never throws, so no call site needs to wrap

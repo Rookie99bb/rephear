@@ -16,6 +16,7 @@ import Avatar from "@/components/Avatar";
 import PeopleIBackSection from "@/components/PeopleIBackSection";
 import TasteMatchPanel from "@/components/TasteMatchPanel";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
+import NotificationBell from "@/components/NotificationBell";
 
 // Phase 2 (public identity): public profile at /u/[id] using the opaque
 // users.id (non-enumerable — no handle system in Phase 2).
@@ -104,7 +105,7 @@ export default async function UserProfilePage({
       {/* Identity header */}
       <div className="flex items-center gap-4">
         <Avatar name={target.name} size={64} />
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-semibold tracking-tight text-ink">
             {target.name}
           </h1>
@@ -114,6 +115,9 @@ export default async function UserProfilePage({
             </p>
           )}
         </div>
+        {/* Phase 3: notification bell (global header is owned by the
+            in-flight homepage redesign; mounted here + /rankings for now). */}
+        {isOwner && <NotificationBell />}
       </div>
 
       {tags.length > 0 && (
