@@ -52,7 +52,7 @@ export default function RankingCoverCard({
           </p>
         ) : null}
         <p className="mt-2 flex items-center gap-3 text-[13px] text-subtle">
-          <span>🔥 {formatCompact(stat.totalLikes)} votes</span>
+          <span>🔥 {formatCompact(stat.organicLikeCount)} votes</span>
           <span>💬 {formatCompact(stat.nomineeCount)}</span>
         </p>
       </div>

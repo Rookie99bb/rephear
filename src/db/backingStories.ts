@@ -158,7 +158,7 @@ async function currentByRanking(
     board.forEach((entry, idx) =>
       m.set(entry.profile.id, {
         rank: idx + 1,
-        credits: entry.reputationCredits,
+        credits: entry.supportScore,
       })
     );
     out.set(rankingId, m);

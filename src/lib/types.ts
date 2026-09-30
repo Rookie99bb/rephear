@@ -173,13 +173,33 @@ export interface CreditTransaction {
 }
 
 // A leaderboard row combines a Profile with its stats within one Ranking.
+//
+// Like-data contract (方案C, 2026-10-01 — strict separation, no mixed
+// "likes" field):
+// - organicLikeCount: REAL user Likes (likes.like_source='organic'). This
+//   is the ONLY number ever displayed next to a Like button ("N likes"),
+//   for logged-in and logged-out visitors alike. Never includes seed.
+// - seedScore: effective cold-start ranking weight (decayed). Combines the
+//   transparent seed_scores table (auditable: value/reason/time/author/
+//   decay) with legacy seed likes from the likes table (decaying to zero,
+//   never displayed). Used ONLY for cold-start ordering, never shown as
+//   likes, never visible to regular users as a number.
+// - likeScore: INTERNAL sort key for Most Loved =
+//   seedScore × seed_weight + organicLikeCount × organic_weight
+//   (weights from engagement_config, defaults 1.0/1.0). Sort-only: it must
+//   NEVER be rendered on a page, labeled "likes", or confused with
+//   organicLikeCount. This is the renamed, honest form of the old
+//   misleading `likeCount` / `rankingScore` fields.
+// - supportScore: REAL paid Support credits (credit_transactions,
+//   unrefunded). Drives Most Supported only; never mixed into likeScore.
 export interface LeaderboardEntry {
   profile: Profile;
-  likeCount: number;
-  reputationCredits: number;
-  // Seed Likes Policy (2026-09-30): internal split. likeCount is the
-  // weighted combined score; seedLikes/organicLikes preserve the
-  // distinction for admin display. Absent on older call sites.
+  organicLikeCount: number;
+  seedScore: number;
+  supportScore: number;
+  /** Internal Most-Loved sort key. Never displayed. See contract above. */
+  likeScore: number;
+  // Raw splits (internal/admin). Absent on older call sites.
   seedLikes?: number;
   organicLikes?: number;
 }

@@ -157,13 +157,18 @@ export async function findProfilesClaimedByUser(userId: string): Promise<Profile
 }
 
 export interface ProfileStats {
-  totalLikes: number;
+  // Public ORGANIC Like total — the only number ever rendered as "Likes".
+  totalOrganicLikes: number;
   totalReputationCredits: number;
 }
 
 export async function getProfileStats(profileId: string): Promise<ProfileStats> {
+  // ORGANIC ONLY: seed likes are an internal cold-start signal and must
+  // never appear in a displayed "Likes" number (方案C 2026-10-01).
   const likeRow = (await db
-    .prepare("SELECT COUNT(*) AS c FROM likes WHERE profile_id = ?")
+    .prepare(
+      "SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE profile_id = ? AND like_source = 'organic'"
+    )
     .get(profileId)) as unknown as { c: number };
   const creditRow = (await db
     .prepare(
@@ -171,7 +176,7 @@ export async function getProfileStats(profileId: string): Promise<ProfileStats> 
     )
     .get(profileId)) as unknown as { c: number };
   return {
-    totalLikes: likeRow.c,
+    totalOrganicLikes: likeRow.c,
     totalReputationCredits: creditRow.c,
   };
 }

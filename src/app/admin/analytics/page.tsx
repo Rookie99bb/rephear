@@ -49,8 +49,8 @@ export default async function AdminAnalyticsPage() {
           />
           <StatCard
             label="Displayed likes"
-            value={stats.totalLikes.toLocaleString()}
-            hint={`seed ${stats.seedLikes.toLocaleString()} + organic ${stats.organicLikes.toLocaleString()}`}
+            value={stats.displayedLikes.toLocaleString()}
+            hint={`organic only — seed ${stats.seedLikes.toLocaleString()} never shown`}
           />
           <StatCard
             label="Organic likes · today"
@@ -108,7 +108,8 @@ export default async function AdminAnalyticsPage() {
                   <th className="py-2 pr-4 font-medium">City</th>
                   <th className="py-2 pr-4 font-medium">Country</th>
                   <th className="py-2 pr-4 font-medium">Rankings</th>
-                  <th className="py-2 pr-4 font-medium">Likes</th>
+                  <th className="py-2 pr-4 font-medium">Organic Likes</th>
+                  <th className="py-2 pr-4 font-medium">Seed Likes</th>
                 </tr>
               </thead>
               <tbody>
@@ -117,7 +118,8 @@ export default async function AdminAnalyticsPage() {
                     <td className="py-2 pr-4 font-medium text-ink">{r.city}</td>
                     <td className="py-2 pr-4 text-subtle">{r.country}</td>
                     <td className="py-2 pr-4 text-subtle">{r.rankingCount}</td>
-                    <td className="py-2 pr-4 text-subtle">{r.likeCount}</td>
+                    <td className="py-2 pr-4 text-subtle">{r.organicLikeCount}</td>
+                    <td className="py-2 pr-4 text-subtle">{r.seedLikeCount}</td>
                   </tr>
                 ))}
               </tbody>

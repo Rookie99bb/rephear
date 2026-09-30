@@ -18,8 +18,8 @@ const PUBLIC_WHERE =
 
 export interface CategoryRankingStat {
   ranking: Ranking;
-  /** Displayed votes: seed + organic combined. */
-  totalLikes: number;
+  // Public ORGANIC Like total — the only number ever rendered as "Likes".
+  organicLikeCount: number;
   nomineeCount: number;
   /** Organic-only 7-day velocity (likes7d + credits7d); drives Trending. */
   velocity: number;
@@ -34,6 +34,9 @@ interface StatRow extends RankingRow {
   likes7d: number;
   credits7d: number;
 }
+// total_likes above is ORGANIC ONLY (like_source = 'organic') — the
+// like-data contract (方案C 2026-10-01) forbids mixing seed into any
+// displayed number.
 
 // One query for the rankings; a second batched query for the top nominee
 // per ranking (cover fallback). No per-ranking query fan-out.
@@ -43,7 +46,7 @@ export async function listCategoryRankingsWithStats(
   const rows = (await db
     .prepare(
       `SELECT r.*,
-         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id AND l.like_source = 'organic') AS total_likes,
          (SELECT COUNT(*) FROM profiles p WHERE p.ranking_id = r.id AND p.deleted_at IS NULL) AS nominee_count,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l
             WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days')
@@ -106,7 +109,7 @@ export async function listCategoryRankingsWithStats(
     const top = topByRanking.get(r.id);
     return {
       ranking: rowToRanking(r),
-      totalLikes: r.total_likes,
+      organicLikeCount: r.total_likes,
       nomineeCount: r.nominee_count,
       velocity: r.likes7d + r.credits7d,
       topNomineeName: top?.name ?? "",
@@ -125,14 +128,14 @@ export function pickTrending(
   limit = 3
 ): CategoryRankingStat[] {
   const byVelocity = [...stats].sort(
-    (a, b) => b.velocity - a.velocity || b.totalLikes - a.totalLikes
+    (a, b) => b.velocity - a.velocity || b.organicLikeCount - a.organicLikeCount
   );
   const hot = byVelocity.filter((s) => s.velocity > 0).slice(0, limit);
   if (hot.length >= limit) return hot;
   const picked = new Set(hot.map((s) => s.ranking.id));
   const fill = [...stats]
     .filter((s) => !picked.has(s.ranking.id))
-    .sort((a, b) => b.totalLikes - a.totalLikes || b.nomineeCount - a.nomineeCount)
+    .sort((a, b) => b.organicLikeCount - a.organicLikeCount || b.nomineeCount - a.nomineeCount)
     .slice(0, limit - hot.length);
   return [...hot, ...fill];
 }

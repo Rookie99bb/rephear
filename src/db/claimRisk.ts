@@ -79,7 +79,7 @@ export async function getClaimRiskSignals(
     hasOfficialSocialProfile: !!request.linkedinUrl || !!request.socialMediaUrl,
     hasSupportingFile: !!request.supportingFilePath,
     accountAgeDays,
-    profileLikeCount: stats.totalLikes,
+    profileLikeCount: stats.totalOrganicLikes,
     profileSupportCredits: stats.totalReputationCredits,
     competingOpenClaims: competing,
     profileAlreadyClaimed: profile?.claimStatus === "claimed",

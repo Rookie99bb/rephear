@@ -1,5 +1,6 @@
 import NomineeCard from "@/components/NomineeCard";
-import type { LeaderboardEntry } from "@/lib/types";
+import type { LeaderboardEntry, Ranking } from "@/lib/types";
+import type { RankingGeoContext } from "@/lib/nomineeMeta";
 
 export default function LeaderboardTable({
   title,
@@ -8,9 +9,9 @@ export default function LeaderboardTable({
   entries,
   emphasis,
   rankingId,
-  city,
-  country,
-  engagement,
+  ranking,
+  rankingContext,
+  userEngagement,
   loggedIn,
   eagerFirst = 0,
   movement,
@@ -21,9 +22,16 @@ export default function LeaderboardTable({
   entries: LeaderboardEntry[];
   emphasis: "likes" | "credits";
   rankingId: string;
-  city: string;
-  country: string;
-  engagement: Map<string, { likeCount: number; allowedLikes: number }>;
+  // The ranking itself — cards derive their location line from its scope
+  // via getRankingLocationLabel (scope-only, no ad-hoc concatenation).
+  ranking: Ranking;
+  // Category/scope context for the entity-kind placeholder art.
+  rankingContext: RankingGeoContext;
+  // Per-VIEWER engagement: how many times the viewer Liked each nominee
+  // and their Like allowance. This is button-gating state ONLY — the
+  // public number displayed on each card is entry.organicLikeCount (real
+  // user Likes; seed is never displayed).
+  userEngagement: Map<string, { userLikeCount: number; allowedLikes: number }>;
   loggedIn: boolean;
   // How many leading cards load their cover image eagerly (above the
   // fold). The rest lazy-load. 0 = all lazy.
@@ -51,17 +59,21 @@ export default function LeaderboardTable({
               key={entry.profile.id}
               rank={index + 1}
               entry={entry}
-              city={city}
-              country={country}
+              ranking={ranking}
+              rankingContext={rankingContext}
               rankingId={rankingId}
-              likeCount={engagement.get(entry.profile.id)?.likeCount ?? 0}
-              allowedLikes={engagement.get(entry.profile.id)?.allowedLikes ?? 1}
+              // PUBLIC organic total: real user Likes only. Seed scores
+              // influence cold-start ORDER but are never displayed.
+              publicOrganicLikeCount={entry.organicLikeCount}
+              // VIEWER's own likes: button gating only, never displayed.
+              userLikeCount={userEngagement.get(entry.profile.id)?.userLikeCount ?? 0}
+              allowedLikes={userEngagement.get(entry.profile.id)?.allowedLikes ?? 1}
               loggedIn={loggedIn}
               emphasis={emphasis}
               priority={index < eagerFirst}
               creditsGap={
                 emphasis === "credits" && index > 0
-                  ? entries[index - 1].reputationCredits - entry.reputationCredits
+                  ? entries[index - 1].supportScore - entry.supportScore
                   : null
               }
               movement={movement?.get(entry.profile.id) ?? null}

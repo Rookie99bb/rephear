@@ -43,7 +43,12 @@ export default function NomineeLandingActions({
           setAllowed(result.allowedLikes);
         }
       } else {
-        if (typeof result.likeCount === "number") setMyLikes(result.likeCount);
+        // likeAction returns the public organic total in
+        // result.publicOrganicLikeCount (for display); this component
+        // only tracks the VIEWER's own count for gating, which is exactly
+        // the optimistic +1 the server just recorded. Never adopt the
+        // public total here.
+        setMyLikes(prev + 1);
         if (typeof result.allowedLikes === "number") setAllowed(result.allowedLikes);
       }
     });
