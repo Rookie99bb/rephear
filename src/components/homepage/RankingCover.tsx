@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { initialsForName } from "@/lib/avatar";
 
-type CoverVariant = "featured" | "card" | "compact" | "thumb" | "fullbleed";
+type CoverVariant = "featured" | "card" | "compact" | "thumb" | "fullbleed" | "fill";
 
 // Visual cover for a ranking card. Cover priority (per approved mockup):
 //   1. Ranking's cover image (AI editorial / manual / nominee-derived,
@@ -39,6 +39,11 @@ export default function RankingCover({
   const imgSrc = coverSrc || photoUrl;
   const dark = variant === "featured" || variant === "fullbleed";
   const fullbleed = variant === "fullbleed";
+  // "fill" (category cards): image fills the whole frame, object-top so
+  // the character's face is never cropped; only a whisper of top scrim
+  // for badge legibility.
+  const fill = variant === "fill";
+  const fullFrame = fullbleed || fill;
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   // If the image already settled (loaded or failed) before React attached
@@ -72,22 +77,25 @@ export default function RankingCover({
             onLoad={() => setLoaded(true)}
             onError={() => setErrored(true)}
             className={`absolute top-0 h-full transition-[opacity,transform] duration-300 ease-out group-hover:scale-[1.04] ${
-              fullbleed
+              fullFrame
                 ? "left-0 w-full object-cover object-top"
                 : "right-0 w-[68%] object-cover object-top"
             } ${loaded ? "opacity-100" : "opacity-0"}`}
           />
           {/* Readability scrim: dark for the featured card, light wash for
               the smaller cards so dark body copy stays legible, dark bottom
-              gradient for full-bleed cards with overlaid white copy. */}
+              gradient for full-bleed cards with overlaid white copy, and a
+              whisper of top scrim for the fill variant (badge legibility). */}
           <div
             aria-hidden="true"
             className={
               fullbleed
                 ? "absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
-                : dark
-                  ? "absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/10"
-                  : "absolute inset-0 bg-gradient-to-r from-white via-white/85 to-white/10"
+                : fill
+                  ? "absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent"
+                  : dark
+                    ? "absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/10"
+                    : "absolute inset-0 bg-gradient-to-r from-white via-white/85 to-white/10"
             }
           />
         </>

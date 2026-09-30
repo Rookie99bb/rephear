@@ -6,8 +6,12 @@ import { getCurrentUser } from "@/lib/session";
 import { isFollowing } from "@/db/follows";
 import RankingCard from "@/components/RankingCard";
 import DiscoverySections from "@/components/DiscoverySections";
-import FollowButton from "@/components/FollowButton";
 import NotificationBell from "@/components/NotificationBell";
+import CategoryPageView from "@/components/category/CategoryPageView";
+import {
+  listCategoryRankingsWithStats,
+  listSubcategoriesWithCounts,
+} from "@/db/categoryPage";
 import type { Ranking } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -20,15 +24,17 @@ export const metadata: Metadata = {
 // London-only MVP: this page lists every ranking directly — no region
 // picker, no per-account city default, no directory views. A search
 // (?q=) filters by title/description and takes priority. A category
-// (?category=<slug>, linked from homepage category cards) shows just
-// that category's rankings.
+// (?category=<slug>, linked from homepage category cards) renders the
+// redesigned visual category page (CategoryPageView); an optional
+// ?sub=<subcategory-slug|all> filters it further.
 export default async function BrowseRankingsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; category?: string };
+  searchParams: { q?: string; category?: string; sub?: string };
 }) {
   const query = searchParams.q?.trim();
   const categorySlug = searchParams.category?.trim();
+  const subParam = searchParams.sub?.trim() || null;
   const rankings: Ranking[] = query
     ? await searchRankings(query)
     : await listAllRankings();
@@ -40,20 +46,43 @@ export default async function BrowseRankingsPage({
   // category isn't meaningful.
   let categoryGroups: { id: string; name: string; rankings: Ranking[] }[] = [];
   let uncategorizedRankings: Ranking[] = rankings;
-  // Homepage category cards link here with ?category=<slug>: show just
-  // that category's rankings, with a way back to the full browse view.
-  const activeCategory =
-    !query && categorySlug ? await findCategoryBySlug(categorySlug) : null;
-  const categoryRankings = activeCategory
-    ? rankings.filter((r) => r.categoryId === activeCategory.id)
+  // Homepage category cards link here with ?category=<slug>: render the
+  // redesigned visual category page. A search (?q=) narrows to matching
+  // rankings inside the category instead of dropping the category view.
+  const activeCategory = categorySlug
+    ? await findCategoryBySlug(categorySlug)
     : null;
-  // Phase 3 (§19): category-follow state for the signed-in user (shown
-  // in the active-category view below).
+  // Phase 3 (§19): category-follow state for the signed-in user.
   const user = await getCurrentUser();
   const followingCategory =
     user && activeCategory
       ? await isFollowing(user.id, "category", activeCategory.id)
       : false;
+
+  if (activeCategory) {
+    const inCategoryIds = new Set(
+      rankings.filter((r) => r.categoryId === activeCategory.id).map((r) => r.id)
+    );
+    const allStats = await listCategoryRankingsWithStats(activeCategory.id);
+    const stats = allStats.filter((s) => inCategoryIds.has(s.ranking.id));
+    const subcategories = await listSubcategoriesWithCounts(activeCategory.id);
+    const activeSubName =
+      subParam && subParam !== "all"
+        ? (subcategories.find((s) => s.slug === subParam)?.name ?? null)
+        : null;
+    return (
+      <CategoryPageView
+        category={activeCategory}
+        stats={stats}
+        subcategories={subcategories}
+        activeSub={subParam}
+        activeSubName={activeSubName}
+        query={query ?? null}
+        following={followingCategory}
+        loggedIn={!!user}
+      />
+    );
+  }
   if (!query && rankings.length > 0 && !activeCategory) {
     const categories = await listCategories();
     const rankingsByCategory = new Map<string, Ranking[]>();
@@ -116,44 +145,10 @@ export default async function BrowseRankingsPage({
       </form>
 
       {/* Phase 3 (§22): discovery surfaces on the default browse view
-          only (not search / category-filtered views). */}
-      {!query && !activeCategory && <DiscoverySections />}
+          only (not search views). */}
+      {!query && <DiscoverySections />}
 
-      {activeCategory ? (
-        <div>
-          <div className="mb-4">
-            <Link
-              href="/rankings"
-              className="text-sm font-medium text-ink hover:opacity-80"
-            >
-              ← All rankings
-            </Link>
-            <h2 className="mt-2 text-sm font-semibold uppercase tracking-wide text-subtle">
-              {activeCategory.name}
-            </h2>
-            <div className="mt-2">
-              <FollowButton
-                targetType="category"
-                targetId={activeCategory.id}
-                targetName={activeCategory.name}
-                initialFollowing={followingCategory}
-                loggedIn={!!user}
-              />
-            </div>
-          </div>
-          {categoryRankings!.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {categoryRankings!.map((r) => (
-                <RankingCard key={r.id} ranking={r} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-subtle">
-              No rankings in this section yet.
-            </p>
-          )}
-        </div>
-      ) : rankings.length === 0 ? (
+      {rankings.length === 0 ? (
         query ? (
           <p className="text-sm text-subtle">
             No Rankings match &ldquo;{query}&rdquo;.
