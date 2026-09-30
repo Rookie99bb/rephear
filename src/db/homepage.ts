@@ -146,93 +146,33 @@ export async function listFeaturedRankings(
     excludeIds.length > 0
       ? `AND r.id NOT IN (${excludeIds.map(() => "?").join(",")})`
       : "";
-  const baseWhere = `r.is_hidden = 0 AND r.deleted_at IS NULL AND COALESCE(r.is_archived, 0) = 0
-    ${exclude}
-    AND EXISTS (
-      SELECT 1 FROM profiles p
-      WHERE p.ranking_id = r.id AND p.deleted_at IS NULL
-    )`;
-
-  // Select ensuring 3 different Tier-1 categories when possible.
-  // Priority: Anime > Gaming > Manga > Cosplay.
-  // Query each Tier-1 category separately to guarantee coverage.
-  const tier1Order = ["anime", "gaming", "manga", "cosplay"];
-  const selected: Ranking[] = [];
-  const usedSlugs = new Set<string>();
-
-  // Pass 1: one per Tier-1 category in priority order.
-  for (const slug of tier1Order) {
-    if (selected.length >= limit) break;
-    const rows = (await db
-      .prepare(
-        `SELECT r.*, c.slug AS category_slug,
-           (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes
-         FROM rankings r
-         LEFT JOIN categories c ON c.id = r.category_id
-         WHERE ${baseWhere} AND c.slug = ?
-         ORDER BY total_likes DESC, r.created_at DESC
-         LIMIT 1`
-      )
-      .all(...excludeIds, slug)) as unknown as (RankingRow & {
-      total_likes: number;
-      category_slug: string | null;
-    })[];
-    if (rows.length > 0 && !selected.some((s) => s.id === rows[0].id)) {
-      selected.push(rowToRanking(rows[0]));
-      usedSlugs.add(slug);
-    }
-  }
-
-  // Pass 2: fill remaining with best available (any category),
-  // avoiding duplicate Tier-1 slugs where possible.
-  if (selected.length < limit) {
-    const excludeSelected = [...excludeIds, ...selected.map((s) => s.id)];
-    const excludeClause =
-      excludeSelected.length > 0
-        ? `AND r.id NOT IN (${excludeSelected.map(() => "?").join(",")})`
-        : "";
-    const rows = (await db
-      .prepare(
-        `SELECT r.*, c.slug AS category_slug,
-           (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes,
-           CASE c.slug
-             WHEN 'anime' THEN 0
-             WHEN 'gaming' THEN 1
-             WHEN 'manga' THEN 2
-             WHEN 'cosplay' THEN 3
-             ELSE 4
-           END AS cat_prio
-         FROM rankings r
-         LEFT JOIN categories c ON c.id = r.category_id
-         WHERE r.is_hidden = 0 AND r.deleted_at IS NULL AND COALESCE(r.is_archived, 0) = 0
-           ${excludeClause}
-           AND EXISTS (
-             SELECT 1 FROM profiles p
-             WHERE p.ranking_id = r.id AND p.deleted_at IS NULL
-           )
-         ORDER BY cat_prio ASC, total_likes DESC, r.created_at DESC
-         LIMIT ?`
-      )
-      .all(...excludeSelected, limit * 2)) as unknown as (RankingRow & {
-      total_likes: number;
-      cat_prio: number;
-      category_slug: string | null;
-    })[];
-    for (const row of rows) {
-      if (selected.length >= limit) break;
-      if (
-        row.category_slug &&
-        tier1Order.includes(row.category_slug) &&
-        usedSlugs.has(row.category_slug)
-      ) {
-        continue;
-      }
-      selected.push(rowToRanking(row));
-      if (row.category_slug) usedSlugs.add(row.category_slug);
-    }
-  }
-
-  return selected.slice(0, limit);
+  const rows = (await db
+    .prepare(
+      `SELECT r.*,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes,
+         CASE c.slug
+           WHEN 'anime' THEN 0
+           WHEN 'gaming' THEN 1
+           WHEN 'manga' THEN 2
+           WHEN 'cosplay' THEN 3
+           ELSE 4
+         END AS cat_prio
+       FROM rankings r
+       LEFT JOIN categories c ON c.id = r.category_id
+       WHERE r.is_hidden = 0 AND r.deleted_at IS NULL AND COALESCE(r.is_archived, 0) = 0
+         ${exclude}
+         AND EXISTS (
+           SELECT 1 FROM profiles p
+           WHERE p.ranking_id = r.id AND p.deleted_at IS NULL
+         )
+       ORDER BY cat_prio ASC, total_likes DESC, r.created_at DESC
+       LIMIT ?`
+    )
+    .all(...excludeIds, limit)) as unknown as (RankingRow & {
+    total_likes: number;
+    cat_prio: number;
+  })[];
+  return rows.map((r) => rowToRanking(r));
 }
 
 // Public ranking ids for a set of slugs (event deep-links). Every slug
