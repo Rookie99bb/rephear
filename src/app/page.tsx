@@ -5,6 +5,7 @@ import TrendingSection, {
 } from "@/components/homepage/TrendingSection";
 import ActivityGrid, {
   type RisingItem,
+  RISING_NOW_DEMO_ITEMS,
 } from "@/components/homepage/ActivityGrid";
 import ExploreRankings from "@/components/homepage/ExploreRankings";
 import { listCategories } from "@/db/categories";
@@ -95,19 +96,25 @@ export default async function HomePage({
   // applies here too — same prioritizeForHomepage ordering as Trending.
   // We never fabricate growth; if insufficient ACG content qualifies,
   // the section shows what genuinely qualifies (truthfully labelled).
+  // Up to 6 compact rows; production always uses real organic weekly
+  // counts. RISING_NOW_DEMO=1 swaps in clearly-labelled placeholder rows
+  // for demo/dev environments only (never production).
   const rising: RisingItem[] = [];
-  for (const v of merchandised.slice(0, 3)) {
+  for (const v of merchandised.slice(0, 6)) {
     const data = await getRankingCardData(v.rankingId);
     const top = data.topNominees[0];
     rising.push({
       ranking: v.ranking,
       likes7d: v.likes7d,
       credits7d: v.credits7d,
+      likesPrev7d: v.likesPrev7d,
       thumbPhotoUrl: top?.photoUrl ?? "",
       thumbName: top?.name ?? "",
       thumbColor: top?.avatarColor ?? "",
     });
   }
+  const risingDemo =
+    process.env.RISING_NOW_DEMO === "1" ? RISING_NOW_DEMO_ITEMS : undefined;
 
   // Event deep-links: only these two rankings are known to exist as real
   // event-adjacent rankings (resolved by slug, public-only). Anything else
@@ -165,7 +172,7 @@ export default async function HomePage({
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex flex-col gap-10 py-10 md:gap-12">
           <TrendingSection cards={trendingCards} mode={trendingMode} />
-          <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
+          <ActivityGrid battle={battle} rising={rising} risingDemo={risingDemo} eventHrefs={eventHrefs} />
           <ExploreRankings
             items={explore}
             activeCategory={activeCategory}

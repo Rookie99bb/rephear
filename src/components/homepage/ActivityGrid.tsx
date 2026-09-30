@@ -9,32 +9,61 @@ export interface RisingItem {
   ranking: Ranking;
   likes7d: number;
   credits7d: number;
+  // Organic likes in the 7 days before the current window — feeds the
+  // optional "↑ XX% this week" badge. Zero → badge omitted.
+  likesPrev7d: number;
   thumbPhotoUrl: string;
   thumbName: string;
   thumbColor: string;
 }
+
+// DEMO ONLY (never production): curated placeholder rows so the Rising
+// Now density design can be reviewed in demo/dev environments with
+// realistic-looking activity. Production ALWAYS renders real organic
+// 7-day momentum — fake engagement numbers are never written into, or
+// displayed as, real rankings. Enabled via RISING_NOW_DEMO=1.
+export interface RisingDemoItem {
+  title: string;
+  likesLabel: string;
+  pctLabel: string;
+  href: string;
+}
+
+export const RISING_NOW_DEMO_ITEMS: RisingDemoItem[] = [
+  { title: "London's Best Anime Cosplayer 2026", likesLabel: "2.8K", pctLabel: "42%", href: "/rankings" },
+  { title: "Most Loved London VTuber", likesLabel: "1.9K", pctLabel: "31%", href: "/rankings" },
+  { title: "Best Anime of 2026", likesLabel: "1.4K", pctLabel: "28%", href: "/rankings" },
+  { title: "London's Rising Manga Artist", likesLabel: "986", pctLabel: "24%", href: "/rankings" },
+  { title: "Best Cosplay Creator", likesLabel: "742", pctLabel: "19%", href: "/rankings" },
+  { title: "Most Loved Gaming Creator", likesLabel: "618", pctLabel: "17%", href: "/rankings" },
+];
 
 // Three-column activity row: Close Battles · Rising Now · Upcoming Events.
 // Modules with no honest data render nothing (never faked).
 export default function ActivityGrid({
   battle,
   rising,
+  risingDemo,
   eventHrefs = {},
 }: {
   battle: CloseBattle | null;
   rising: RisingItem[];
+  // Demo placeholder rows (demo/dev only — see RISING_NOW_DEMO_ITEMS).
+  // When provided, they render instead of the real items.
+  risingDemo?: RisingDemoItem[];
   // Resolved public ranking deep-links for event-adjacent rankings,
   // keyed by ranking slug. Events without a resolved link stay unlinked.
   eventHrefs?: Record<string, string>;
 }) {
-  if (!battle && rising.length === 0) return null;
-  const moduleCount = (battle ? 1 : 0) + (rising.length > 0 ? 1 : 0) + 1; // +1 for Upcoming Events
+  const showRising = rising.length > 0 || (risingDemo?.length ?? 0) > 0;
+  if (!battle && !showRising) return null;
+  const moduleCount = (battle ? 1 : 0) + (showRising ? 1 : 0) + 1; // +1 for Upcoming Events
   const gridCols =
     moduleCount >= 3 ? "md:grid-cols-3" : moduleCount === 2 ? "md:grid-cols-2" : "";
   return (
     <div className={`grid grid-cols-1 gap-6 ${gridCols}`}>
       {battle && <CloseBattles battle={battle} />}
-      {rising.length > 0 && <RisingNow items={rising} />}
+      {showRising && <RisingNow items={rising} demo={risingDemo} />}
       <UpcomingEvents eventHrefs={eventHrefs} />
     </div>
   );
@@ -117,7 +146,17 @@ function CloseBattles({ battle }: { battle: CloseBattle }) {
   );
 }
 
-function RisingNow({ items }: { items: RisingItem[] }) {
+// Compact, dense momentum list: ~72–88px rows, each with a small
+// ranking thumb, title, real "🔥 X likes this week" and an optional
+// "↑ XX%" week-over-week badge (organic likes only — shown only when the
+// previous week had a non-zero baseline, so the percentage is honest).
+function RisingNow({
+  items,
+  demo,
+}: {
+  items: RisingItem[];
+  demo?: RisingDemoItem[];
+}) {
   return (
     <section aria-label="Rising now">
       <ModuleHeader
@@ -126,38 +165,102 @@ function RisingNow({ items }: { items: RisingItem[] }) {
         subtitle="These rankings and nominees are climbing fast."
         viewAllHref="/rankings"
       />
-      <ul className="flex flex-col gap-3">
-        {items.map((item) => (
-          <li key={item.ranking.id}>
-            <Link
-              href={`/rankings/${item.ranking.id}`}
-              className="group flex items-center gap-3 rounded-2xl border border-border bg-white p-3 transition hover:border-brand/50"
-            >
-              <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-xl">
-                <RankingCover
-                  photoUrl={item.thumbPhotoUrl}
-                  nomineeName={item.thumbName}
-                  avatarColor={item.thumbColor}
-                  rankingTitle={item.ranking.title}
-                  variant="thumb"
+      <ul className="flex flex-col gap-2.5">
+        {demo
+          ? demo.map((d) => (
+              <li key={d.title}>
+                <RisingRow
+                  href={d.href}
+                  title={d.title}
+                  likesLine={`🔥 ${d.likesLabel} likes this week`}
+                  pctLabel={d.pctLabel}
+                  thumb={
+                    <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                      <RankingCover
+                        photoUrl=""
+                        nomineeName=""
+                        avatarColor=""
+                        rankingTitle={d.title}
+                        variant="thumb"
+                      />
+                    </span>
+                  }
                 />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[15px] font-semibold text-ink group-hover:text-brand-ink">
-                  {item.ranking.title}
-                </span>
-                <span className="mt-0.5 block text-[13px] font-medium text-emerald-600">
-                  🔥{" "}
-                  {item.likes7d >= item.credits7d
-                    ? `${compact(item.likes7d)} likes this week`
-                    : `${compact(item.credits7d)} support credits this week`}
-                </span>
-              </span>
-            </Link>
-          </li>
-        ))}
+              </li>
+            ))
+          : items.map((item) => {
+              const showLikes = item.likes7d >= item.credits7d;
+              const pct =
+                showLikes && item.likesPrev7d > 0
+                  ? Math.round(
+                      ((item.likes7d - item.likesPrev7d) / item.likesPrev7d) *
+                        100
+                    )
+                  : null;
+              return (
+                <li key={item.ranking.id}>
+                  <RisingRow
+                    href={`/rankings/${item.ranking.id}`}
+                    title={item.ranking.title}
+                    likesLine={
+                      showLikes
+                        ? `🔥 ${compact(item.likes7d)} likes this week`
+                        : `🔥 ${compact(item.credits7d)} support credits this week`
+                    }
+                    pctLabel={pct !== null ? `${pct}%` : null}
+                    thumb={
+                      <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                        <RankingCover
+                          photoUrl={item.thumbPhotoUrl}
+                          nomineeName={item.thumbName}
+                          avatarColor={item.thumbColor}
+                          rankingTitle={item.ranking.title}
+                          variant="thumb"
+                        />
+                      </span>
+                    }
+                  />
+                </li>
+              );
+            })}
       </ul>
     </section>
+  );
+}
+
+function RisingRow({
+  href,
+  title,
+  likesLine,
+  pctLabel,
+  thumb,
+}: {
+  href: string;
+  title: string;
+  likesLine: string;
+  pctLabel: string | null;
+  thumb: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex min-h-[76px] items-center gap-3 rounded-2xl border border-border bg-white p-3 transition hover:border-brand/50"
+    >
+      {thumb}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold text-ink group-hover:text-brand-ink">
+          {title}
+        </span>
+        <span className="mt-0.5 block text-[13px] font-medium text-emerald-600">
+          {likesLine}
+        </span>
+      </span>
+      {pctLabel && (
+        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+          ↑ {pctLabel}
+        </span>
+      )}
+    </Link>
   );
 }
 

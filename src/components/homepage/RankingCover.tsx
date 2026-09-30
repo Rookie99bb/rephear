@@ -43,7 +43,14 @@ export default function RankingCover({
   // the character's face is never cropped; only a whisper of top scrim
   // for badge legibility.
   const fill = variant === "fill";
-  const fullFrame = fullbleed || fill;
+  // Homepage trending cards ("featured" large card and "card" small
+  // cards): the artwork is Layer 1 and must extend underneath the ENTIRE
+  // card — left edge to right edge, top to bottom, rounded corners kept
+  // by the parent's overflow-hidden. The readability scrim (Layer 2)
+  // sits ABOVE the artwork and never replaces part of it; content is
+  // Layer 3. object-top keeps character faces/heads visible.
+  const fullFrame =
+    fullbleed || fill || variant === "featured" || variant === "card";
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   // If the image already settled (loaded or failed) before React attached

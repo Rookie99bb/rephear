@@ -77,6 +77,10 @@ export interface WeeklyVelocity {
   rankingId: string;
   likes7d: number;
   credits7d: number;
+  // Organic likes in the 7 days BEFORE the current 7-day window, for the
+  // optional "↑ XX% this week" momentum badge. Zero → badge omitted
+  // (never divide by zero, never invent a baseline).
+  likesPrev7d: number;
 }
 
 export interface VelocityRanking extends WeeklyVelocity {
@@ -97,6 +101,8 @@ export async function listVelocityRankings(
       `SELECT r.*,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l
             WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days') AND ${authenticLikesClause("l")}) AS likes7d,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l
+            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-14 days') AND l.created_at < datetime('now', '-7 days') AND ${authenticLikesClause("l")}) AS likesPrev7d,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
             WHERE ct.ranking_id = r.id AND ct.created_at >= datetime('now', '-7 days')) AS credits7d
        FROM rankings r
@@ -107,6 +113,7 @@ export async function listVelocityRankings(
     .all(limit)) as unknown as (RankingRow & {
     likes7d: number;
     credits7d: number;
+    likesPrev7d: number;
   })[];
   return rows
     .filter((r) => r.likes7d + r.credits7d > 0)
@@ -114,6 +121,7 @@ export async function listVelocityRankings(
       rankingId: r.id,
       likes7d: r.likes7d,
       credits7d: r.credits7d,
+      likesPrev7d: r.likesPrev7d,
       ranking: rowToRanking(r),
     }));
 }
@@ -122,10 +130,11 @@ export async function listVelocityRankings(
 export async function getWeeklyVelocity(
   limit: number
 ): Promise<WeeklyVelocity[]> {
-  return (await listVelocityRankings(limit)).map(({ rankingId, likes7d, credits7d }) => ({
+  return (await listVelocityRankings(limit)).map(({ rankingId, likes7d, credits7d, likesPrev7d }) => ({
     rankingId,
     likes7d,
     credits7d,
+    likesPrev7d,
   }));
 }
 
