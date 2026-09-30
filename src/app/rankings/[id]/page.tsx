@@ -8,11 +8,17 @@ import { getCurrentUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import { getMovement } from "@/db/rankingSnapshots";
 import { isFollowing } from "@/db/follows";
+import {
+  getRoadToTop3,
+  getTop3Challengers,
+  getCommunityStory,
+} from "@/db/journeyTimeline";
 import AddNomineeForm from "@/components/AddNomineeForm";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import FollowButton from "@/components/FollowButton";
 import CheckoutBanner from "@/components/CheckoutBanner";
 import RaffleBanner from "@/components/RaffleBanner";
+import { RoadToTop3Section, CommunitySection } from "@/components/RoadToTop3";
 import { Suspense } from "react";
 
 // Per-page title/OG so a shared Ranking link unfurls with the Ranking's
@@ -84,6 +90,13 @@ getMovement(ranking.id, "supported"),
 const following = user
 ? await isFollowing(user.id, "ranking", ranking.id)
 : false;
+// Phase 5.4 (§17): Road to Top 3 + Community story modules. All
+// event-driven — no milestone rows, no modules.
+const [roads, challengers, community] = await Promise.all([
+getRoadToTop3(ranking.id),
+getTop3Challengers(ranking.id),
+getCommunityStory(ranking.id),
+]);
 
 return (
 <div>
@@ -152,6 +165,14 @@ loggedIn={!!user}
 movement={supportedMovement}
 />
 </div>
+
+{/* Phase 5.4 (§17): story modules — event-driven, counts only. */}
+<RoadToTop3Section roads={roads} />
+<CommunitySection
+totalBackers={community.totalBackers}
+milestones={community.milestones}
+challengers={challengers}
+/>
 </div>
 );
 }

@@ -108,3 +108,48 @@ export function resolveStoryReasonEcho(
 ): string | null {
   return resolveReasonEcho(reasonKey, reasonText);
 }
+
+// Phase 5.4 (Journey Timeline): milestone labels from milestone_events
+// rows. Credits-only facts, no fiat, no causal claims — the label
+// states what happened ("She entered the Top 10"), never who caused
+// it. Unknown future types degrade to a neutral fallback rather than
+// invented copy.
+export function buildMilestoneLabel(
+  type: string,
+  rankAtEvent: number | null | undefined
+): string {
+  switch (type) {
+    case "nominated":
+      return rankAtEvent != null ? `Nominated (#${rankAtEvent})` : "Nominated";
+    case "first_1k_credits":
+      return "First 1,000 Support Credits";
+    case "backers_50":
+      return "50 Backers";
+    case "entered_top_50":
+      return rankAtEvent != null ? `Entered the Top 50 (#${rankAtEvent})` : "Entered the Top 50";
+    case "entered_top_20":
+      return rankAtEvent != null ? `Entered the Top 20 (#${rankAtEvent})` : "Entered the Top 20";
+    case "entered_top_10":
+      return rankAtEvent != null ? `Entered the Top 10 (#${rankAtEvent})` : "Entered the Top 10";
+    case "credits_10k":
+      return "10,000 Support Credits";
+    case "reached_3":
+      return "Reached #3";
+    case "reached_1":
+      return "Reached #1";
+    default:
+      return "Milestone";
+  }
+}
+
+// "❤️ YOU JOINED HERE" marker copy. Proven by the viewer's own first
+// backing moment — never rendered for another user's moment.
+export function buildJoinMarkerCopy(
+  nomineeName: string,
+  rankAtSupport: number | null | undefined
+): string {
+  if (rankAtSupport != null) {
+    return `You backed ${nomineeName} at #${rankAtSupport}`;
+  }
+  return `You backed ${nomineeName} before they ranked`;
+}

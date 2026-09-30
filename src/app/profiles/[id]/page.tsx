@@ -9,8 +9,13 @@ import {
 import Avatar from "@/components/Avatar";
 import ProfileVerificationStatus from "@/components/ProfileVerificationStatus";
 import SupporterList from "@/components/SupporterList";
+import JourneyTimeline from "@/components/JourneyTimeline";
 import { getCurrentUser } from "@/lib/session";
 import { findActiveRequestForUser } from "@/db/claimRequests";
+import {
+  getJourneyTimeline,
+  getViewerJoinMarker,
+} from "@/db/journeyTimeline";
 
 // Per-page title/OG so a shared profile link unfurls with the person's
 // name and photo instead of the site-wide default "RepHear" with no
@@ -53,6 +58,22 @@ export default async function ProfilePage({ params }: { params: { id: string } }
   const rankings = await listRankingsForProfile(profile.id);
   const user = await getCurrentUser();
   const pendingRequest = user ? await findActiveRequestForUser(user.id) : null;
+
+  // Phase 5.4: THEIR REPHEAR JOURNEY — the nominee's public milestone
+  // trail per ranking, from milestone_events only. The marker is the
+  // viewer's OWN first backing moment (never another user's).
+  const journeys = (
+    await Promise.all(
+      rankings.map(async (ranking) => {
+        const entries = await getJourneyTimeline(ranking.id, profile.id);
+        if (entries.length === 0) return null;
+        const marker = user
+          ? await getViewerJoinMarker(user.id, ranking.id, profile.id)
+          : null;
+        return { ranking, entries, marker };
+      })
+    )
+  ).filter((j): j is NonNullable<typeof j> => j !== null);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -119,6 +140,19 @@ export default async function ProfilePage({ params }: { params: { id: string } }
       </div>
 
       <SupporterList profileId={profile.id} />
+
+      {/* Phase 5.4: journey timelines, one per ranking with milestones. */}
+      {journeys.map((j) => (
+        <JourneyTimeline
+          key={`j:${j.ranking.id}:${profile.id}`}
+          nomineeName={profile.name}
+          rankingTitle={j.ranking.title}
+          rankingId={j.ranking.id}
+          profileId={profile.id}
+          entries={j.entries}
+          marker={j.marker}
+        />
+      ))}
 
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">

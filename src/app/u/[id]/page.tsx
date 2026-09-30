@@ -13,9 +13,16 @@ import {
   hasPublicActivity,
 } from "@/db/publicProfiles";
 import { getBackingStories } from "@/db/backingStories";
+import { findProfilesClaimedByUser } from "@/db/profiles";
+import { findRankingById } from "@/db/rankings";
+import {
+  getJourneyTimeline,
+  getViewerJoinMarker,
+} from "@/db/journeyTimeline";
 import Avatar from "@/components/Avatar";
 import PeopleIBackSection from "@/components/PeopleIBackSection";
 import BackingStoriesSection from "@/components/BackingStoriesSection";
+import JourneyTimeline from "@/components/JourneyTimeline";
 import TasteMatchPanel from "@/components/TasteMatchPanel";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
@@ -92,6 +99,34 @@ export default async function UserProfilePage({
   const tasteMatch =
     viewerId && !isOwner ? await getTasteMatch(viewerId, target.id) : null;
 
+  // Phase 5.4: THEIR REPHEAR JOURNEY — for claimed nominees this user
+  // owns, the nominee's public milestone trail. The timeline is the
+  // nominee's public facts; the YOU JOINED HERE marker is strictly the
+  // viewer's own first moment (never another user's). On a
+  // fully-private profile, other viewers see the trail but no marker.
+  const claimedProfiles = await findProfilesClaimedByUser(target.id);
+  const journeys = (
+    await Promise.all(
+      claimedProfiles.map(async (profile) => {
+        const [entries, ranking] = await Promise.all([
+          getJourneyTimeline(profile.rankingId, profile.id),
+          findRankingById(profile.rankingId),
+        ]);
+        if (entries.length === 0 || !ranking) return null;
+        const marker =
+          viewerId && (isOwner || publicActivity)
+            ? await getViewerJoinMarker(viewerId, profile.rankingId, profile.id)
+            : null;
+        return {
+          profile,
+          rankingTitle: ranking.title,
+          entries,
+          marker,
+        };
+      })
+    )
+  ).filter((j): j is NonNullable<typeof j> => j !== null);
+
   // Recognition: "Backed {name} before they reached the Top 10" — the
   // early-backer set (judgement, never spend).
   const earlyBacked = peopleIBack.filter(
@@ -149,9 +184,25 @@ export default async function UserProfilePage({
       )}
 
       {fullyPrivate ? (
-        <p className="mt-8 text-sm text-subtle">
-          This user keeps their activity private.
-        </p>
+        <>
+          <p className="mt-8 text-sm text-subtle">
+            This user keeps their activity private.
+          </p>
+          {/* Phase 5.4: the milestone trail is the NOMINEE's public
+              facts, so it stays visible even here — but never with a
+              per-user marker. */}
+          {journeys.map((j) => (
+            <JourneyTimeline
+              key={`j:${j.profile.rankingId}:${j.profile.id}`}
+              nomineeName={j.profile.name}
+              rankingTitle={j.rankingTitle}
+              rankingId={j.profile.rankingId}
+              profileId={j.profile.id}
+              entries={j.entries}
+              marker={null}
+            />
+          ))}
+        </>
       ) : (
         <>
           {/* Identity stats — any chip with a 0 count is hidden */}
@@ -176,6 +227,21 @@ export default async function UserProfilePage({
           <PeopleIBackSection rows={peopleIBack} targetUserId={target.id} />
 
           <BackingStoriesSection stories={backingStories} isOwner={isOwner} />
+
+          {/* Phase 5.4: THEIR REPHEAR JOURNEY — claimed nominees' public
+              milestone trails, with the viewer's own YOU JOINED HERE
+              marker overlaid. */}
+          {journeys.map((j) => (
+            <JourneyTimeline
+              key={`j:${j.profile.rankingId}:${j.profile.id}`}
+              nomineeName={j.profile.name}
+              rankingTitle={j.rankingTitle}
+              rankingId={j.profile.rankingId}
+              profileId={j.profile.id}
+              entries={j.entries}
+              marker={j.marker}
+            />
+          ))}
 
           {/* Public Likes */}
           {likes.length > 0 && (

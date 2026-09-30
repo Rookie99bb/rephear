@@ -658,6 +658,256 @@ async function main() {
     !/Transactions|Purchase History|Spending|Payment History/i.test(pibSection)
   );
 
+  // ── F. Phase 5.4: Journey Timeline + YOU JOINED HERE + Community ──
+  const {
+    buildMilestoneLabel,
+    buildJoinMarkerCopy,
+  } = await import("@/lib/storyCopy");
+  const {
+    getJourneyTimeline,
+    getViewerJoinMarker,
+    getRoadToTop3,
+    getTop3Challengers,
+    getCommunityStory,
+  } = await import("@/db/journeyTimeline");
+  const { recordMilestoneEvent } = await import("@/db/milestones");
+
+  // F1. Pure copy builders: labels, no fiat, no causal claims.
+  check(
+    "milestone label: nominated with rank",
+    buildMilestoneLabel("nominated", 48) === "Nominated (#48)"
+  );
+  check(
+    "milestone label: first_1k_credits",
+    buildMilestoneLabel("first_1k_credits", null) === "First 1,000 Support Credits"
+  );
+  check(
+    "milestone label: backers_50",
+    buildMilestoneLabel("backers_50", null) === "50 Backers"
+  );
+  check(
+    "milestone label: entered_top_10 with rank",
+    buildMilestoneLabel("entered_top_10", 9) === "Entered the Top 10 (#9)"
+  );
+  check(
+    "milestone label: reached_3",
+    buildMilestoneLabel("reached_3", 3) === "Reached #3"
+  );
+  check(
+    "milestone label: reached_1",
+    buildMilestoneLabel("reached_1", 1) === "Reached #1"
+  );
+  check(
+    "milestone label: unknown type degrades neutrally",
+    buildMilestoneLabel("some_future_type", null) === "Milestone"
+  );
+  check(
+    "milestone labels: no fiat symbols",
+    ["nominated", "first_1k_credits", "backers_50", "entered_top_50", "entered_top_20", "entered_top_10", "credits_10k", "reached_3", "reached_1"].every(
+      (t) => !/[$£€]/.test(buildMilestoneLabel(t, 5))
+    )
+  );
+  check(
+    "join marker: backed at rank",
+    buildJoinMarkerCopy("Mia", 23) === "You backed Mia at #23"
+  );
+  check(
+    "join marker: unranked at support",
+    buildJoinMarkerCopy("Mia", null) === "You backed Mia before they ranked"
+  );
+  check(
+    "join marker: no causal claims",
+    !/moved|caused|made her/i.test(buildJoinMarkerCopy("Mia", 23))
+  );
+
+  // F2. Fixture milestone events (factual source only).
+  // profiles[4] (#5): nominated → 1k credits → top 10 → reached #3.
+  // profiles[0] (#1): nominated → top 10 → reached #3 → reached #1.
+  // profiles[8] (#9): nominated only (never reached top 3).
+  // profiles[5] (#6): backers_50 (community feed).
+  const ev54 = [
+    { p: 4, t: "nominated", rank: 48 },
+    { p: 4, t: "first_1k_credits", rank: 31 },
+    { p: 4, t: "entered_top_10", rank: 9 },
+    { p: 4, t: "reached_3", rank: 3 },
+    { p: 0, t: "nominated", rank: 60 },
+    { p: 0, t: "entered_top_10", rank: 8 },
+    { p: 0, t: "reached_3", rank: 3 },
+    { p: 0, t: "reached_1", rank: 1 },
+    { p: 8, t: "nominated", rank: 55 },
+    { p: 5, t: "backers_50", rank: 6 },
+  ] as const;
+  for (const e of ev54) {
+    await recordMilestoneEvent({
+      rankingId: ranking.id,
+      profileId: profiles[e.p].id,
+      type: e.t,
+      rankAtEvent: e.rank,
+      creditsAtEvent: e.t === "first_1k_credits" ? 1000 : null,
+      backersAtEvent: e.t === "backers_50" ? 50 : null,
+    });
+  }
+  // Deterministic chronology for profiles[4]'s trail.
+  const order4 = ["nominated", "first_1k_credits", "entered_top_10", "reached_3"];
+  for (let i = 0; i < order4.length; i++) {
+    await db
+      .prepare(
+        `UPDATE milestone_events SET created_at = ? WHERE ranking_id = ? AND profile_id = ? AND type = ?`
+      )
+      .run(`2026-02-0${i + 1} 10:00:00`, ranking.id, profiles[4].id, order4[i]);
+  }
+
+  // F3. Timeline renders only real events, chronological, gaps stay empty.
+  const tl4 = await getJourneyTimeline(ranking.id, profiles[4].id);
+  check(
+    "timeline: 4 real events for #5",
+    tl4.length === 4,
+    `got ${tl4.length}`
+  );
+  check(
+    "timeline: chronological earliest → latest",
+    tl4.map((e) => e.type).join(",") === order4.join(","),
+    `got ${tl4.map((e) => e.type).join(",")}`
+  );
+  const tl8 = await getJourneyTimeline(ranking.id, profiles[8].id);
+  check(
+    "timeline: nominated-only nominee shows 1 entry",
+    tl8.length === 1 && tl8[0].type === "nominated"
+  );
+  const tl2 = await getJourneyTimeline(ranking.id, profiles[2].id);
+  check("timeline: no events → empty (no render)", tl2.length === 0);
+
+  // F4. YOU JOINED HERE: strictly per-viewer, first moment wins.
+  const carolMarker4 = await getViewerJoinMarker(carol.id, ranking.id, profiles[4].id);
+  check(
+    "marker: carol's own first moment on #5",
+    carolMarker4 !== null && carolMarker4.rankAtSupport === 9 && carolMarker4.isPublic === true
+  );
+  const carolMarker8 = await getViewerJoinMarker(carol.id, ranking.id, profiles[8].id);
+  check(
+    "marker: carol's private moment still visible to her (lock path)",
+    carolMarker8 !== null && carolMarker8.isPublic === false
+  );
+  const daveMarker4 = await getViewerJoinMarker(dave.id, ranking.id, profiles[4].id);
+  check("marker: dave never backed #5 → null", daveMarker4 === null);
+  const anonMarker = await getViewerJoinMarker(null, ranking.id, profiles[4].id);
+  check("marker: logged-out → null", anonMarker === null);
+  const seedMarker = await getViewerJoinMarker(seed53, ranking.id, profiles[0].id);
+  check("marker: seed account → null", seedMarker === null);
+  // Dave backs #6 twice; the FIRST moment wins, deterministically.
+  await mkSupport({
+    userId: dave.id, profileId: profiles[5].id, credits: 50,
+    vis: "inherit", withMoment: true, rankAtSupport: 11,
+  });
+  await mkSupport({
+    userId: dave.id, profileId: profiles[5].id, credits: 60,
+    vis: "inherit", withMoment: true, rankAtSupport: 6,
+  });
+  await db
+    .prepare(
+      `UPDATE backing_moments SET supported_at = '2026-01-01 00:00:00', rank_at_support = 20
+       WHERE user_id = ? AND profile_id = ? AND credits = 50`
+    )
+    .run(dave.id, profiles[5].id);
+  const daveMarker5 = await getViewerJoinMarker(dave.id, ranking.id, profiles[5].id);
+  check(
+    "marker: first moment wins (rank 20, not 6)",
+    daveMarker5 !== null && daveMarker5.rankAtSupport === 20,
+    `got ${daveMarker5?.rankAtSupport}`
+  );
+
+  // F5. Road to Top 3: only reachers, with trails.
+  const roads = await getRoadToTop3(ranking.id);
+  check(
+    "road: #1 and #5 present (both reached #3)",
+    roads.some((r) => r.profileId === profiles[0].id) &&
+      roads.some((r) => r.profileId === profiles[4].id),
+    `got ${roads.map((r) => r.profileId).join(",")}`
+  );
+  check(
+    "road: #9 excluded (never reached Top 3)",
+    !roads.some((r) => r.profileId === profiles[8].id)
+  );
+  const road1 = roads.find((r) => r.profileId === profiles[0].id);
+  check(
+    "road: #1 trail has 4 events incl. reached_1",
+    !!road1 && road1.trail.length === 4 && road1.trail[3].type === "reached_1"
+  );
+
+  // F6. Challengers: ranks 4–10 with credits, gap to #3.
+  const challengers = await getTop3Challengers(ranking.id);
+  check("challengers: 7 (ranks 4–10)", challengers.length === 7, `got ${challengers.length}`);
+  const ch4 = challengers.find((c) => c.profileId === profiles[3].id);
+  check(
+    "challenger: #4 gap to #3 is 1000 credits",
+    ch4?.rank === 4 && ch4.gapToThird === 1000,
+    `got rank ${ch4?.rank} gap ${ch4?.gapToThird}`
+  );
+  check(
+    "challengers: credits-only, no fiat",
+    challengers.every((c) => c.totalCredits > 0 && c.gapToThird !== null)
+  );
+
+  // F7. Community: counts only, backer milestones over time.
+  const community = await getCommunityStory(ranking.id);
+  check("community: total backers > 0", community.totalBackers > 0, `got ${community.totalBackers}`);
+  check(
+    "community: backers_50 milestone for #6 present",
+    community.milestones.some((m) => m.profileId === profiles[5].id && m.backersAtEvent === 50)
+  );
+
+  // F8. Source assertions: mounts, no fiat, no causal/guarantee copy.
+  const journeyTimeline = srcFile("src/components/JourneyTimeline.tsx");
+  check("timeline component: no fiat symbols", !/[$£€]/.test(journeyTimeline.replace(/\$\{/g, "")));
+  check(
+    "timeline component: no causal claims",
+    !/you moved|you caused|made them/i.test(journeyTimeline)
+  );
+  check(
+    "timeline component: YOU JOINED HERE marker",
+    journeyTimeline.includes("YOU JOINED HERE")
+  );
+  check(
+    "timeline component: private lock for owner",
+    journeyTimeline.includes("🔒")
+  );
+  const roadSection = srcFile("src/components/RoadToTop3.tsx");
+  check(
+    "road/community: no guarantee promises",
+    !/guarantee|will reach|definitely/i.test(roadSection)
+  );
+  check(
+    "road/community: no backer names rendered",
+    !/backerName|supporterName/i.test(roadSection)
+  );
+  check(
+    "road/community: credits-only (no fiat)",
+    !/[$£€]/.test(roadSection.replace(/\$\{/g, ""))
+  );
+  const uPage = srcFile("src/app/u/[id]/page.tsx");
+  check("u page: mounts JourneyTimeline", uPage.includes("<JourneyTimeline"));
+  const nomineePage = srcFile("src/app/profiles/[id]/page.tsx");
+  check("nominee page: mounts JourneyTimeline", nomineePage.includes("<JourneyTimeline"));
+  const rankingPage = srcFile("src/app/rankings/[id]/page.tsx");
+  check(
+    "ranking page: mounts RoadToTop3Section + CommunitySection",
+    rankingPage.includes("<RoadToTop3Section") && rankingPage.includes("<CommunitySection")
+  );
+  const journeyDb = srcFile("src/db/journeyTimeline.ts");
+  check(
+    "journey db: read-time visibility (COALESCE ct.visibility)",
+    journeyDb.includes("COALESCE(ct.visibility, u.show_supports, 'public')")
+  );
+  check(
+    "journey db: never selects visibility_at_support (audit-only)",
+    !/visibility_at_support\s*(AS|,|FROM|WHERE|=)/i.test(journeyDb) &&
+      !/SELECT[^;]*visibility_at_support/i.test(journeyDb)
+  );
+  check(
+    "journey db: seed excluded",
+    journeyDb.includes("notSeedClause")
+  );
+
   if (failures > 0) {
     console.error(`\n${failures} check(s) FAILED`);
     process.exit(1);
