@@ -1164,6 +1164,31 @@ async function createNomineeApproachNoticesTableIfMissing() {
   });
 }
 
+// Phase 5.5 (thank my early backers): one row per (ranking, nominee,
+// milestone scope) — the "once per milestone" rate limit for the
+// claimed owner's thank-you action. The scope is the nominee's latest
+// milestone type at thank time ("general" when they have none yet), so
+// a NEW milestone unlocks a new thank-you while a repeat for the same
+// scope is a no-op (INSERT OR IGNORE on the UNIQUE key).
+async function createNomineeThanksTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS nominee_thanks (
+      id TEXT PRIMARY KEY,
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      milestone_scope TEXT NOT NULL,
+      thanked_by TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (ranking_id, profile_id, milestone_scope)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_thanks_profile ON nominee_thanks(ranking_id, profile_id);`,
+    args: [],
+  });
+}
+
 // Phase 3 (milestones, notifications, movement, discovery, follows):
 // milestone_events — the factual event stream for timelines (5.4),
 // notifications (5.5) and share cards (5.6). Written ONLY by the
@@ -1370,6 +1395,7 @@ export async function ensureMigrated(): Promise<void> {
     await createBackingMomentsTableIfMissing();
     await createMilestoneEventsTableIfMissing();
     await createNomineeApproachNoticesTableIfMissing();
+    await createNomineeThanksTableIfMissing();
     await createEarlyBackerAwardsTableIfMissing();
     await createNotificationsTableIfMissing();
     await addNotifyMilestonesColumnIfMissing();

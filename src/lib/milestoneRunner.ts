@@ -29,6 +29,10 @@ import {
   OWNER_COPY,
   recordApproachNoticesBatch,
 } from "@/lib/nomineeMilestones";
+import {
+  buildBackerMilestoneCopy,
+  buildEarlyBackerStoryCopy,
+} from "@/lib/storyNotifications";
 
 // Phase 3 (§7, §14): milestone detection core, shared by the
 // /api/cron/backing-milestones route and the Phase 3 smoke test.
@@ -86,12 +90,6 @@ const ENTRY_THRESHOLDS = new Set<MilestoneType>([
 
 // Phase 4: near-miss nudge gate (mirrors checkTop10Approach).
 const APPROACH_MAX_GAP_CREDITS = 1000;
-
-function rankLine(rankAtSupport: number | null): string {
-  return rankAtSupport === null
-    ? "before she was even ranked"
-    : `at #${rankAtSupport}`;
-}
 
 interface Candidate extends MilestoneCandidate {
   entry: boolean;
@@ -382,20 +380,34 @@ async function processRanking(
     for (const e of newByProfile.get(nominee.profileId) ?? []) {
       const label = MILESTONE_LABELS[e.type];
 
-      // 6a. Early Backer award notifications (WHEN-based).
+      // 6a. Early Backer award notifications (WHEN-based). 5.5:
+      // story-framed — "you were there early" is safe here because the
+      // award itself is the data proof. Award recipients skip the
+      // generic 6b story ping for the same event (one notification per
+      // event per user).
+      const awardedUsers = new Set<string>();
       if (e.type in EARLY_BACKER_THRESHOLDS) {
         for (const item of awardItems) {
           if (item.profileId !== e.profileId || item.milestoneType !== e.type)
             continue;
           const key = `${rankingId}|${e.profileId}|${e.type}|${item.userId}`;
           if (!createdAwards.has(key)) continue;
+          awardedUsers.add(item.userId);
           const first = momentByUser.get(`${e.profileId}|${item.userId}`);
           const rankAtSupport = first?.rankAtSupport ?? null;
+          const copy = buildEarlyBackerStoryCopy({
+            profileName: name,
+            milestoneType: e.type,
+            rankAtSupport,
+            rankAtEvent: e.rankAtEvent,
+            provenEarly: true,
+            amongFirstBackers: false,
+          });
           queue.push({
             userId: item.userId,
             type: "early_backer_milestone",
-            title: `Early Backer: ${name} 🏅`,
-            body: `You backed ${name} ${rankLine(rankAtSupport)}, before she ${label.replace("just ", "")}. Your judgement called it early — this one's on the record.`,
+            title: copy.title,
+            body: copy.body,
             link,
             emitAlways: {
               type: "early_backer_milestone",
@@ -409,15 +421,40 @@ async function processRanking(
         }
       }
 
-      // 6b. Self-notifications to every backer (private moments
-      // included — self-notification is NOT exposure).
+      // 6b. Story self-notifications to every backer (private moments
+      // included — self-notification is NOT exposure). 5.5:
+      // story-framed THEN→NOW with real ranks ("You backed Mia at #23.
+      // Mia is now #3."). backers_50 gates "one of the first" on
+      // provable earliest-50 moment order — a JS sort over the already
+      // prefetched moments, so the cron's query budget is untouched.
       if (e.type !== "nominated") {
-        for (const m of momentsByProfile.get(e.profileId) ?? []) {
+        const profileMoments = momentsByProfile.get(e.profileId) ?? [];
+        let firstFifty: Set<string> | null = null;
+        if (e.type === "backers_50") {
+          const ordered = [...profileMoments].sort((a, b) =>
+            a.supportedAt < b.supportedAt
+              ? -1
+              : a.supportedAt > b.supportedAt
+                ? 1
+                : 0
+          );
+          firstFifty = new Set(ordered.slice(0, 50).map((m) => m.userId));
+        }
+        for (const m of profileMoments) {
+          if (awardedUsers.has(m.userId)) continue; // got the 6a early story
+          const copy = buildBackerMilestoneCopy({
+            profileName: name,
+            milestoneType: e.type,
+            rankAtSupport: m.rankAtSupport,
+            rankAtEvent: e.rankAtEvent,
+            provenEarly: false,
+            amongFirstBackers: firstFifty?.has(m.userId) ?? false,
+          });
           queue.push({
             userId: m.userId,
             type: "backed_nominee_milestone",
-            title: `${name} ${label}`,
-            body: `You backed her ${rankLine(m.rankAtSupport)} — you were there before the climb. See where the journey goes next.`,
+            title: copy.title,
+            body: copy.body,
             link,
             emitAlways: {
               type: "backed_nominee_milestone",

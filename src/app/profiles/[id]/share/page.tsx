@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { getAvailableShareCards } from "@/lib/shareCards";
 import ShareToolkit from "@/components/ShareToolkit";
+import ThankEarlyBackersButton from "@/components/ThankEarlyBackersButton";
 
 // Nominee backend — share toolkit. Owner-only: the user who claimed this
 // profile. Exactly three actions: copy link, download QR, share poster.
@@ -68,6 +69,18 @@ export default async function ProfileSharePage({
           profileName={profile.name}
           rankingTitle={ranking?.title ?? ""}
         />
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold tracking-tight text-ink">
+          Thank your early backers
+        </h2>
+        <p className="mt-1 text-sm text-subtle">
+          一键感谢最早支持你的人（§16 双向故事）。每人会收到一条私密感谢通知。
+        </p>
+        <div className="mt-4">
+          <ThankEarlyBackersButton profileId={profile.id} />
+        </div>
       </div>
 
       <div className="mt-10">

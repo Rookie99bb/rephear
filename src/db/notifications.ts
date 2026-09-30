@@ -21,6 +21,7 @@ export const NOTIFICATION_TYPES = [
   "ranking_milestone",
   "follow_update",
   "nominee_milestone",
+  "nominee_thanks",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

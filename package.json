@@ -17,7 +17,8 @@
     "test:phase5": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5-test.XXXXXX) tsx scripts/smoke-phase5-moments.ts",
     "test:phase2": "DATA_DIR=$(mktemp -d /tmp/rephear-phase2-test.XXXXXX) tsx scripts/smoke-phase2-identity.ts",
     "test:phase3": "DATA_DIR=$(mktemp -d /tmp/rephear-phase3-test.XXXXXX) tsx scripts/smoke-phase3-milestones.ts",
-    "test:phase4": "DATA_DIR=$(mktemp -d /tmp/rephear-phase4-test.XXXXXX) tsx scripts/smoke-phase4-cards.ts"
+    "test:phase4": "DATA_DIR=$(mktemp -d /tmp/rephear-phase4-test.XXXXXX) tsx scripts/smoke-phase4-cards.ts",
+    "test:phase5.5": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.5-test.XXXXXX) tsx scripts/smoke-phase5.5-thanks.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

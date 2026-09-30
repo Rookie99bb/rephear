@@ -285,7 +285,33 @@ async function main() {
 
   // ── 4/5/6. Notifications: prefs, cap, private self-notify ─────
   const notesA = await getNotifications(userA.id, 50);
-  check("Alice got 3 notifications (early_backer + 2 backed_nominee)", notesA.length === 3, `got ${notesA.length}`);
+  // 5.5: award recipients get ONE story notification per event — the
+  // early-backer story (6a) replaces the generic 6b ping for the same
+  // event. Alice: early_backer (entered_top_50) + backed_nominee
+  // (first_1k_credits) = 2.
+  check("Alice got 2 notifications (early_backer story + 1 backed_nominee)", notesA.length === 2, `got ${notesA.length}`);
+  const aliceEarly = notesA.find((n) => n.type === "early_backer_milestone");
+  check(
+    "Alice's early-backer notification is story-framed with real ranks",
+    !!aliceEarly &&
+      /you were there early/i.test(aliceEarly.title) &&
+      aliceEarly.body.includes("at #55") &&
+      aliceEarly.body.includes("now #25"),
+    aliceEarly ? `${aliceEarly.title} / ${aliceEarly.body}` : "missing"
+  );
+  check(
+    "Alice got no duplicate backed_nominee for the awarded event (5.5 dedupe)",
+    notesA.filter((n) => n.type === "backed_nominee_milestone").length === 1
+  );
+  const aliceStory = notesA.find((n) => n.type === "backed_nominee_milestone");
+  check(
+    "Alice's credits-milestone story is credits-only with THEN→NOW",
+    !!aliceStory &&
+      /1,000 Support Credits/.test(aliceStory.title) &&
+      aliceStory.body.includes("at #55") &&
+      !/before the climb/i.test(aliceStory.body),
+    aliceStory ? `${aliceStory.title} / ${aliceStory.body}` : "missing"
+  );
   check(
     "notification copy never references the backer's own spend or pressures re-support",
     notesA.every((n) => !/spent|spend|support again/i.test(n.title + n.body)),
@@ -299,8 +325,8 @@ async function main() {
   );
   const notesC = await getNotifications(userC.id, 50);
   check(
-    "private backer Cara IS notified about her own backing (self-notify is not exposure)",
-    notesC.length === 3,
+    "private backer Cara IS notified about her own backing (self-notify is not exposure): early_backer story + 1 backed_nominee",
+    notesC.length === 2,
     `got ${notesC.length}`
   );
   check(
