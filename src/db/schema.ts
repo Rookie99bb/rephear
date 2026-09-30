@@ -9,6 +9,7 @@ import { seedBeautyRankings } from "./beautyRankings";
 import { seedFandomRankings } from "./fandomRankings";
 import { seedOpeningSlates } from "./openingSlates";
 import { seedFandomCandidates } from "./seedFandomCandidates";
+import { seedTcgEvergreen } from "./seedTcgEvergreen";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
 import { seedFakeLikes } from "./seedFakeLikes";
@@ -1471,6 +1472,13 @@ export async function ensureMigrated(): Promise<void> {
     // the 9 ready Fandom rankings. Idempotent; only fills empty photo_urls
     // on existing nominees, never overwrites.
     await seedFandomCandidates();
+    // Evergreen "London TCG Traders to Know" ranking + 9 verified trader
+    // candidates (2026-09-30 research round; replaces the hidden
+    // event-locked Noli TCG ranking). Must run before
+    // hideRankingsFromPublic() so the new slug is present when startup
+    // hiding runs, and before pruneLegacyRankings() which runs later in
+    // this same migration (the slug is in its KEEP list).
+    await seedTcgEvergreen();
     // Soft-delete every ranking that isn't one of the 89 cold-start
     // rankings (runs last so seeds always win; idempotent no-op afterwards).
     await pruneLegacyRankings();

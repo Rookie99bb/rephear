@@ -8,6 +8,7 @@ import { RIVALRY_RANKING_SLUGS } from "./rivalryRankings";
 import { TIER_ONE_RANKING_SLUGS } from "./tierOneRankings";
 import { BEAUTY_RANKING_SLUGS } from "./beautyRankings";
 import { FANDOM_RANKING_SLUGS } from "./fandomRankings";
+import { TCG_EVERGREEN_RANKING_SLUG } from "./seedTcgEvergreen";
 
 // -----------------------------------------------------------------------
 // Prune legacy rankings: soft-delete pre-launch rankings that are NOT part
@@ -51,6 +52,9 @@ const KEEP_SLUGS: ReadonlySet<string> = new Set([
   ...TIER_ONE_RANKING_SLUGS,
   ...BEAUTY_RANKING_SLUGS,
   ...FANDOM_RANKING_SLUGS,
+  // Evergreen TCG successor ranking (seedTcgEvergreen) — must survive
+  // pruning like the rest of the current public set.
+  TCG_EVERGREEN_RANKING_SLUG,
 ]);
 
 async function getOrCreateSystemAccount() {
