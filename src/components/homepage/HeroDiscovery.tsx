@@ -1,5 +1,9 @@
 import Link from "next/link";
 import type { Category } from "@/lib/types";
+import {
+  HOMEPAGE_CATEGORY_CARDS,
+  homepageCategoryHref,
+} from "@/config/homepageCategories";
 
 // Hero: "Find your people." discovery banner.
 // The banner artwork (public/images/hero-banner.png) is right-dominant
@@ -12,30 +16,17 @@ export default function HeroDiscovery({
 }) {
   const knownSlugs = new Set(categories.map((c) => c.slug));
 
-  // Chip → real category slug where one exists; chips with no category
-  // render non-linked (never invent a route).
-  const chips: {
-    label: string;
-    icon: string;
-    href: string | null;
-    active?: boolean;
-  }[] = [
-    { label: "Anime", icon: "🎭", href: "/rankings?category=anime", active: true },
-    { label: "Cosplay", icon: "🦸", href: "/rankings?category=cosplay" },
-    { label: "Gaming", icon: "🎮", href: "/rankings?category=gaming" },
-    { label: "University", icon: "🎓", href: "/rankings?category=university" },
-    { label: "Music", icon: "🎵", href: "/rankings?category=underground-music" },
-    { label: "Artists", icon: "🎨", href: "/rankings?category=independent-art-zines" },
-    { label: "Creators", icon: "📸", href: "/rankings?category=digital-creators" },
-    { label: "Manga", icon: "📚", href: "/rankings?category=manga" },
-    { label: "Events", icon: "🗓️", href: "/rankings?category=events-nightlife" },
-    { label: "More", icon: "⋯", href: "/rankings" },
-  ].map((chip) => {
-    if (!chip.href) return chip;
-    if (chip.href === "/rankings") return chip;
-    const slug = chip.href.split("category=")[1];
-    return knownSlugs.has(slug) ? chip : { ...chip, href: null };
-  });
+  // Cards come from the single config (src/config/homepageCategories.ts).
+  // A card is "open" only when its slug resolves to a real category in
+  // the live data ("More" is always open). Cards that are not open yet
+  // render an explicit "Coming soon" disabled state — never a
+  // fake-looking clickable chip.
+  const cards = HOMEPAGE_CATEGORY_CARDS.map((card, i) => ({
+    ...card,
+    href: homepageCategoryHref(card),
+    active: i === 0,
+    open: card.slug === null || knownSlugs.has(card.slug),
+  }));
 
   const headline = (
     <>
@@ -56,28 +47,41 @@ export default function HeroDiscovery({
           : "mt-7 flex max-w-[600px] flex-wrap gap-3"
       }
     >
-      {chips.map((chip) => {
+      {cards.map((card) => {
         const cls = `flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-          chip.active
+          card.active
             ? "text-white shadow-md"
-            : "border border-border bg-white/95 text-ink shadow-sm hover:border-brand hover:text-brand-ink"
+            : card.open
+              ? "border border-border bg-white/95 text-ink shadow-sm hover:border-brand hover:text-brand-ink"
+              : "border border-border bg-white/95 text-ink/50 shadow-sm cursor-not-allowed"
         }`;
-        const style = chip.active
+        const style = card.active
           ? { background: "linear-gradient(135deg, #7B4DFF, #4285F4)" }
           : undefined;
         const inner = (
           <>
-            <span aria-hidden="true">{chip.icon}</span>
-            {chip.label}
+            <span aria-hidden="true">{card.icon}</span>
+            {card.label}
           </>
         );
-        return chip.href ? (
-          <Link key={chip.label} href={chip.href} className={cls} style={style}>
+        // Open cards are real links: mouse-clickable, keyboard-focusable,
+        // and activatable with Enter. Cards that are not open yet render
+        // an explicit "Coming soon" state and are not focusable/clickable.
+        return card.open ? (
+          <Link key={card.label} href={card.href} className={cls} style={style}>
             {inner}
           </Link>
         ) : (
-          <span key={chip.label} className={`${cls} cursor-default`}>
+          <span
+            key={card.label}
+            className={cls}
+            aria-disabled="true"
+            title="Coming soon"
+          >
             {inner}
+            <span className="rounded-full bg-ink/10 px-1.5 py-0.5 text-[11px] font-semibold text-ink/60">
+              Coming soon
+            </span>
           </span>
         );
       })}
