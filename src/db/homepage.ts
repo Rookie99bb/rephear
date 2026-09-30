@@ -225,14 +225,14 @@ export async function findCloseBattle(
     if (board.length < 2) continue;
     const first = board[0];
     const second = board[1];
-    if (first.supportScore <= 0 || second.supportScore <= 0) continue;
-    const gap = first.supportScore - second.supportScore;
+    if (first.reputationCredits <= 0 || second.reputationCredits <= 0) continue;
+    const gap = first.reputationCredits - second.reputationCredits;
     if (gap < 0) continue;
     if (!best || gap < best.gap) {
       best = {
         ranking,
         top: board.slice(0, 3).map((e) => e.profile),
-        credits: board.slice(0, 3).map((e) => e.supportScore),
+        credits: board.slice(0, 3).map((e) => e.reputationCredits),
         gap,
       };
     }
