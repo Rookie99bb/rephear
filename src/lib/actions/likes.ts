@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/session";
-import { likeCountForUser, incrementLike, getPublicOrganicLikeTotal } from "@/db/likes";
+import { likeCountForUser, incrementLike } from "@/db/likes";
 import { shareCountForUser } from "@/db/shares";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getInviteBonusLikes } from "@/db/users";
@@ -19,28 +19,10 @@ import { listActiveRafflesForRanking, addRaffleEntry } from "@/db/raffles";
 // to recognise people, not a per-nominee unlock. allowedLikes = 1 +
 // shares + inviteBonusLikes; the Like is only recorded if
 // likeCount < allowedLikes.
-//
-// RETURN CONTRACT (like-data contract 方案C, 2026-10-01):
-// - publicOrganicLikeCount: the nominee's updated PUBLIC *organic* Like
-//   total (real user Likes only — seed likes/scores are NEVER included).
-//   Card buttons reconcile their optimistic +1 against it; it is the ONLY
-//   number any page may render as "N likes".
-// - hasLiked: whether the acting viewer has now Liked (>= 1).
-// - userLikeCount: the acting viewer's own Like count for this nominee
-//   (button state only; never displayed as the public total).
-// - allowedLikes: the viewer's current Like allowance.
-// Components that gate on the viewer's own count must use userLikeCount /
-// hasLiked — never derive it from publicOrganicLikeCount.
 export async function likeAction(
 rankingId: string,
 profileId: string
-): Promise<{
-error?: string;
-publicOrganicLikeCount?: number;
-hasLiked?: boolean;
-userLikeCount?: number;
-allowedLikes?: number;
-}> {
+): Promise<{ error?: string; likeCount?: number; allowedLikes?: number }> {
 const user = await getCurrentUser();
 if (!user) {
 return { error: "You must be logged in to Like a nominee." };
@@ -56,21 +38,14 @@ const inviteBonusLikes = await getInviteBonusLikes(user.id);
 const allowedLikes = 1 + shares + inviteBonusLikes;
 
 if (currentCount >= allowedLikes) {
-// publicOrganicLikeCount here is the ORGANIC total (what the card displays),
-// not the viewer's own count — the button reconciles its optimistic
-// state from it.
-const publicTotal = await getPublicOrganicLikeTotal(rankingId, profileId);
 return {
 error: "Share this Nominee to unlock another Like.",
-publicOrganicLikeCount: publicTotal,
-hasLiked: currentCount > 0,
-userLikeCount: currentCount,
+likeCount: currentCount,
 allowedLikes,
 };
 }
 
 await incrementLike({ rankingId, profileId, userId: user.id });
-const newUserCount = currentCount + 1;
 
 // Vote-to-enter: every successful Like earns the voter one entry into
 // each currently-active prize draw covering this ranking (site-wide
@@ -84,13 +59,5 @@ await addRaffleEntry({ raffleId: raffle.id, userId: user.id, source: "like" });
 }
 
 revalidatePath(`/rankings/${rankingId}`);
-// Return the PUBLIC organic Like total so the card's optimistic +1
-// converges to the number every visitor sees — never the viewer's
-// personal count, and never any seed component.
-return {
-publicOrganicLikeCount: await getPublicOrganicLikeTotal(rankingId, profileId),
-hasLiked: newUserCount > 0,
-userLikeCount: newUserCount,
-allowedLikes,
-};
+return { likeCount: currentCount + 1, allowedLikes };
 }

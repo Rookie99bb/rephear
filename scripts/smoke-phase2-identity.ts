@@ -233,15 +233,15 @@ async function main() {
   const xRow = supported.find((e) => e.profile.id === x.id)!;
   check(
     "Most Supported total includes private support (150 credits incl. seed)",
-    xRow.supportScore === 150,
-    `got ${xRow.supportScore}`
+    xRow.reputationCredits === 150,
+    `got ${xRow.reputationCredits}`
   );
   const loved = await getMostLoved(ranking.id);
   const xLoved = loved.find((e) => e.profile.id === x.id)!;
   check(
     "Most Loved total includes private like (2)",
-    xLoved.organicLikeCount === 2,
-    `got ${xLoved.organicLikeCount}`
+    xLoved.likeCount === 2,
+    `got ${xLoved.likeCount}`
   );
 
   const list = await getSupporterList(x.id, null, 10);

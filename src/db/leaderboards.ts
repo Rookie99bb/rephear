@@ -2,127 +2,68 @@ import { db } from "./client";
 import type { LeaderboardEntry } from "@/lib/types";
 import { toProfile, type ProfileRow } from "./profiles";
 import { seedAccountExclusion } from "./visibility";
-import {
-  getActiveSeedScores,
-  effectiveSeedScore,
-  type SeedScoreRow,
-} from "./seedScores";
 import { getLikeWeights, weightedLikeScore } from "./engagementWeights";
 
 interface StatsRow extends ProfileRow {
+  seed_likes: number;
   organic_likes: number;
-  organic_likers: number;
-  decayed_legacy_seed: number;
-  support_credits: number;
+  reputation_credits: number;
 }
 
-// Legacy seed likes (fake rows in the likes table from the old Seed Likes
-// Policy) decay linearly to zero over 30 days from each row's created_at.
-// They are NEVER displayed — this only preserves a graceful cold-start
-// ordering while the transparent seed_scores table takes over.
-const LEGACY_SEED_DECAY_DAYS = 30;
-
-function toEntry(
-  row: StatsRow,
-  seedRowsByProfile: Map<string, SeedScoreRow[]>,
-  weights: { seedWeight: number; organicWeight: number },
-  nowIso: string
-): { entry: LeaderboardEntry; addedAt: string } {
+function toEntry(row: StatsRow, seedWeight: number, organicWeight: number): LeaderboardEntry {
+  const seedLikes = Number(row.seed_likes) || 0;
   const organicLikes = Number(row.organic_likes) || 0;
-  const organicLikers = Number(row.organic_likers) || 0;
-  const legacySeed = Number(row.decayed_legacy_seed) || 0;
-  const supportCredits = Number(row.support_credits) || 0;
-
-  let newSeed = 0;
-  const seedRows = seedRowsByProfile.get(row.id);
-  if (seedRows) {
-    for (const s of seedRows) {
-      newSeed += effectiveSeedScore(s, organicLikes, organicLikers, nowIso);
-    }
-  }
-  const seedScore = legacySeed + newSeed;
-  // likeScore: the internal Most-Loved sort key (方案C). Weighted blend of
-  // the cold-start weight and real Likes — sort-only, NEVER displayed as a
-  // like count. Changing the weights reorders the board but can never
-  // change the organicLikeCount any page renders.
-  const likeScore = weightedLikeScore(seedScore, organicLikes, weights);
   return {
-    entry: {
-      profile: toProfile(row),
-      // The ONLY number ever shown next to a Like button.
-      organicLikeCount: organicLikes,
-      // Cold-start ordering weight only. Never displayed as likes.
-      seedScore,
-      supportScore: supportCredits,
-      likeScore,
-      seedLikes: legacySeed,
-      organicLikes,
-    },
-    addedAt: row.created_at,
+    profile: toProfile(row),
+    // Public display: weighted combined score (cold-start defaults 1.0/1.0).
+    likeCount: weightedLikeScore(seedLikes, organicLikes, { seedWeight, organicWeight }),
+    reputationCredits: row.reputation_credits,
+    seedLikes,
+    organicLikes,
   };
 }
 
 // One query gets both stats for every Nominee in a Ranking. Nominees
 // belong directly to a Ranking now (no join table), so this is a plain
-// filter on profiles.ranking_id.
+// filter on profiles.ranking_id. Seed and organic likes are summed
+// separately so the weighted score can be applied (Seed Likes Policy).
 async function getRankingStats(
   rankingId: string
 ): Promise<{ entry: LeaderboardEntry; addedAt: string }[]> {
-  const nowIso = new Date().toISOString();
-  const weights = await getLikeWeights().catch(() => ({
-    seedWeight: 1.0,
-    organicWeight: 1.0,
-  }));
-  const seedRows = await getActiveSeedScores(rankingId).catch(() => []);
-  const seedRowsByProfile = new Map<string, SeedScoreRow[]>();
-  for (const s of seedRows) {
-    const arr = seedRowsByProfile.get(s.profile_id) ?? [];
-    arr.push(s);
-    seedRowsByProfile.set(s.profile_id, arr);
-  }
+  const { seedWeight, organicWeight } = await getLikeWeights();
   const rows = (await db
     .prepare(
       `SELECT p.*,
+(SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'seed') AS seed_likes,
 (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'organic') AS organic_likes,
-(SELECT COUNT(DISTINCT l.user_id) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'organic') AS organic_likers,
-(SELECT COALESCE(SUM(l.count * MAX(0, 1 - (julianday('now') - COALESCE(julianday(l.created_at), julianday('now'))) / ?)), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'seed') AS decayed_legacy_seed,
-(SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id AND ct.refunded_at IS NULL) AS support_credits
+(SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
 FROM profiles p
 WHERE p.ranking_id = ? AND p.deleted_at IS NULL`
     )
-    .all(
-      rankingId,
-      rankingId,
-      LEGACY_SEED_DECAY_DAYS,
-      rankingId,
-      rankingId,
-      rankingId
-    )) as unknown as StatsRow[];
-  return rows.map((row) => toEntry(row, seedRowsByProfile, weights, nowIso));
+    .all(rankingId, rankingId, rankingId, rankingId)) as unknown as StatsRow[];
+  return rows.map((row) => ({ entry: toEntry(row, seedWeight, organicWeight), addedAt: row.created_at }));
 }
 
-// Most Loved: sorted by likeScore (the weighted internal sort key),
-// descending. likeScore blends the cold-start weight with real Likes; it
-// is NEVER displayed — the number on every card stays organicLikeCount.
-// Final tiebreak is earliest-added (deterministic, no randomness). Never
-// mixed with Support Credits.
+// Most Loved: sorted ONLY by Total Likes, descending. Never mixed with
+// Reputation Credits. Ties broken by a neutral signal (earliest added to
+// the Ranking) so ordering stays deterministic across renders.
 export async function getMostLoved(rankingId: string): Promise<LeaderboardEntry[]> {
   return (await getRankingStats(rankingId))
     .sort(
       (a, b) =>
-        b.entry.likeScore - a.entry.likeScore ||
+        b.entry.likeCount - a.entry.likeCount ||
         a.addedAt.localeCompare(b.addedAt)
     )
     .map((r) => r.entry);
 }
 
-// Most Supported: sorted ONLY by real paid Support Credits received,
-// descending. Never mixed with Likes. Unchanged by the seed-score model.
+// Most Supported: sorted ONLY by Total Reputation Credits received,
+// descending. Never mixed with Likes.
 export async function getMostSupported(rankingId: string): Promise<LeaderboardEntry[]> {
   return (await getRankingStats(rankingId))
     .sort(
       (a, b) =>
-        b.entry.supportScore - a.entry.supportScore ||
+        b.entry.reputationCredits - a.entry.reputationCredits ||
         a.addedAt.localeCompare(b.addedAt)
     )
     .map((r) => r.entry);
@@ -141,14 +82,14 @@ export async function getLeaderboards(rankingId: string): Promise<{
   const mostLoved = [...stats]
     .sort(
       (a, b) =>
-        b.entry.likeScore - a.entry.likeScore ||
+        b.entry.likeCount - a.entry.likeCount ||
         a.addedAt.localeCompare(b.addedAt)
     )
     .map((r) => r.entry);
   const mostSupported = [...stats]
     .sort(
       (a, b) =>
-        b.entry.supportScore - a.entry.supportScore ||
+        b.entry.reputationCredits - a.entry.reputationCredits ||
         a.addedAt.localeCompare(b.addedAt)
     )
     .map((r) => r.entry);

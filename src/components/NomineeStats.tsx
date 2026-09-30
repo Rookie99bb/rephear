@@ -10,13 +10,12 @@ import { useSupportCelebration } from "@/components/SupportCelebrationProvider";
 // Support is confirmed elsewhere on the page.
 export default function NomineeStats({
   profileId,
-  organicLikeCount,
+  likeCount,
   credits,
   emphasis,
 }: {
   profileId: string;
-  /** Public ORGANIC Like total — the only number ever rendered as "Likes". */
-  organicLikeCount: number;
+  likeCount: number;
   credits: number;
   emphasis: "likes" | "credits";
 }) {
@@ -60,7 +59,7 @@ export default function NomineeStats({
         }`}
       >
         <span className="text-base">👍</span>
-        {organicLikeCount.toLocaleString()}
+        {likeCount.toLocaleString()}
         <span className="hidden text-xs font-medium text-white/70 sm:inline">Likes</span>
       </span>
 

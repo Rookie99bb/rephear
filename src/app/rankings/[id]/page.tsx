@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { findRankingById } from "@/db/rankings";
-import { findCategoryById } from "@/db/categories";
-import { findSubcategoryById } from "@/db/taxonomy";
 import { getLeaderboards } from "@/db/leaderboards";
 import { likeCountsForUser } from "@/db/likes";
 import { shareCountsForUser } from "@/db/shares";
@@ -78,36 +76,15 @@ const likeCounts = user
 const shareCounts = user
 ? await shareCountsForUser(ranking.id, user.id)
 : new Map<string, number>();
-// Per-VIEWER engagement only (button gating: "have I Liked / can I Like
-// again"). Deliberately NOT the public total — the public total shown on
-// each card comes straight from entry.organicLikeCount (real user Likes
-// only — getRankingStats never mixes seed into it), so logged-out visitors
-// see the real number and a logged-in viewer's own count never masquerades
-// as it. The old variable name `engagement`/`likeCount` conflated the two
-// and is renamed.
-const userEngagement = new Map(
+const engagement = new Map(
 [...mostLoved, ...mostSupported].map((entry) => [
 entry.profile.id,
 {
-userLikeCount: likeCounts.get(entry.profile.id) ?? 0,
+likeCount: likeCounts.get(entry.profile.id) ?? 0,
 allowedLikes: 1 + (shareCounts.get(entry.profile.id) ?? 0),
 },
 ])
 );
-// Ranking context for nominee cards: category/scope/city feeding the
-// entity-kind placeholder art and the location label (Phase 4/5).
-// Slugs are read from the taxonomy tables — never guessed.
-const [category, subcategory] = await Promise.all([
-ranking.categoryId ? findCategoryById(ranking.categoryId) : null,
-ranking.subcategoryId ? findSubcategoryById(ranking.subcategoryId) : null,
-]);
-const rankingContext = {
-city: ranking.city,
-country: ranking.country,
-scope: ranking.scope,
-categorySlug: category?.slug ?? "",
-subcategorySlug: subcategory?.slug ?? null,
-};
 // Phase 3 (§23/§26): snapshot-backed movement for both boards. Empty
 // maps when fewer than two daily snapshots exist — LeaderboardTable
 // then renders no arrows (never inferred).
@@ -169,14 +146,14 @@ Add Nominee
 <div className="mt-10 flex flex-col gap-10">
 <LeaderboardTable
 title="Most Loved"
-subtitle="Ranked by real Likes"
+subtitle="Ranked by Likes"
 icon="🏆"
 entries={mostLoved}
 emphasis="likes"
 rankingId={ranking.id}
-ranking={ranking}
-rankingContext={rankingContext}
-userEngagement={userEngagement}
+city={ranking.city}
+country={ranking.country}
+engagement={engagement}
 loggedIn={!!user}
 eagerFirst={3}
 movement={lovedMovement}
@@ -188,9 +165,9 @@ icon="🪙"
 entries={mostSupported}
 emphasis="credits"
 rankingId={ranking.id}
-ranking={ranking}
-rankingContext={rankingContext}
-userEngagement={userEngagement}
+city={ranking.city}
+country={ranking.country}
+engagement={engagement}
 loggedIn={!!user}
 movement={supportedMovement}
 />

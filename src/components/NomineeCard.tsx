@@ -5,12 +5,6 @@ import SupportButton from "@/components/SupportButton";
 import ShareProfileButton from "@/components/ShareProfileButton";
 import NomineeCardGlow from "@/components/NomineeCardGlow";
 import type { LeaderboardEntry } from "@/lib/types";
-import {
-  placeholderArtThemeForCategory,
-  type RankingGeoContext,
-} from "@/lib/nomineeMeta";
-import { getNomineeCardLocationLabel } from "@/lib/rankingDisplay";
-import type { Ranking } from "@/lib/types";
 
 // Nominee card per the approved visual mockup: photo-forward, with the
 // rank badge (#1/#2/#3) as the ONLY overlay on the image. All primary
@@ -22,10 +16,8 @@ import type { Ranking } from "@/lib/types";
 //   [ NOMINEE IMAGE ]          <- rank badge top-left only
 //   ---------------------------
 //   Nominee Name
-//   Location (scope-only: global rankings show NO location row, local
-//   rankings show the plain-text ranking location — never inferred from
-//   the nominee's name, never profile.region, never concatenated ad-hoc)
-//   [❤️ Like · 326] [🪙 Support]
+//   City, Country
+//   [❤️ Like 4.8K] [🪙 Support]
 //   [↗ Share]            [•••]
 //
 // Like = pink/red filled pill with heart. Support = gold/yellow filled
@@ -43,11 +35,10 @@ import type { Ranking } from "@/lib/types";
 export default function NomineeCard({
   rank,
   entry,
+  city,
+  country,
   rankingId,
-  ranking,
-  rankingContext,
-  publicOrganicLikeCount,
-  userLikeCount,
+  likeCount,
   allowedLikes,
   loggedIn,
   emphasis,
@@ -57,15 +48,10 @@ export default function NomineeCard({
 }: {
   rank: number;
   entry: LeaderboardEntry;
+  city: string;
+  country: string;
   rankingId: string;
-  // The ranking itself — location display is scope-only (see below).
-  ranking: Ranking;
-  // Category/scope context used for the entity-kind placeholder art.
-  rankingContext: RankingGeoContext;
-  // Public ORGANIC Like total (displayed) vs the viewer's own Like count
-  // (button gating only) — see src/lib/likeDisplay.ts.
-  publicOrganicLikeCount: number;
-  userLikeCount: number;
+  likeCount: number;
   allowedLikes: number;
   loggedIn: boolean;
   emphasis: "likes" | "credits";
@@ -82,15 +68,6 @@ export default function NomineeCard({
 }) {
   const { profile } = entry;
   const podium = podiumStyles(rank);
-  // Location is scope-only via getNomineeCardLocationLabel: global
-  // rankings show NO location line (the page header already carries the
-  // 🌍 Global badge); local rankings show the plain-text ranking location
-  // (e.g. "London, United Kingdom" — no emoji). Never inferred from the
-  // nominee's name, never profile.region, never concatenated ad-hoc. The
-  // ranking row's stored city is left untouched (gating still uses it), so
-  // a global row retaining London in the DB still shows no London here.
-  const locationLabel = getNomineeCardLocationLabel(ranking);
-  const placeholderTheme = placeholderArtThemeForCategory(rankingContext);
 
   return (
     <li
@@ -113,8 +90,6 @@ export default function NomineeCard({
           claimed={profile.claimStatus === "claimed"}
           profileId={profile.id}
           loggedIn={loggedIn}
-          placeholderTheme={placeholderTheme}
-          categorySlug={rankingContext.categorySlug}
           priority={priority}
         />
 
@@ -162,9 +137,10 @@ export default function NomineeCard({
           <span className="truncate">{profile.name}</span>
           {profile.claimStatus === "claimed" && <VerifiedBadge />}
         </p>
-        {locationLabel && (
-          <p className="mt-0.5 truncate text-sm text-subtle">{locationLabel}</p>
-        )}
+        <p className="mt-0.5 truncate text-sm text-subtle">
+          {city}
+          {country ? `, ${country}` : ""}
+        </p>
 
         {/* Primary actions: Like (pink) + Support (gold). */}
         <div className="relative z-20 mt-3 flex items-center gap-2">
@@ -172,8 +148,7 @@ export default function NomineeCard({
             rankingId={rankingId}
             profileId={profile.id}
             profileName={profile.name}
-            publicOrganicLikeCount={publicOrganicLikeCount}
-            userLikeCount={userLikeCount}
+            likeCount={likeCount}
             allowedLikes={allowedLikes}
             loggedIn={loggedIn}
             variant="card"
@@ -183,7 +158,7 @@ export default function NomineeCard({
             profileId={profile.id}
             loggedIn={loggedIn}
             variant="card"
-            credits={entry.supportScore}
+            credits={entry.reputationCredits}
           />
         </div>
 

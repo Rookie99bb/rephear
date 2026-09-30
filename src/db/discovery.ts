@@ -96,19 +96,18 @@ export interface UnderratedNominee {
   profile: Profile;
   rankingId: string;
   rankingTitle: string;
-  organicLikeCount: number;
-  supportScore: number;
+  likeCount: number;
+  reputationCredits: number;
 }
 
 // Underrated Gems — transparent rule, real engagement only:
-//   1. like_count counts ONLY organic likes (like_source='organic'), so
-//      "has traction" means real people actually tapped Like. (The old
-//      query summed all rows despite claiming otherwise — fixed
-//      2026-09-30.)
-//   2. support credits < 1000 (under ~£100/$100 of backing) defines
+//   1. like_count counts ONLY authentic likes (seed_community_* rows are
+//      excluded via authenticLikesClause), so "has traction" means real
+//      people actually tapped Like.
+//   2. reputation_credits < 1000 (under ~£100/$100 of backing) defines
 //      "under-supported": the community loves them but nobody has backed
 //      them with real money yet.
-//   3. Ordered by organic like_count DESC — the most-loved among the
+//   3. Ordered by authentic like_count DESC — the most-loved among the
 //      under-supported surface first. No hidden weighting, no arbitrary
 //      recency or velocity factor.
 export async function getUnderratedNominees(
@@ -120,7 +119,7 @@ export async function getUnderratedNominees(
               r.id AS ranking_id,
               r.title AS ranking_title,
               (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id AND l.like_source = 'organic') AS like_count,
+                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id) AS like_count,
               (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
                 WHERE ct.ranking_id = p.ranking_id AND ct.profile_id = p.id) AS reputation_credits
        FROM profiles p
@@ -142,8 +141,8 @@ export async function getUnderratedNominees(
     profile: toProfile(r),
     rankingId: r.ranking_id,
     rankingTitle: r.ranking_title,
-    organicLikeCount: r.like_count,
-    supportScore: r.reputation_credits,
+    likeCount: r.like_count,
+    reputationCredits: r.reputation_credits,
   }));
 }
 

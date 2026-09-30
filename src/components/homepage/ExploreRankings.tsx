@@ -3,8 +3,11 @@ import RankingCover from "./RankingCover";
 import CandidateAvatarStrip from "./CandidateAvatarStrip";
 import RankingFilters from "./RankingFilters";
 import { compact } from "./format";
-import { getRankingCardData, type ExploreRanking } from "@/db/homepage";
-import { getRankingLocationLabel } from "@/lib/rankingDisplay";
+import {
+  getRankingCardData,
+  locationLabelFor,
+  type ExploreRanking,
+} from "@/db/homepage";
 import { listCategories } from "@/db/categories";
 import { listPopularRegions } from "@/db/rankings";
 import type { Category } from "@/lib/types";
@@ -73,8 +76,7 @@ function CompactRankingCard({
 }) {
   const { ranking, categoryName } = item;
   const top = data.topNominees[0];
-  // Scope-only location: global rankings never leak the DB gating city.
-  const location = getRankingLocationLabel(ranking);
+  const location = locationLabelFor(ranking);
   return (
     <Link
       href={`/rankings/${ranking.id}`}
@@ -94,7 +96,7 @@ function CompactRankingCard({
           </span>
         )}
         <span className="rounded-full bg-black/35 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-          {location}
+          📍 {location}
         </span>
       </div>
       <div className="relative p-4">
@@ -112,7 +114,7 @@ function CompactRankingCard({
         <div className="mt-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-[13px] font-medium text-white/90">
             <span>👥 {data.nomineeCount} nominees</span>
-            <span>❤️ {compact(data.organicLikeCount)} likes</span>
+            <span>❤️ {compact(data.totalLikes)} likes</span>
           </div>
           <span
             aria-hidden="true"

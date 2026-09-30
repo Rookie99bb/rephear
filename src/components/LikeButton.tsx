@@ -1,18 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { likeAction } from "@/lib/actions/likes";
 import { shareAction } from "@/lib/actions/shares";
 import ShareProfileDialog from "@/components/ShareProfileDialog";
-import {
-  formatLikeCountLabel,
-  canCastLike,
-  applyOptimisticLike,
-  resolveLikeUpdate,
-  type LikeDisplayState,
-} from "@/lib/likeDisplay";
-import { subscribeLikeChannel, publishLikeState } from "@/lib/likeSync";
+import { formatCompactCount } from "@/lib/rankingDisplay";
 
 // Renders the Like + Share cluster for one Nominee. A user's first Like is
 // free; after that the Like button stays disabled until they Share this
@@ -21,19 +14,6 @@ import { subscribeLikeChannel, publishLikeState } from "@/lib/likeSync";
 // Like, and this repeats indefinitely (share again, unlock another Like).
 // Both buttons live in one component because they share this unlock
 // state.
-//
-// DISPLAY CONTRACT (like-data contract 方案C, 2026-10-01): the card
-// ALWAYS shows the nominee's PUBLIC *organic* Like total
-// (`publicOrganicLikeCount`) — real user Likes only, never seed.
-// Logged-out visitors see the real number too, and 0 is shown explicitly
-// as `❤️ Like · 0`, never hidden. `userLikeCount` / `hasLiked` (THIS
-// viewer's own state) only drive the button state (canLike / liked) and
-// are never rendered as the count. likeAction returns the
-// server-authoritative public organic total plus the viewer's
-// authoritative state, so the optimistic +1 converges to the number
-// everyone sees; on failure the optimistic update rolls back exactly.
-// Sibling instances (Most Loved + Most Supported cards for the same
-// nominee) stay in sync through the likeSync pub/sub channel.
 //
 // variant="pill" is the original labeled-button layout (kept for any
 // future non-card usage). variant="icon" renders the same logic as two
@@ -47,8 +27,7 @@ export default function LikeButton({
   rankingId,
   profileId,
   profileName,
-  publicOrganicLikeCount,
-  userLikeCount,
+  likeCount,
   allowedLikes,
   loggedIn,
   variant = "pill",
@@ -56,70 +35,35 @@ export default function LikeButton({
   rankingId: string;
   profileId: string;
   profileName?: string;
-  /** Public ORGANIC Like total — displayed on the card for every visitor. Never includes seed. */
-  publicOrganicLikeCount: number;
-  /** Viewer's own Like count — button gating only, never displayed. */
-  userLikeCount: number;
+  likeCount: number;
   allowedLikes: number;
   loggedIn: boolean;
   variant?: "pill" | "icon" | "card";
 }) {
-  const [display, setDisplay] = useState<LikeDisplayState>({
-    total: publicOrganicLikeCount,
-    userCount: userLikeCount,
-    hasLiked: userLikeCount > 0,
-  });
+  const [count, setCount] = useState(likeCount);
   const [allowed, setAllowed] = useState(allowedLikes);
   const [copied, setCopied] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  // The exact listener identity registered on the channel, so publish()
-  // can exclude this instance (no self-echo).
-  const listenerRef = useRef<((state: LikeDisplayState) => void) | null>(null);
 
-  const canLike = canCastLike(loggedIn, display.userCount, allowed);
-  const liked = loggedIn && display.hasLiked;
-
-  // Adopt state published by a sibling <LikeButton> for the same nominee
-  // (Most Loved card <-> Most Supported card): optimistic +1s, server
-  // reconciles and failure rollbacks all propagate.
-  useEffect(() => {
-    const listener = (state: LikeDisplayState) => setDisplay(state);
-    listenerRef.current = listener;
-    return subscribeLikeChannel(rankingId, profileId, listener);
-  }, [rankingId, profileId]);
-
-  function publish(state: LikeDisplayState) {
-    publishLikeState(
-      rankingId,
-      profileId,
-      state,
-      listenerRef.current ?? undefined
-    );
-  }
+  const canLike = count < allowed;
 
   function handleLike() {
     if (!canLike || pending) return;
-    const before = display;
-    const optimistic = applyOptimisticLike(before);
-    setDisplay(optimistic);
-    publish(optimistic);
+    const prevCount = count;
+    setCount(prevCount + 1);
     setError(null);
     startTransition(async () => {
       const result = await likeAction(rankingId, profileId);
-      const resolved = resolveLikeUpdate(before, optimistic, result);
-      setDisplay(resolved);
-      // Publish the resolved state too: on success siblings converge to
-      // the server-authoritative totals; on failure they roll back with us.
-      publish(resolved);
       if (result.error) {
+        setCount(prevCount);
         setError(result.error);
         if (typeof result.allowedLikes === "number") {
           setAllowed(result.allowedLikes);
         }
-      } else if (typeof result.allowedLikes === "number") {
-        setAllowed(result.allowedLikes);
+      } else if (typeof result.likeCount === "number") {
+        setCount(result.likeCount);
       }
     });
   }
@@ -148,26 +92,27 @@ export default function LikeButton({
   }
 
   if (variant === "card") {
-    // Approved mockup: vivid pink/red filled pill, heart icon, PUBLIC
-    // organic count — always visible, even for logged-out visitors and at 0.
+    // Approved mockup: vivid pink/red filled pill, heart icon, count.
+    // ❤️ 4.8K  /  ❤️ Like  /  ❤️ Liked
     const cardClass =
       "inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-[0_6px_16px_-4px_rgba(219,39,119,0.6)] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-600 active:scale-95 " +
       (canLike && !pending
         ? "bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 hover:shadow-[0_10px_22px_-4px_rgba(219,39,119,0.8)]"
         : "cursor-not-allowed bg-pink-300 opacity-60");
-    const label = formatLikeCountLabel(display.total);
+    const label =
+      error ?? (!canLike ? "Share to Like again" : count > 0 ? formatCompactCount(count) : "Like");
+    const liked = count > 0 && !canLike;
 
     if (!loggedIn) {
       return (
         <Link
           href="/login"
-          aria-label={`Log in to Like this nominee (${label})`}
-          title={error ?? label}
+          aria-label="Log in to Like"
           className={cardClass + " bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600"}
           onClick={(e) => e.stopPropagation()}
         >
           <span aria-hidden="true">❤️</span>
-          {label.replace("❤️ ", "")}
+          {count > 0 ? formatCompactCount(count) : "Like"}
         </Link>
       );
     }
@@ -180,13 +125,13 @@ export default function LikeButton({
           e.stopPropagation();
           handleLike();
         }}
-        title={error ?? (!canLike ? "Share to Like again" : label)}
-        aria-label={liked ? `Liked (${label})` : `Like this nominee (${label})`}
+        title={label}
+        aria-label={liked ? `Liked (${count})` : `Like this nominee${count > 0 ? ` (${count} likes)` : ""}`}
         aria-pressed={liked}
         className={cardClass}
       >
         <span aria-hidden="true">❤️</span>
-        {label.replace("❤️ ", "")}
+        {liked ? "Liked" : count > 0 ? formatCompactCount(count) : "Like"}
       </button>
     );
   }
@@ -223,7 +168,7 @@ export default function LikeButton({
             }}
             title={
               error ??
-              (!canLike ? "Share to Like again" : `${display.total} Likes`)
+              (!canLike ? "Share to Like again" : count > 0 ? `${count} Likes` : "Like")
             }
             className={`${likeButtonClass} ${!canLike ? "opacity-40" : ""}`}
           >
@@ -232,7 +177,7 @@ export default function LikeButton({
         ) : (
           <Link
             href="/login"
-            title={`Log in to Like (${display.total} Likes)`}
+            title="Log in to Like"
             className={likeButtonClass}
             onClick={(e) => e.stopPropagation()}
           >
@@ -268,13 +213,9 @@ export default function LikeButton({
 
   if (!loggedIn) {
     return (
-      <Link
-        href="/login"
-        title={`Log in to Like (${formatLikeCountLabel(display.total)})`}
-        className="rounded-lg border border-border px-3 py-1.5 text-xs text-subtle transition hover:border-ink hover:text-ink"
-      >
-        {formatLikeCountLabel(display.total)}
-      </Link>
+      <span className="rounded-lg border border-border px-3 py-1.5 text-xs text-subtle">
+        Log in to Like
+      </span>
     );
   }
 
@@ -288,7 +229,7 @@ export default function LikeButton({
             !canLike ? "border-border bg-surface text-subtle" : "border-ink text-ink hover:bg-ink hover:text-white"
           }`}
         >
-          {liked ? `Liked (${display.total})` : `Like (${display.total})`}
+          {count > 0 ? `Liked (${count})` : "Like"}
         </button>
         <button
           onClick={handleShare}

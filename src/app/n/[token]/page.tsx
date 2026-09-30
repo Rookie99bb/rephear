@@ -9,7 +9,6 @@ import { shareCountsForUser } from "@/db/shares";
 import { getCurrentUser } from "@/lib/session";
 import Avatar from "@/components/Avatar";
 import NomineeLandingActions from "@/components/NomineeLandingActions";
-import { getNomineeCardLocationLabel } from "@/lib/rankingDisplay";
 
 // Nominee share landing page: rephear.com/n/TOKEN
 // Every nominee's personal link + QR code points here. Focused layout:
@@ -52,7 +51,7 @@ export default async function NomineeSharePage({
   const user = await getCurrentUser();
   const mostLoved = await getMostLoved(ranking.id);
   const entry = mostLoved.find((e) => e.profile.id === profile.id);
-  const totalLikes = entry?.organicLikeCount ?? 0;
+  const totalLikes = entry?.likeCount ?? 0;
 
   const userLikeCounts = user
     ? await likeCountsForUser(ranking.id, user.id)
@@ -62,10 +61,6 @@ export default async function NomineeSharePage({
     : new Map<string, number>();
   const myLikes = userLikeCounts.get(profile.id) ?? 0;
   const allowedLikes = 1 + (userShareCounts.get(profile.id) ?? 0);
-  // Location contract (方案C 2026-10-01): scope-only. Global shows no
-  // location row at all; London shows the RANKING's plain location.
-  // profile.region is never rendered and never overrides.
-  const cardLocation = getNomineeCardLocationLabel(ranking);
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-12 text-center">
@@ -74,9 +69,9 @@ export default async function NomineeSharePage({
         {profile.name}
       </h1>
       <p className="mt-1 text-sm font-medium text-subtle">{ranking.title}</p>
-      {cardLocation && (
+      {profile.region && (
         <p className="mt-1 text-xs uppercase tracking-wide text-subtle">
-          {cardLocation}
+          {profile.region}
         </p>
       )}
       {profile.bio && (

@@ -179,7 +179,7 @@ async function ClaimedProfilesSection({ profiles }: { profiles: Profile[] }) {
             <span className="text-sm font-medium text-ink">{profile.name}</span>
             <span className="flex items-center gap-4 text-sm text-subtle">
               <span>
-                <span className="font-semibold text-ink">{stats.totalOrganicLikes}</span> Likes
+                <span className="font-semibold text-ink">{stats.totalLikes}</span> Likes
               </span>
               <span>
                 <span className="font-semibold text-ink">

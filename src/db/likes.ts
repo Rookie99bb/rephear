@@ -80,26 +80,6 @@ export async function likeCountForUser(
   return row?.count ?? 0;
 }
 
-// Public REAL Like total for one Nominee — the number every visitor
-// (logged in or not) sees next to the Like button. Organic ONLY
-// (likes.like_source='organic'): seed likes and seed scores are NEVER
-// displayed as user Likes. This is deliberately NOT user-scoped:
-// likeCountForUser/likeCountsForUser answer "how many times did THIS viewer
-// Like", which is only used for the per-viewer Like-button state
-// (canLike / liked), never for display.
-export async function getPublicOrganicLikeTotal(
-  rankingId: string,
-  profileId: string
-): Promise<number> {
-  const row = (await db
-    .prepare(
-      `SELECT COALESCE(SUM(count), 0) AS organic_likes
-       FROM likes WHERE ranking_id = ? AND profile_id = ? AND like_source = 'organic'`
-    )
-    .get(rankingId, profileId)) as unknown as { organic_likes: number };
-  return Number(row.organic_likes) || 0;
-}
-
 // Records one additional Like from this user for this Nominee. Uses the
 // same UNIQUE (ranking_id, profile_id, user_id) row as a plain Like always
 // has, the first Like inserts count=1, every Like after that (unlocked by

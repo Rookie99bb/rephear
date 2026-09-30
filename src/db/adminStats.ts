@@ -11,10 +11,7 @@ export interface RegionStat {
   country: string;
   city: string;
   rankingCount: number;
-  // Split per the like-data contract (方案C): organic is real user Likes,
-  // seed is legacy cold-start likes. Never a single mixed "likes" number.
-  organicLikeCount: number;
-  seedLikeCount: number;
+  likeCount: number;
 }
 
 export interface DayCount {
@@ -31,9 +28,9 @@ export interface AdminStats {
   totalUsers: number;
   totalActiveRankings: number;
   totalHiddenOrDeletedRankings: number;
-  // Publicly displayed Likes (organic only, 方案C 2026-10-01).
-  displayedLikes: number;
-  // Admin must expose the split; seed never leaks into displayedLikes.
+  totalLikes: number;
+  // Seed Likes Policy (2026-09-30 §6): admin must expose the split.
+  // totalLikes = combined display count (seed + organic).
   seedLikes: number;
   organicLikes: number;
   organicLikesToday: number;
@@ -61,7 +58,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalUsers,
     totalActiveRankings,
     totalHiddenOrDeletedRankings,
-    displayedLikes,
+    totalLikes,
     seedLikes,
     organicLikes,
     organicLikesToday,
@@ -79,7 +76,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     scalar(
       "SELECT COUNT(*) AS c FROM rankings WHERE is_hidden = 1 OR deleted_at IS NOT NULL"
     ),
-    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic'"),
+    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes"),
     scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'seed'"),
     scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic'"),
     scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic' AND date(created_at) = date('now')"),
@@ -99,29 +96,20 @@ export async function getAdminStats(): Promise<AdminStats> {
         COUNT(DISTINCT r.id) AS ranking_count,
         COALESCE((
           SELECT SUM(l.count) FROM likes l
-          WHERE l.like_source = 'organic'
-            AND l.ranking_id IN (
-              SELECT id FROM rankings r2 WHERE r2.country = r.country AND r2.city = r.city
-            )
-        ), 0) AS organic_like_count,
-        COALESCE((
-          SELECT SUM(l.count) FROM likes l
-          WHERE l.like_source = 'seed'
-            AND l.ranking_id IN (
-              SELECT id FROM rankings r2 WHERE r2.country = r.country AND r2.city = r.city
-            )
-        ), 0) AS seed_like_count
+          WHERE l.ranking_id IN (
+            SELECT id FROM rankings r2 WHERE r2.country = r.country AND r2.city = r.city
+          )
+        ), 0) AS like_count
        FROM rankings r
        WHERE r.deleted_at IS NULL
        GROUP BY r.country, r.city
-       ORDER BY ranking_count DESC, organic_like_count DESC`
+       ORDER BY ranking_count DESC, like_count DESC`
     )
     .all()) as unknown as {
     country: string;
     city: string;
     ranking_count: number;
-    organic_like_count: number;
-    seed_like_count: number;
+    like_count: number;
   }[];
 
   const signupRows = (await db
@@ -166,7 +154,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalUsers,
     totalActiveRankings,
     totalHiddenOrDeletedRankings,
-    displayedLikes,
+    totalLikes,
     seedLikes,
     organicLikes,
     organicLikesToday,
@@ -180,8 +168,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       country: r.country,
       city: r.city,
       rankingCount: r.ranking_count,
-      organicLikeCount: r.organic_like_count,
-      seedLikeCount: r.seed_like_count,
+      likeCount: r.like_count,
     })),
     signupsByDay: signupRows.map((r) => ({ day: r.day, count: r.c })),
     activityByDay: activityDayRows.map((r) => ({ day: r.day, count: r.c })),

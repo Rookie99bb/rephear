@@ -305,14 +305,10 @@ export async function getRankingCountsByCity(): Promise<Record<string, number>> 
   return Object.fromEntries(rows.map((r) => [r.city, r.c]));
 }
 
-// Batch engagement stats for ranking cards (organic likes + nominee
-// counts). One query for the whole set — never N+1 per card.
-// NOTE: like counts here are ORGANIC ONLY (real user Likes). Seed
-// likes/scores are never mixed into a displayed number (like-data
-// contract 方案C, 2026-10-01). Currently no live callers; kept for the
-// card layer with honest names.
+// Batch engagement stats for ranking cards (likes + nominee counts).
+// One query for the whole set — never N+1 per card.
 export interface RankingCardStats {
-  organicLikeCount: number;
+  likeCount: number;
   nomineeCount: number;
 }
 
@@ -325,7 +321,7 @@ export async function getRankingCardStats(
   const rows = (await db
     .prepare(
       `SELECT r.id AS id,
-              (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id AND l.like_source = 'organic') AS like_count,
+              (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS like_count,
               (SELECT COUNT(*) FROM profiles p WHERE p.ranking_id = r.id AND p.deleted_at IS NULL) AS nominee_count
        FROM rankings r
        WHERE r.id IN (${placeholders})`
@@ -337,7 +333,7 @@ export async function getRankingCardStats(
   }[];
   for (const row of rows) {
     out[row.id] = {
-      organicLikeCount: row.like_count ?? 0,
+      likeCount: row.like_count ?? 0,
       nomineeCount: row.nominee_count ?? 0,
     };
   }

@@ -2,8 +2,7 @@ import Link from "next/link";
 import RankingCover from "./RankingCover";
 import CandidateAvatarStrip from "./CandidateAvatarStrip";
 import { compact } from "./format";
-import { type RankingCardData } from "@/db/homepage";
-import { getRankingLocationLabel } from "@/lib/rankingDisplay";
+import { locationLabelFor, type RankingCardData } from "@/db/homepage";
 import type { Ranking } from "@/lib/types";
 
 export interface TrendingCard {
@@ -84,7 +83,7 @@ function FeaturedRankingCard({
 }) {
   const { ranking, data } = card;
   const top = data.topNominees[0];
-  const location = getRankingLocationLabel(ranking);
+  const location = locationLabelFor(ranking);
   return (
     <Link
       href={cardHref(ranking)}
@@ -106,7 +105,7 @@ function FeaturedRankingCard({
             {card.isFeaturedFill ? "✨ Featured" : "🔥 Trending"}
           </span>
           <span className="text-xs font-medium text-white/80">
-            {location}
+            📍 {location === "Global" ? "Global" : `${location}, United Kingdom`}
           </span>
         </div>
         <h3 className="max-w-[320px] text-[26px] font-bold leading-tight tracking-tight">
@@ -128,7 +127,7 @@ function FeaturedRankingCard({
         <div className="mt-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-[13px] font-medium text-white/85">
             <span>👥 {data.nomineeCount} nominees</span>
-            <span>❤️ {compact(data.organicLikeCount)} likes</span>
+            <span>❤️ {compact(data.totalLikes)} likes</span>
           </div>
           <span
             className="rounded-full px-4 py-2 text-sm font-semibold text-white"
@@ -145,7 +144,7 @@ function FeaturedRankingCard({
 function VisualRankingCard({ card }: { card: TrendingCard }) {
   const { ranking, categoryName, data } = card;
   const top = data.topNominees[0];
-  const location = getRankingLocationLabel(ranking);
+  const location = locationLabelFor(ranking);
   return (
     <Link
       href={cardHref(ranking)}
@@ -167,7 +166,7 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
               ✦ {categoryName}
             </span>
           )}
-          <span className="text-xs font-medium text-subtle">{location}</span>
+          <span className="text-xs font-medium text-subtle">📍 {location}</span>
         </div>
         <h3 className="line-clamp-2 text-[19px] font-bold leading-snug tracking-tight text-ink">
           {ranking.title}
@@ -189,7 +188,7 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
           <div className="flex items-center gap-3 text-[13px] font-medium text-subtle">
             <span>👥 {data.nomineeCount} nominees</span>
             <span>
-              ❤️ <span className="text-[#e5486f]">{compact(data.organicLikeCount)}</span>{" "}
+              ❤️ <span className="text-[#e5486f]">{compact(data.totalLikes)}</span>{" "}
               likes
             </span>
           </div>

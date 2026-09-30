@@ -110,7 +110,7 @@ async function main() {
   await addLike({ rankingId: ranking.id, profileId: nominee.id, userId: privateLiker.id, visibility: "private" });
   const loved = await getMostLoved(ranking.id);
   const lovedEntry = loved.find((e) => e.profile.id === nominee.id);
-  check("A1 private Like counts in Most Loved total", lovedEntry?.organicLikeCount === 2, `got ${lovedEntry?.organicLikeCount}`);
+  check("A1 private Like counts in Most Loved total", lovedEntry?.likeCount === 2, `got ${lovedEntry?.likeCount}`);
 
   // --- B. Private paid Support counts in Most Supported ---
   async function paidSupport(userId: string, tag: string, credits: number, visibility: "public" | "private") {

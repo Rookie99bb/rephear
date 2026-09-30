@@ -42,7 +42,7 @@ export default function CategoryPageView({
   const trendingIds = new Set(trending.map((s) => s.ranking.id));
   const explore = [...stats]
     .filter((s) => !trendingIds.has(s.ranking.id))
-    .sort((a, b) => b.organicLikeCount - a.organicLikeCount || b.nomineeCount - a.nomineeCount);
+    .sort((a, b) => b.totalLikes - a.totalLikes || b.nomineeCount - a.nomineeCount);
 
   const isTrendingView = !activeSub && !query;
 
@@ -56,11 +56,11 @@ export default function CategoryPageView({
     flatHeading = activeSubName ?? category.name;
   }
   const flatSorted = [...flatList].sort(
-    (a, b) => b.organicLikeCount - a.organicLikeCount || b.nomineeCount - a.nomineeCount
+    (a, b) => b.totalLikes - a.totalLikes || b.nomineeCount - a.nomineeCount
   );
 
   // Hero stats: honest aggregates over the category's public rankings.
-  const totalVotes = stats.reduce((s, x) => s + x.organicLikeCount, 0);
+  const totalVotes = stats.reduce((s, x) => s + x.totalLikes, 0);
   const totalNominees = stats.reduce((s, x) => s + x.nomineeCount, 0);
   const location = modalLocation(stats);
 

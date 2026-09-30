@@ -26,25 +26,22 @@ import { toRanking as rowToRanking, type RankingRow } from "./rankings";
 
 export interface RankingCardData {
   nomineeCount: number;
-  // Public ORGANIC Like total — the only number ever rendered as "Likes"
-  // (seed never mixes into a displayed number, 方案C 2026-10-01).
-  organicLikeCount: number;
+  totalLikes: number;
   totalCredits: number;
-  // Top nominees by organic likes, for the avatar strip and the cover photo.
+  // Top nominees by likes, for the avatar strip and the cover photo.
   topNominees: Profile[];
   topLikeCounts: number[];
 }
 
-// One query per ranking: nominee count, ORGANIC like total, total credits
-// and the top-5 nominees by organic likes (avatar strip + cover photo
-// source). Seed likes never contribute to a displayed number.
+// One query per ranking: nominee count, total likes, total credits and
+// the top-5 nominees by likes (avatar strip + cover photo source).
 export async function getRankingCardData(
   rankingId: string
 ): Promise<RankingCardData> {
   const rows = (await db
     .prepare(
       `SELECT p.*,
-         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'organic') AS like_count,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id) AS like_count,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
        FROM profiles p
        WHERE p.ranking_id = ? AND p.deleted_at IS NULL
@@ -53,7 +50,7 @@ export async function getRankingCardData(
     .all(rankingId, rankingId, rankingId)) as unknown as StatsRow[];
   return {
     nomineeCount: rows.length,
-    organicLikeCount: rows.reduce((s, r) => s + r.like_count, 0),
+    totalLikes: rows.reduce((s, r) => s + r.like_count, 0),
     totalCredits: rows.reduce((s, r) => s + r.reputation_credits, 0),
     topNominees: rows.slice(0, 5).map((r) => toProfile(r)),
     topLikeCounts: rows.slice(0, 5).map((r) => r.like_count),
@@ -66,6 +63,14 @@ export async function getCategoryNameForRanking(
   if (!ranking.categoryId) return null;
   const category = await findCategoryById(ranking.categoryId);
   return category?.name ?? null;
+}
+
+// "Global" vs city label for card badges. Curated global rankings store
+// an empty/"Global" city; everything else shows its city.
+export function locationLabelFor(ranking: Ranking): string {
+  const city = (ranking.city ?? "").trim();
+  if (!city || city.toLowerCase() === "global") return "Global";
+  return city;
 }
 
 export interface WeeklyVelocity {
@@ -220,14 +225,14 @@ export async function findCloseBattle(
     if (board.length < 2) continue;
     const first = board[0];
     const second = board[1];
-    if (first.supportScore <= 0 || second.supportScore <= 0) continue;
-    const gap = first.supportScore - second.supportScore;
+    if (first.reputationCredits <= 0 || second.reputationCredits <= 0) continue;
+    const gap = first.reputationCredits - second.reputationCredits;
     if (gap < 0) continue;
     if (!best || gap < best.gap) {
       best = {
         ranking,
         top: board.slice(0, 3).map((e) => e.profile),
-        credits: board.slice(0, 3).map((e) => e.supportScore),
+        credits: board.slice(0, 3).map((e) => e.reputationCredits),
         gap,
       };
     }

@@ -450,12 +450,12 @@ async function insertSeedData(): Promise<void> {
       // across the whole window (steady, established).
       const likeSeed = rIndex * 31 + nIndex * 7 + person.profileAgeDays;
       const [likeMin, likeMax] = TIER_LIKE_RANGE[person.tier];
-      const demoLikeCount = pick(likeMin, likeMax, likeSeed);
+      const likeCount = pick(likeMin, likeMax, likeSeed);
       const recencyScale = person.tier === "rising" ? 0.45 : person.tier === "new" ? 0.15 : 1;
 
-      for (let i = 0; i < demoLikeCount; i++) {
+      for (let i = 0; i < likeCount; i++) {
         const liker = communityPool[(likeSeed + i * 5) % communityPool.length];
-        const fraction = demoLikeCount <= 1 ? 0.5 : i / (demoLikeCount - 1);
+        const fraction = likeCount <= 1 ? 0.5 : i / (likeCount - 1);
         const likeDaysAgo = Math.max(
           0,
           Math.round(addedDaysAgo * recencyScale * (1 - fraction))

@@ -1093,52 +1093,6 @@ async function createEngagementConfigTableIfMissing() {
   }
 }
 
-// Transparent cold-start seed scores (2026-09-30).
-//
-// Unlike the legacy seed likes (fake rows in the likes table), seed_scores
-// rows are honest metadata: a small ranking weight with a recorded value,
-// reason, author/method, creation time and decay rule. They NEVER appear in
-// the likes table and are NEVER displayed as user Likes — they only
-// influence cold-start ordering until real engagement takes over.
-//
-// One ACTIVE row per (ranking_id, profile_id); superseded_at preserves
-// history when a score is replaced. Enforced by a PARTIAL unique index
-// (active rows only) — a plain UNIQUE(ranking_id, profile_id) would clash
-// with superseded history rows sharing the same key.
-async function createSeedScoresTableIfMissing() {
-  await rawClient.execute({
-    sql: `CREATE TABLE IF NOT EXISTS seed_scores (
-      id TEXT PRIMARY KEY,
-      ranking_id TEXT NOT NULL,
-      profile_id TEXT NOT NULL,
-      score REAL NOT NULL,
-      reason TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      created_by TEXT NOT NULL,
-      decay_rule TEXT NOT NULL DEFAULT 'linear-30d',
-      organic_like_threshold INTEGER NOT NULL DEFAULT 50,
-      organic_liker_threshold INTEGER NOT NULL DEFAULT 25,
-      superseded_at TEXT
-    );`,
-    args: [],
-  });
-  await rawClient.execute({
-    sql: `CREATE INDEX IF NOT EXISTS idx_seed_scores_ranking ON seed_scores(ranking_id);`,
-    args: [],
-  });
-  // Partial unique index: only non-superseded rows compete for the key,
-  // so setSeedScore()'s supersede-then-insert stays idempotent while
-  // history is retained. (DBs created by the pre-2026-10-01 schema carry
-  // the old plain UNIQUE constraint on the table and need a rebuild to
-  // pick this up — noted in the handoff report.)
-  await rawClient.execute({
-    sql: `CREATE UNIQUE INDEX IF NOT EXISTS uq_seed_scores_active
-          ON seed_scores(ranking_id, profile_id)
-          WHERE superseded_at IS NULL;`,
-    args: [],
-  });
-}
-
 async function addUserLocationColumnIfMissing() {
   try {
     await rawClient.execute({
@@ -1741,7 +1695,6 @@ export async function ensureMigrated(): Promise<void> {
     await addLikeSourceColumnIfMissing();
     await createSeedLikeRunsTableIfMissing();
     await createEngagementConfigTableIfMissing();
-    await createSeedScoresTableIfMissing();
     await addIsAdminColumnIfMissing();
     await addInviteBonusLikesColumnToUsersIfMissing();
     await addPhase1VisibilityColumnsIfMissing();

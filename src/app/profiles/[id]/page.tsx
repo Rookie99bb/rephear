@@ -116,7 +116,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
       />
 
       <div className="mt-8 flex flex-wrap items-center gap-8 border-y border-border py-4">
-        <Stat label="Total Likes" value={stats.totalOrganicLikes} />
+        <Stat label="Total Likes" value={stats.totalLikes} />
         <Stat
           label="Total Reputation Credits"
           value={stats.totalReputationCredits}

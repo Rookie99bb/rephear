@@ -2,17 +2,13 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import NomineePlaceholderArt from "@/components/NomineePlaceholderArt";
-import type { PlaceholderArtTheme } from "@/lib/nomineeMeta";
+import { initialsForName } from "@/lib/avatar";
 
 // Full-bleed cover photo for a premium nominee card. Fades in once the
 // image finishes loading; if photoUrl is empty (nominated without a
 // photo, the common case today — see AddNomineeForm) or the URL 404s,
-// falls back to category-aware placeholder art (Phase 4) rather than a
-// broken image. Three states stay visually distinct:
-//   - no photo data  → "{Category} · Photo coming soon"
-//   - URL present but failed to load → "Couldn't load photo" + retry
-// The card never crashes on a missing/broken image.
+// falls back to a generated gradient + large-initial placeholder rather
+// than a broken image or a plain grey circle.
 export default function NomineeCoverImage({
   name,
   photoUrl,
@@ -20,8 +16,6 @@ export default function NomineeCoverImage({
   claimed,
   profileId,
   loggedIn,
-  placeholderTheme,
-  categorySlug,
   priority = false,
 }: {
   name: string;
@@ -30,10 +24,6 @@ export default function NomineeCoverImage({
   claimed: boolean;
   profileId: string;
   loggedIn: boolean;
-  /** Decorative placeholder-art theme from the ranking's category (no entity claim). */
-  placeholderTheme: PlaceholderArtTheme;
-  /** Category slug for the placeholder label ("Cosplay", "Anime", …). */
-  categorySlug: string;
   // Above-the-fold cards pass priority so the first few covers load
   // eagerly; everything else lazy-loads to keep mobile LCP down.
   priority?: boolean;
@@ -55,30 +45,37 @@ export default function NomineeCoverImage({
   };
 
   if (!hasPhoto) {
-    const broken = !!photoUrl && errored;
     return (
-      <>
-        <NomineePlaceholderArt
-          theme={placeholderTheme}
-          categorySlug={categorySlug}
-          name={name}
-          avatarColor={avatarColor}
-          status={broken ? "broken" : "missing"}
-          onRetry={broken ? () => setErrored(false) : undefined}
-        />
-        {/* Below-art affordance: keep the existing claim CTA. */}
-        <div className="absolute inset-x-0 bottom-3 z-20 flex flex-col items-center">
-          {!claimed && loggedIn && (
-            <Link
-              href={`/profiles/${profileId}/claim`}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/30"
-            >
-              Claim Profile
-            </Link>
-          )}
-        </div>
-      </>
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white"
+        style={{
+          background: `linear-gradient(160deg, ${avatarColor}, #111113)`,
+        }}
+      >
+        <span className="text-7xl font-semibold tracking-tight text-white/90">
+          {initialsForName(name)}
+        </span>
+        {!claimed ? (
+          <>
+            <span className="text-xs font-medium uppercase tracking-wide text-white/60">
+              No Photo Yet
+            </span>
+            {loggedIn && (
+              <Link
+                href={`/profiles/${profileId}/claim`}
+                onClick={(e) => e.stopPropagation()}
+                className="relative z-20 mt-1 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/30"
+              >
+                Claim Profile
+              </Link>
+            )}
+          </>
+        ) : (
+          <span className="text-xs font-medium uppercase tracking-wide text-white/60">
+            No Photo Yet
+          </span>
+        )}
+      </div>
     );
   }
 
