@@ -20,6 +20,20 @@ import { recordAuditLog, AUDIT_ACTIONS } from "./auditLog";
 //   fan effect to help the platform acquire new users are not shown. A
 //   borough has no account to campaign with; it cannot bring fans.
 //
+// - "Cosplayers to Watch at AnimeCon London 2026": hidden 2026-09-30
+//   (user decision). Research found zero candidates meeting the
+//   cold-start photo/verification bar, and AnimeCon's announced guests
+//   are voice actors, not cosplayers. Plan: redo as a post-event edition
+//   after AnimeCon London (3-4 Oct 2026) with on-site verified photos.
+//   Unhide via admin panel once the post-event edition is backfilled.
+//
+// - "TCG Traders to Meet at Noli TCG Card Show": hidden 2026-09-30
+//   (user decision). Only 6 of 17 official vendors passed the photo
+//   gate — below the 8-candidate cold-start minimum, and forcing it
+//   would break the rule. Plan: replace with an evergreen
+//   "London TCG Traders" edition reusing the 6 verified vendors plus
+//   fresh research. Keep hidden until then.
+//
 // Implementation: rows stay in the database with nominees intact, but are
 // hidden from all public listings via the codebase's own is_hidden flag
 // (PUBLIC_WHERE excludes is_hidden = 1). Admins can still see and restore
@@ -40,6 +54,8 @@ const HIDDEN_RANKINGS: ReadonlyMap<string, string> = new Map([
   ["best-full-english-london-2026", "food_wars_temporary"],
   ["best-late-night-kebab-london-2026", "food_wars_temporary"],
   ["best-music-borough-london-2026", "no_fan_effect"],
+  ["cosplayers-to-watch-at-animecon-london-2026", "insufficient_verified_candidates"],
+  ["tcg-traders-to-meet-at-noli-tcg-card-show", "insufficient_verified_candidates"],
 ]);
 
 const SYSTEM_ACCOUNT_EMAIL = "team@rephear.com";
