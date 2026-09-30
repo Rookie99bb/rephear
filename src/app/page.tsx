@@ -26,36 +26,21 @@ export default async function HomePage({
   const categories = await listCategories();
 
   // Weekly velocity (likes + support credits in the last 7 days) drives
-  // both trending sections and "🚀 Rising Now". Every row carries its
+  // both "🔥 Trending in London" and "🚀 Rising Now". Every row carries its
   // own public ranking, so no unfiltered lookup is ever needed.
-  // Taxonomy v2: scopes are NEVER mixed — local velocity feeds
-  // "🔥 Trending near you", global velocity feeds "🌍 Global Trending".
   const velocity = await listVelocityRankings(8);
-  const localVelocity = velocity.filter((v) => !v.ranking.isGlobal);
-  const globalVelocity = velocity.filter((v) => v.ranking.isGlobal);
 
-  // "🔥 Trending near you": top-3 by real 7-day activity, city-scoped
-  // only. Only the best London entry is preferred for the featured slot;
-  // the other two slots fill from overall local velocity order (never
-  // elevating lower-scoring London entries above higher-scoring ones).
-  const bestLondon = localVelocity.find((v) => v.ranking.city === "London");
+  // "🔥 Trending in London": top-3 by real 7-day activity. Only the best
+  // London entry is preferred for the featured slot; the other two slots
+  // fill from overall velocity order (never elevating lower-scoring
+  // London entries above higher-scoring ones).
+  const bestLondon = velocity.find((v) => v.ranking.city === "London");
   const picks = [
     ...(bestLondon ? [bestLondon] : []),
-    ...localVelocity.filter((v) => v !== bestLondon),
+    ...velocity.filter((v) => v !== bestLondon),
   ].slice(0, 3);
   const trendingCards: TrendingCard[] = await Promise.all(
     picks.map(async (v) => ({
-      ranking: v.ranking,
-      categoryName: await getCategoryNameForRanking(v.ranking),
-      data: await getRankingCardData(v.ranking.id),
-    }))
-  );
-
-  // "🌍 Global Trending": top-3 GLOBAL rankings by real 7-day activity.
-  // Never contains city-scoped rankings (no "London's Best..." here).
-  // Renders nothing until global rankings earn real activity.
-  const globalCards: TrendingCard[] = await Promise.all(
-    globalVelocity.slice(0, 3).map(async (v) => ({
       ranking: v.ranking,
       categoryName: await getCategoryNameForRanking(v.ranking),
       data: await getRankingCardData(v.ranking.id),
@@ -138,12 +123,6 @@ export default async function HomePage({
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex flex-col gap-10 py-10 md:gap-12">
           <TrendingSection cards={trendingCards} />
-          <TrendingSection
-            cards={globalCards}
-            title="🌍 Global Trending"
-            subtitle="The worldwide rankings heating up right now."
-            ariaLabel="Global Trending"
-          />
           <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
           <ExploreRankings
             items={explore}
