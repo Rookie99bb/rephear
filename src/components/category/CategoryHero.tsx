@@ -8,6 +8,7 @@ import type { Category } from "@/lib/types";
 // broken image.
 const HERO_IMAGE: Record<string, string> = {
   gaming: "/images/category/gaming-hero.webp",
+  cosplay: "/images/category/cosplay-hero.webp",
 };
 
 export interface CategoryHeroStats {
