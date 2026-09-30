@@ -85,6 +85,16 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
     bio: "General-TCG trader and active UK-based Whatnot seller. Officially revealed as a vendor at the Noli TCG Card Show.",
     photoUrl: "/images/nominees/london-tcg-traders-to-know-9.jpg",
   },
+  {
+    name: "Forbidden Planet London Megastore",
+    bio: "London's geek-culture megastore at 179 Shaftesbury Ave (WC2H 8JR), with a dedicated Collectable Card Game section — Magic: The Gathering pre-orders, One Piece TCG and Pokémon, actively stocked with MTG releases through autumn 2026.",
+    photoUrl: "/images/nominees/london-tcg-traders-to-know-10.jpg",
+  },
+  {
+    name: "Norfolk TCG",
+    bio: "Pokémon TCG trader based in Norfolk, UK — 3,021 items sold on Whatnot (@norfolk_tcg), with matching Instagram and eBay (norfolk_tcg, 99 feedback, 99% positive) seller presence.",
+    photoUrl: "/images/nominees/london-tcg-traders-to-know-11.jpg",
+  },
 ];
 
 export async function seedTcgEvergreen(): Promise<void> {
