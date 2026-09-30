@@ -24,6 +24,7 @@ import PeopleIBackSection from "@/components/PeopleIBackSection";
 import BackingStoriesSection from "@/components/BackingStoriesSection";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import TasteMatchPanel from "@/components/TasteMatchPanel";
+import StoryCardsPanel from "@/components/StoryCardsPanel";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -227,6 +228,10 @@ export default async function UserProfilePage({
           <PeopleIBackSection rows={peopleIBack} targetUserId={target.id} />
 
           <BackingStoriesSection stories={backingStories} isOwner={isOwner} />
+
+          {/* Phase 5.6: My Story Cards — owner only. Never rendered for
+              anyone else; card URLs never enumerate. */}
+          {isOwner && <StoryCardsPanel userId={target.id} />}
 
           {/* Phase 5.4: THEIR REPHEAR JOURNEY — claimed nominees' public
               milestone trails, with the viewer's own YOU JOINED HERE

@@ -9,6 +9,11 @@ import { SHARE_CARD_SIZE, type ShareCardData } from "./shareCards";
 // ShareCardData passed in (already gated + sourced from
 // milestone_events / live reads by src/lib/shareCards.ts); the
 // renderer never touches the DB and never invents numbers.
+//
+// Accepts any card whose shape matches ShareCardData (Phase 4 nominee
+// cards and Phase 5.6 backer story cards share the pipeline).
+
+type RenderableCard = Omit<ShareCardData, "type"> & { type: string };
 
 const W = SHARE_CARD_SIZE;
 const H = SHARE_CARD_SIZE;
@@ -116,7 +121,7 @@ function initials(name: string): string {
 }
 
 export async function renderShareCardPng(
-  data: ShareCardData
+  data: RenderableCard
 ): Promise<Buffer> {
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
