@@ -8,6 +8,12 @@
 
 body {
   @apply bg-white text-ink antialiased;
+  /* The redesigned homepage breaks out of the centred main container with
+     a full-viewport-width hero. 100vw includes the vertical scrollbar
+     width, so without this the page would gain a stray horizontal
+     scrollbar. `clip` (not `hidden`) keeps body a non-scroll-container,
+     so nothing else about scrolling behaviour changes. */
+  overflow-x: clip;
 }
 
 a, button {

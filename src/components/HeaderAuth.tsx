@@ -16,7 +16,7 @@ export default function HeaderAuth({
         </Link>
         <Link
           href="/signup"
-          className="rounded-lg bg-ink px-3 py-1.5 text-white hover:opacity-90"
+          className="rounded-full bg-ink px-4 py-1.5 text-white hover:opacity-90"
         >
           Sign up
         </Link>

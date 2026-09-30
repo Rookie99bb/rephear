@@ -11,6 +11,13 @@ const config: Config = {
         surface: "#fafafa",
         accent: "#111113",
         gold: "#b8860b",
+        // RepHear brand purple — official gradient #7B4DFF → #4285F4,
+        // sourced from the marketing poster renderer
+        // (~/workspace/rephear-posters/render.py: HEAR_A/HEAR_B).
+        brand: "#7B4DFF",
+        "brand-deep": "#4285F4",
+        "brand-soft": "#EFEAFF",
+        "brand-ink": "#5B2EE5",
       },
       fontFamily: {
         sans: [

@@ -1,68 +1,96 @@
 import Link from "next/link";
+import HeroDiscovery from "@/components/homepage/HeroDiscovery";
+import TrendingSection, {
+  type TrendingCard,
+} from "@/components/homepage/TrendingSection";
+import ActivityGrid, {
+  type RisingItem,
+} from "@/components/homepage/ActivityGrid";
+import ExploreRankings from "@/components/homepage/ExploreRankings";
+import { listCategories } from "@/db/categories";
+import { listTrendingRankings } from "@/db/rankings";
 import {
-  listNewestRankings,
-  listRankingsBySlugs,
-  listTrendingRankings,
-} from "@/db/rankings";
-import { findCategoryBySlug } from "@/db/categories";
-import type { Category, Ranking } from "@/lib/types";
-import RankingCard from "@/components/RankingCard";
-import CategoryCard from "@/components/CategoryCard";
+  findCloseBattle,
+  findPublicRankingIdsBySlugs,
+  getCategoryNameForRanking,
+  getRankingCardData,
+  listExploreRankings,
+  listVelocityRankings,
+} from "@/db/homepage";
 
-// Curated homepage lineup (updated 2026-09-25): 8 individual rankings in
-// this exact order. Missing, hidden, or soft-deleted entries are skipped
-// at render time.
-const HOMEPAGE_SPOTS: ReadonlyArray<
-  { kind: "ranking"; slug: string } | { kind: "category"; slug: string }
-> = [
-  { kind: "ranking", slug: "best-international-student-community-london-2026" },
-  { kind: "ranking", slug: "best-university-society-london-2026" },
-  { kind: "ranking", slug: "best-emerging-beauty-creator-london-2026" },
-  { kind: "ranking", slug: "most-popular-livestream-dj-london-2026" },
-  { kind: "ranking", slug: "best-society-president-london-2026" },
-  { kind: "ranking", slug: "most-popular-student-performer-london-2026" },
-  { kind: "ranking", slug: "best-rap-producer-london-2026" },
-  { kind: "ranking", slug: "best-cosplay-performance-london-2026" },
-];
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { category?: string; city?: string; sort?: string };
+}) {
+  const categories = await listCategories();
 
-type HomepageSpot =
-  | { type: "ranking"; ranking: Ranking }
-  | { type: "category"; category: Category };
+  // Weekly velocity (likes + support credits in the last 7 days) drives
+  // both "🔥 Trending in London" and "🚀 Rising Now". Every row carries its
+  // own public ranking, so no unfiltered lookup is ever needed.
+  const velocity = await listVelocityRankings(8);
 
-export default async function HomePage() {
-  // London-only for the MVP: present the London rankings directly.
-  // No region picker, no per-account location sections, and empty
-  // sections are never rendered — not even their titles.
-  const featuredRankings = await listRankingsBySlugs(
-    HOMEPAGE_SPOTS.filter((s) => s.kind === "ranking").map((s) => s.slug)
+  // "🔥 Trending in London": top-3 by real 7-day activity. Only the best
+  // London entry is preferred for the featured slot; the other two slots
+  // fill from overall velocity order (never elevating lower-scoring
+  // London entries above higher-scoring ones).
+  const bestLondon = velocity.find((v) => v.ranking.city === "London");
+  const picks = [
+    ...(bestLondon ? [bestLondon] : []),
+    ...velocity.filter((v) => v !== bestLondon),
+  ].slice(0, 3);
+  const trendingCards: TrendingCard[] = await Promise.all(
+    picks.map(async (v) => ({
+      ranking: v.ranking,
+      categoryName: await getCategoryNameForRanking(v.ranking),
+      data: await getRankingCardData(v.ranking.id),
+    }))
   );
-  const featuredCategories = (
-    await Promise.all(
-      HOMEPAGE_SPOTS.filter((s) => s.kind === "category").map((s) =>
-        findCategoryBySlug(s.slug)
-      )
-    )
-  ).filter((c): c is Category => c !== null);
-  const rankingBySlug = new Map(featuredRankings.map((r) => [r.slug, r]));
-  const categoryBySlug = new Map(featuredCategories.map((c) => [c.slug, c]));
-  const londonSpots: HomepageSpot[] = HOMEPAGE_SPOTS.flatMap(
-    (spot): HomepageSpot[] => {
-      if (spot.kind === "ranking") {
-        const ranking = rankingBySlug.get(spot.slug);
-        return ranking ? [{ type: "ranking", ranking }] : [];
-      }
-      const category = categoryBySlug.get(spot.slug);
-      return category ? [{ type: "category", category }] : [];
-    }
-  );
-  const globalTrending = await listTrendingRankings(4);
-  const newest = await listNewestRankings(4);
 
-  if (
-    globalTrending.length === 0 &&
-    newest.length === 0 &&
-    londonSpots.length === 0
-  ) {
+  // Close Battles: tightest real top-2 support-credit race across the
+  // most active rankings. Null → the module hides itself (never faked).
+  const battle = await findCloseBattle(await listTrendingRankings(12));
+
+  // Rising Now: honest 7-day velocity (likes + credits), never position
+  // deltas (no ranking-history data exists).
+  const rising: RisingItem[] = [];
+  for (const v of velocity.slice(0, 3)) {
+    const data = await getRankingCardData(v.rankingId);
+    const top = data.topNominees[0];
+    rising.push({
+      ranking: v.ranking,
+      likes7d: v.likes7d,
+      credits7d: v.credits7d,
+      thumbPhotoUrl: top?.photoUrl ?? "",
+      thumbName: top?.name ?? "",
+      thumbColor: top?.avatarColor ?? "",
+    });
+  }
+
+  // Event deep-links: only these two rankings are known to exist as real
+  // event-adjacent rankings (resolved by slug, public-only). Anything else
+  // stays unlinked rather than pointing at an invented route.
+  const eventRankingIds = await findPublicRankingIdsBySlugs([
+    "cosplayers-to-watch-at-animecon-london-2026",
+    "tcg-traders-to-meet-at-noli-tcg-card-show",
+  ]);
+  const eventHrefs: Record<string, string> = {};
+  for (const [slug, id] of eventRankingIds) {
+    eventHrefs[slug] = `/rankings/${id}`;
+  }
+
+  // Explore Rankings: filter state lives in the URL query params.
+  const activeCategory = searchParams.category?.trim() ?? "";
+  const activeCity = searchParams.city?.trim() ?? "";
+  const activeSort = searchParams.sort === "newest" ? "newest" : "trending";
+  const explore = await listExploreRankings({
+    categorySlug: activeCategory || undefined,
+    city: activeCity || undefined,
+    sort: activeSort,
+    limit: 4,
+  });
+
+  if (trendingCards.length === 0 && explore.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
@@ -83,65 +111,27 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-12">
-      {londonSpots.length > 0 && (
-        <Section title="London Rankings">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {londonSpots.map((spot) =>
-              spot.type === "ranking" ? (
-                <RankingCard key={spot.ranking.id} ranking={spot.ranking} />
-              ) : (
-                <CategoryCard key={spot.category.id} category={spot.category} />
-              )
-            )}
-          </div>
-          <div className="mt-4">
-            <Link
-              href="/rankings"
-              className="text-sm font-medium text-ink hover:opacity-80"
-            >
-              View all rankings →
-            </Link>
-          </div>
-        </Section>
-      )}
-
-      {globalTrending.length > 0 && (
-        <Section title="Global Trending">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {globalTrending.map((r) => (
-              <RankingCard key={r.id} ranking={r} />
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {newest.length > 0 && (
-        <Section title="Newest Rankings">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {newest.map((r) => (
-              <RankingCard key={r.id} ranking={r} />
-            ))}
-          </div>
-        </Section>
-      )}
+    // Full-bleed breakout: the layout's <main> is a centred max-w-5xl
+    // container; the redesigned homepage needs the full viewport width
+    // (reference is 1312px). This is the standard centred-container
+    // breakout — it spans exactly the viewport, and body has
+    // overflow-x: clip so the scrollbar width never causes sideways scroll.
+    <div className="relative left-1/2 w-screen -translate-x-1/2">
+      <div className="-mt-10">
+        <HeroDiscovery categories={categories} />
+      </div>
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+        <div className="flex flex-col gap-10 py-10 md:gap-12">
+          <TrendingSection cards={trendingCards} />
+          <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
+          <ExploreRankings
+            items={explore}
+            activeCategory={activeCategory}
+            activeCity={activeCity}
+            activeSort={activeSort}
+          />
+        </div>
+      </div>
     </div>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-subtle">
-        {title}
-      </h2>
-      {children}
-    </section>
   );
 }
