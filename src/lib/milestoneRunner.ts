@@ -33,6 +33,10 @@ import {
   buildBackerMilestoneCopy,
   buildEarlyBackerStoryCopy,
 } from "@/lib/storyNotifications";
+import {
+  findIdentityCandidates,
+  awardIdentitiesForUsers,
+} from "@/db/identityAwards";
 
 // Phase 3 (§7, §14): milestone detection core, shared by the
 // /api/cron/backing-milestones route and the Phase 3 smoke test.
@@ -120,6 +124,21 @@ export async function runMilestoneDetection(): Promise<MilestoneRunStats> {
       stats.errors++;
       console.error(`[milestoneRunner] ranking ${ranking.id} failed:`, err);
     }
+  }
+
+  // 7. Phase 5.7: evidence-based identities. Daily candidates only (1
+  // statement) — the full backfill path stays manual. Notifications for
+  // newly earned identities are queued inside awardIdentitiesForUsers
+  // via the Phase 3 center (pref + 5/day cap).
+  try {
+    const candidates = await findIdentityCandidates();
+    const identityRun = await awardIdentitiesForUsers(candidates);
+    console.info(
+      `[milestoneRunner] identities: evaluated ${identityRun.evaluated}, newly awarded ${identityRun.awarded.length}`
+    );
+  } catch (err) {
+    stats.errors++;
+    console.error("[milestoneRunner] identity evaluation failed:", err);
   }
 
   return stats;

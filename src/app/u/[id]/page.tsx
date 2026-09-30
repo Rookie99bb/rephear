@@ -24,7 +24,9 @@ import PeopleIBackSection from "@/components/PeopleIBackSection";
 import BackingStoriesSection from "@/components/BackingStoriesSection";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import TasteMatchPanel from "@/components/TasteMatchPanel";
+import { getIdentityAwards, visibleIdentityAwards } from "@/db/identityAwards";
 import StoryCardsPanel from "@/components/StoryCardsPanel";
+import IdentityBadges from "@/components/IdentityBadges";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -81,7 +83,7 @@ export default async function UserProfilePage({
   }
 
   const includePrivate = isOwner;
-  const [tags, stats, likes, peopleIBack, publicActivity, backingStories] =
+  const [tags, stats, likes, peopleIBack, publicActivity, backingStories, identityAwards] =
     await Promise.all([
       getInterestTags(target.id, includePrivate),
       getIdentityStats(target.id, includePrivate),
@@ -94,7 +96,19 @@ export default async function UserProfilePage({
       // getBackingStories (owner sees all, others see effective-public
       // moments only). Fully-private profiles never reach this branch.
       getBackingStories(viewerId, target.id),
+      // Phase 5.7: evidence-based identities — viewer-gated below
+      // (owner + public viewers; fully-private profiles: owner only).
+      getIdentityAwards(target.id),
     ]);
+
+  // Phase 5.7: identity badges render for the owner always and for
+  // other viewers only when the user has public activity. Summaries
+  // are counts-only — no names, dates, or reasons ever leave here.
+  const visibleIdentities = visibleIdentityAwards(
+    identityAwards,
+    isOwner,
+    publicActivity
+  );
 
   // Taste Match: logged-in viewer, someone else's profile, gates pass.
   const tasteMatch =
@@ -224,6 +238,10 @@ export default async function UserProfilePage({
               )}
             </div>
           )}
+
+          {/* Phase 5.7: evidence-based identities — viewer-gated above
+              (owner + public viewers). Summaries are counts-only. */}
+          <IdentityBadges awards={visibleIdentities} isOwner={isOwner} />
 
           <PeopleIBackSection rows={peopleIBack} targetUserId={target.id} />
 

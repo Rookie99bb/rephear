@@ -1164,6 +1164,33 @@ async function createNomineeApproachNoticesTableIfMissing() {
   });
 }
 
+// Phase 5.7 (evidence-based identity engine): one row per (user,
+// identity) EVER. Awarded only from patterns over time, never from a
+// single action, never from spend. Versioned (engine_version) with the
+// evidence window + thresholds in force at award time. display_order is
+// owner-editable. UNIQUE key makes recompute idempotent.
+async function createIdentityAwardsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS identity_awards (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      identity_key TEXT NOT NULL,
+      engine_version TEXT NOT NULL,
+      evidence_window TEXT NOT NULL,
+      thresholds_json TEXT NOT NULL,
+      evidence_summary TEXT NOT NULL,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      awarded_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, identity_key)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_identity_awards_user ON identity_awards(user_id, display_order);`,
+    args: [],
+  });
+}
+
 // Phase 5.5 (thank my early backers): one row per (ranking, nominee,
 // milestone scope) — the "once per milestone" rate limit for the
 // claimed owner's thank-you action. The scope is the nominee's latest
@@ -1397,6 +1424,7 @@ export async function ensureMigrated(): Promise<void> {
     await createNomineeApproachNoticesTableIfMissing();
     await createNomineeThanksTableIfMissing();
     await createEarlyBackerAwardsTableIfMissing();
+    await createIdentityAwardsTableIfMissing();
     await createNotificationsTableIfMissing();
     await addNotifyMilestonesColumnIfMissing();
     await createRankingSnapshotsTableIfMissing();
