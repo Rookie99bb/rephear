@@ -16,12 +16,14 @@
     "test:phase5-story": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5-story-test.XXXXXX) tsx scripts/smoke-phase5-story.ts",
     "test:phase5": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5-test.XXXXXX) tsx scripts/smoke-phase5-moments.ts",
     "test:phase2": "DATA_DIR=$(mktemp -d /tmp/rephear-phase2-test.XXXXXX) tsx scripts/smoke-phase2-identity.ts",
-    "test:phase3": "DATA_DIR=$(mktemp -d /tmp/rephear-phase3-test.XXXXXX) tsx scripts/smoke-phase3-milestones.ts"
+    "test:phase3": "DATA_DIR=$(mktemp -d /tmp/rephear-phase3-test.XXXXXX) tsx scripts/smoke-phase3-milestones.ts",
+    "test:phase4": "DATA_DIR=$(mktemp -d /tmp/rephear-phase4-test.XXXXXX) tsx scripts/smoke-phase4-cards.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
     "@libsql/client": "^0.17.4",
     "bcryptjs": "^2.4.3",
+    "canvas": "^3.2.3",
     "framer-motion": "^11.15.0",
     "next": "14.2.35",
     "next-auth": "^4.24.15",

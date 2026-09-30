@@ -1139,6 +1139,31 @@ async function createBackingMomentsTableIfMissing() {
   });
 }
 
+// Phase 4 (nominee growth loop): one row per (ranking, nominee,
+// threshold) for "approaching" notices sent to claimed owners — e.g.
+// "You're 8 credits from the Top 10". UNIQUE key makes it fire ONCE
+// ever per approach; a nominee who falls back and returns does not get
+// re-pinged. Claimed-owner-only by construction (there is nobody to
+// notify for unclaimed nominees).
+async function createNomineeApproachNoticesTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS nominee_approach_notices (
+      id TEXT PRIMARY KEY,
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id),
+      threshold TEXT NOT NULL,
+      gap_credits INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (ranking_id, profile_id, threshold)
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_approach_profile ON nominee_approach_notices(ranking_id, profile_id);`,
+    args: [],
+  });
+}
+
 // Phase 3 (milestones, notifications, movement, discovery, follows):
 // milestone_events — the factual event stream for timelines (5.4),
 // notifications (5.5) and share cards (5.6). Written ONLY by the
@@ -1344,6 +1369,7 @@ export async function ensureMigrated(): Promise<void> {
     await addPhase51MomentColumnsIfMissing();
     await createBackingMomentsTableIfMissing();
     await createMilestoneEventsTableIfMissing();
+    await createNomineeApproachNoticesTableIfMissing();
     await createEarlyBackerAwardsTableIfMissing();
     await createNotificationsTableIfMissing();
     await addNotifyMilestonesColumnIfMissing();

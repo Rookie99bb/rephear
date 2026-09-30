@@ -106,6 +106,15 @@ export type NotificationEvent =
       profileId: string;
       rankingId: string;
       milestoneType: string;
+    }
+  // Phase 4 (nominee growth loop): claimed-owner milestone pings, so
+  // the owner knows a milestone fired and can share their card.
+  | {
+      type: "nominee_owner_milestone";
+      userId: string;
+      profileId: string;
+      rankingId: string;
+      milestoneType: string;
     };
 
 // Fire-and-forget by design: never throws, so no call site needs to wrap

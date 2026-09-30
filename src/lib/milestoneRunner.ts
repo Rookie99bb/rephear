@@ -17,6 +17,10 @@ import {
   type FollowTargetType,
 } from "@/db/follows";
 import { emitNotificationEvent } from "@/lib/notificationEvents";
+import {
+  notifyClaimedOwnerForMilestone,
+  checkTop10Approach,
+} from "@/lib/nomineeMilestones";
 
 // Phase 3 (§7, §14): milestone detection core, shared by the
 // /api/cron/backing-milestones route and the Phase 3 smoke test.
@@ -85,8 +89,18 @@ export async function runMilestoneDetection(): Promise<MilestoneRunStats> {
     try {
       const board = await getSupportedBoardState(ranking.id);
       stats.rankings++;
+      // Credits total of the #10 nominee — the "approaching Top 10"
+      // cutoff for claimed-owner near-miss nudges (Phase 4).
+      const top10CutoffCredits =
+        board.length >= 10 ? board[9].totalCredits : null;
       for (const nominee of board) {
-        await processNominee(ranking.id, ranking.title, nominee, stats);
+        await processNominee(
+          ranking.id,
+          ranking.title,
+          nominee,
+          top10CutoffCredits,
+          stats
+        );
       }
     } catch (err) {
       stats.errors++;
@@ -104,6 +118,7 @@ async function processNominee(
   rankingId: string,
   rankingTitle: string,
   nominee: { profileId: string; rank: number; totalCredits: number; backerCount: number },
+  top10CutoffCredits: number | null,
   stats: { events: number; awards: number; notifications: number }
 ) {
   const profile = await findProfileById(nominee.profileId);
@@ -258,6 +273,44 @@ async function processNominee(
       milestoneType: type,
       rankAtEvent: nominee.rank,
     });
+
+    // 5. Phase 4: claimed-owner milestone ping — the owner learns a
+    // milestone fired and can share their card (the growth loop).
+    // Non-blocking like everything else here: a notification failure
+    // must never disturb the cron.
+    try {
+      const { notified } = await notifyClaimedOwnerForMilestone({
+        rankingId,
+        rankingTitle,
+        profileId: nominee.profileId,
+        type,
+      });
+      if (notified) stats.notifications++;
+    } catch (err) {
+      console.error(
+        `[milestoneRunner] notifyClaimedOwner failed for ${nominee.profileId}:`,
+        err
+      );
+    }
+  }
+
+  // 6. Phase 4: "approaching Top 10" near-miss nudge for claimed owners.
+  // Fires once ever per (ranking, nominee) via the UNIQUE guard inside.
+  try {
+    const { noticed } = await checkTop10Approach({
+      rankingId,
+      rankingTitle,
+      profileId: nominee.profileId,
+      rank: nominee.rank,
+      totalCredits: nominee.totalCredits,
+      top10CutoffCredits,
+    });
+    if (noticed) stats.notifications++;
+  } catch (err) {
+    console.error(
+      `[milestoneRunner] checkTop10Approach failed for ${nominee.profileId}:`,
+      err
+    );
   }
 }
 
