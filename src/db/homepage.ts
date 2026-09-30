@@ -6,52 +6,23 @@
 // identities or private-support counts.
 
 import { db } from "./client";
+import { authenticLikesClause } from "./visibility";
 import { findCategoryById, findCategoryBySlug } from "./categories";
 import { getMostSupported } from "./leaderboards";
 import { toProfile, type ProfileRow } from "./profiles";
 import type { Profile, Ranking } from "@/lib/types";
 
-const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL";
+const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL AND COALESCE(is_archived, 0) = 0";
 
 interface StatsRow extends ProfileRow {
   like_count: number;
   reputation_credits: number;
 }
 
-// Minimal ranking-row shape shared by the homepage queries below.
-interface HomepageRankingRow {
-  id: string;
-  title: string;
-  country: string;
-  city: string;
-  description: string;
-  created_by: string;
-  created_at: string;
-  is_hidden: number;
-  deleted_at: string | null;
-  slug: string | null;
-  category_id: string | null;
-  is_pinned: number;
-  display_order: number | null;
-}
-
-function rowToRanking(r: HomepageRankingRow): Ranking {
-  return {
-    id: r.id,
-    title: r.title,
-    country: r.country,
-    city: r.city,
-    description: r.description,
-    createdBy: r.created_by,
-    createdAt: r.created_at,
-    isHidden: !!r.is_hidden,
-    deletedAt: r.deleted_at,
-    slug: r.slug,
-    categoryId: r.category_id,
-    isPinned: !!r.is_pinned,
-    displayOrder: r.display_order ?? 0,
-  };
-}
+// Ranking rows come from SELECT r.* queries, so the shared RankingRow
+// shape (incl. cover columns) applies — reuse toRanking from
+// db/rankings.ts as the single mapping.
+import { toRanking as rowToRanking, type RankingRow } from "./rankings";
 
 export interface RankingCardData {
   nomineeCount: number;
@@ -70,7 +41,7 @@ export async function getRankingCardData(
   const rows = (await db
     .prepare(
       `SELECT p.*,
-         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id) AS like_count,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND ${authenticLikesClause("l")}) AS like_count,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
        FROM profiles p
        WHERE p.ranking_id = ? AND p.deleted_at IS NULL
@@ -125,7 +96,7 @@ export async function listVelocityRankings(
     .prepare(
       `SELECT r.*,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days')) AS likes7d,
+            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days') AND ${authenticLikesClause("l")}) AS likes7d,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
             WHERE ct.ranking_id = r.id AND ct.created_at >= datetime('now', '-7 days')) AS credits7d
        FROM rankings r
@@ -133,7 +104,7 @@ export async function listVelocityRankings(
        ORDER BY (likes7d + credits7d) DESC, r.created_at DESC
        LIMIT ?`
     )
-    .all(limit)) as unknown as (HomepageRankingRow & {
+    .all(limit)) as unknown as (RankingRow & {
     likes7d: number;
     credits7d: number;
   })[];
@@ -256,7 +227,7 @@ export async function listExploreRankings(
   const rows = (await db
     .prepare(
       `SELECT r.*,
-         (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
+         (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id AND ${authenticLikesClause("l")}) +
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id) AS activity_score,
          c.name AS category_name
        FROM rankings r
@@ -283,21 +254,9 @@ export async function listExploreRankings(
       category_name: string | null;
     }[];
   return rows.map((r) => ({
-    ranking: {
-      id: r.id,
-      title: r.title,
-      country: r.country,
-      city: r.city,
-      description: r.description,
-      createdBy: r.created_by,
-      createdAt: r.created_at,
-      isHidden: !!r.is_hidden,
-      deletedAt: r.deleted_at,
-      slug: r.slug,
-      categoryId: r.category_id,
-      isPinned: !!r.is_pinned,
-      displayOrder: r.display_order ?? 0,
-    },
+    // Reuse the single row->Ranking mapping so every field (cover
+    // columns, taxonomy, flags) stays in sync with db/rankings.ts.
+    ranking: rowToRanking(r as unknown as RankingRow),
     categoryName: r.category_name,
     activityScore: r.activity_score,
   }));

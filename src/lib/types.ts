@@ -52,6 +52,28 @@ export interface Ranking {
   categoryId: string | null;
   isPinned: boolean;
   displayOrder: number;
+  // Ranking cover image system (presentation-only). coverImageStatus:
+  // 'pending' | 'active' | 'failed' | 'manual'. 'manual' means an admin
+  // uploaded or locked the cover — automatic refresh must skip it.
+  coverImageUrl: string | null;
+  coverImageSource: string | null;
+  coverImageUpdatedAt: string | null;
+  coverImageAlt: string | null;
+  coverImageStatus: "pending" | "active" | "failed" | "manual";
+  // True when the ranking is global in scope ("Best Anime of All Time")
+  // — displayed as "Global" instead of a city/country label. Kept in
+  // sync with the canonical `scope` field below (isGlobal = scope
+  // 'global'); scope is the source of truth.
+  isGlobal: boolean;
+  // Taxonomy v2 (2026-09-30): optional subcategory link (NULL = none),
+  // comma-separated discovery tags, system-generated flag (seed-created
+  // vs user-created), admin archive flag, and the canonical scope
+  // ('global' | 'country' | 'city') — see Phase 10 of the content spec.
+  scope: "global" | "country" | "city";
+  subcategoryId: string | null;
+  tags: string;
+  isSystemGenerated: boolean;
+  isArchived: boolean;
 }
 
 // Parent Category grouping a curated set of Rankings (e.g. "Underground
@@ -61,6 +83,18 @@ export interface Category {
   name: string;
   slug: string;
   description: string;
+  createdAt: string;
+}
+
+// Taxonomy v2 (2026-09-30): Subcategory. Always belongs to exactly one
+// primary Category (e.g. "Rap & Grime" under "Music").
+export interface Subcategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  slug: string;
+  description: string;
+  sortOrder: number;
   createdAt: string;
 }
 

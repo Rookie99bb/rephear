@@ -12,30 +12,26 @@ export default function HeroDiscovery({
 }) {
   const knownSlugs = new Set(categories.map((c) => c.slug));
 
-  // Chip → real category slug where one exists; chips with no category
-  // render non-linked (never invent a route).
+  // Chip → real category path where one exists; chips with no category
+  // render non-linked (never invent a route). Taxonomy v2 (2026-09-30):
+  // chips link to the canonical /rankings/<category-slug> paths.
   const chips: {
     label: string;
     icon: string;
     href: string | null;
     active?: boolean;
   }[] = [
-    { label: "Anime", icon: "🎭", href: "/rankings?category=anime", active: true },
-    { label: "Cosplay", icon: "🦸", href: "/rankings?category=cosplay" },
-    { label: "Gaming", icon: "🎮", href: "/rankings?category=gaming" },
-    { label: "University", icon: "🎓", href: "/rankings?category=university-societies" },
-    { label: "Music", icon: "🎵", href: "/rankings?category=underground-music" },
-    { label: "Artists", icon: "🎨", href: "/rankings?category=independent-art-zines" },
-    { label: "Creators", icon: "📸", href: "/rankings?category=digital-creators" },
-    // Manga and Events have no category in the data model — render as
-    // plain (non-linked) chips rather than dead links.
-    { label: "Manga", icon: "📚", href: null },
-    { label: "Events", icon: "🗓️", href: null },
+    { label: "Anime", icon: "🎭", href: "/rankings/anime", active: true },
+    { label: "Manga", icon: "📚", href: "/rankings/manga" },
+    { label: "Gaming", icon: "🎮", href: "/rankings/gaming" },
+    { label: "Cosplay", icon: "🦸", href: "/rankings/cosplay" },
+    { label: "Creators", icon: "📸", href: "/rankings/digital-creators" },
+    { label: "Music", icon: "🎵", href: "/rankings/music" },
     { label: "More", icon: "⋯", href: "/rankings" },
   ].map((chip) => {
     if (!chip.href) return chip;
     if (chip.href === "/rankings") return chip;
-    const slug = chip.href.split("category=")[1];
+    const slug = chip.href.split("/rankings/")[1];
     return knownSlugs.has(slug) ? chip : { ...chip, href: null };
   });
 

@@ -58,7 +58,10 @@ interface CategorySeed {
 const CATEGORIES: CategorySeed[] = [
   {
     name: "Beauty Creators",
-    slug: "beauty-creators",
+    // Taxonomy v2 (2026-09-30): merged under Fashion. Name kept as the
+    // historical label; slug points at the v2 primary category so no
+    // empty legacy category row is recreated on boot.
+    slug: "fashion",
     rankings: [
       {
         title: "London's Most Popular Beauty Creator 2026",

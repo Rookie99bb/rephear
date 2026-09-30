@@ -4,17 +4,30 @@ import {
   getNewRankings,
   getUnderratedNominees,
 } from "@/db/discovery";
+import type { RankingCardStats } from "@/db/rankings";
+import { listCategories } from "@/db/categories";
+import type { RankingBadge } from "@/lib/rankingDisplay";
 import RankingCard from "@/components/RankingCard";
 
 // Phase 3 (§22): discovery surfaces on the /rankings browse page.
 // All sections are data-backed or hidden — an empty result renders
 // nothing, never placeholder content.
-export default async function DiscoverySections() {
-  const [rising, fresh, underrated] = await Promise.all([
+export default async function DiscoverySections({
+  badgeFor,
+  stats,
+}: {
+  badgeFor: (rankingId: string) => RankingBadge | undefined;
+  stats: Record<string, RankingCardStats>;
+}) {
+  const [rising, fresh, underrated, categories] = await Promise.all([
     getRisingRankings(6),
     getNewRankings(6),
     getUnderratedNominees(6),
+    listCategories(),
   ]);
+  const slugById = new Map(categories.map((c) => [c.id, c.slug]));
+  const slugFor = (categoryId: string | null | undefined) =>
+    categoryId ? slugById.get(categoryId) : undefined;
   if (
     rising.length === 0 &&
     fresh.length === 0 &&
@@ -35,7 +48,14 @@ export default async function DiscoverySections() {
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {rising.map(({ ranking }) => (
-              <RankingCard key={ranking.id} ranking={ranking} />
+              <RankingCard
+                key={ranking.id}
+                ranking={ranking}
+                badge={badgeFor(ranking.id) ?? "rising"}
+                categorySlug={slugFor(ranking.categoryId)}
+                likeCount={stats[ranking.id]?.likeCount ?? 0}
+                nomineeCount={stats[ranking.id]?.nomineeCount ?? 0}
+              />
             ))}
           </div>
         </section>
@@ -50,7 +70,14 @@ export default async function DiscoverySections() {
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {fresh.map((ranking) => (
-              <RankingCard key={ranking.id} ranking={ranking} />
+              <RankingCard
+                key={ranking.id}
+                ranking={ranking}
+                badge={badgeFor(ranking.id) ?? "new"}
+                categorySlug={slugFor(ranking.categoryId)}
+                likeCount={stats[ranking.id]?.likeCount ?? 0}
+                nomineeCount={stats[ranking.id]?.nomineeCount ?? 0}
+              />
             ))}
           </div>
         </section>

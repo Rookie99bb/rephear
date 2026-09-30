@@ -34,8 +34,8 @@ const RANKING_DESCRIPTION =
 
 const COUNTRY = "United Kingdom";
 const CITY = "London";
-const CATEGORY_SLUG = "tabletop-tcg-roleplaying";
-const CATEGORY_NAME = "Tabletop, TCG & Roleplaying";
+const CATEGORY_SLUG = "gaming";
+const CATEGORY_NAME = "Gaming";
 
 type CandidateSeed = { name: string; bio: string; photoUrl: string };
 

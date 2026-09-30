@@ -9,21 +9,30 @@ import { TIER_ONE_RANKING_SLUGS } from "./tierOneRankings";
 import { BEAUTY_RANKING_SLUGS } from "./beautyRankings";
 import { FANDOM_RANKING_SLUGS } from "./fandomRankings";
 import { TCG_EVERGREEN_RANKING_SLUG } from "./seedTcgEvergreen";
+import { MANGA_RANKING_SLUGS } from "./seedMangaRankings";
+import { ANIME_RANKING_SLUGS } from "./seedAnimeRankings";
+import { GAMING_RANKING_SLUGS } from "./seedGamingRankings";
+import { COSPLAY_RANKING_SLUGS } from "./seedCosplayRankings";
+import { CREATOR_RANKING_SLUGS } from "./seedCreatorRankings";
+import { REQUIRED_RANKING_TITLES } from "./requiredRankings";
 
 // -----------------------------------------------------------------------
 // Prune legacy rankings: soft-delete pre-launch rankings that are NOT part
 // of the 89 cold-start rankings (50 viral + 15 rivalry + 21 tier-one +
 // 3 beauty).
 //
-// ONE-TIME cleanup, not a standing rule. A ranking is eligible only if:
-//   - it was created by the "RepHear Team" system account (every seed
-//     script attributes to it — this catches seed-created rankings no
-//     matter when they were seeded, including on a fresh database), OR
-//   - it was created before the cold-start launch (2026-09-24) — this
-//     catches legacy user-created rankings.
-// A ranking created by a real user after the launch is never touched, so
-// an app restart can never delete a ranking a user just made. The
-// datetime() comparison normalizes whatever created_at format a row
+// ONE-TIME cleanup, not a standing rule. A ranking is eligible ONLY if it
+// was created by the "RepHear Team" system account (every seed script
+// attributes to it — this catches seed-created rankings no matter when
+// they were seeded, including on a fresh database).
+//
+// HARD RULE (2026-09-30): user-created rankings are NEVER eligible for
+// pruning, regardless of age. There is no date-based fallback — a previous
+// version also matched rows created before the 2026-09-24 cold-start
+// launch, which could have caught a genuine user-created ranking. That
+// fallback is removed: when in doubt, keep the row. An app restart can
+// never delete a ranking a user made.
+// The datetime() comparison normalizes whatever created_at format a row
 // carries; rows with NULL/unparseable created_at fall back to the
 // created_by check only (conservative: never delete what we can't date).
 //
@@ -55,6 +64,14 @@ const KEEP_SLUGS: ReadonlySet<string> = new Set([
   // Evergreen TCG successor ranking (seedTcgEvergreen) — must survive
   // pruning like the rest of the current public set.
   TCG_EVERGREEN_RANKING_SLUG,
+  // Taxonomy v2 content seeds (2026-09-30): Manga/Anime/Gaming/Cosplay/
+  // Digital Creators clusters — must survive pruning like the rest of
+  // the current public set.
+  ...MANGA_RANKING_SLUGS,
+  ...ANIME_RANKING_SLUGS,
+  ...GAMING_RANKING_SLUGS,
+  ...COSPLAY_RANKING_SLUGS,
+  ...CREATOR_RANKING_SLUGS,
 ]);
 
 async function getOrCreateSystemAccount() {
@@ -80,17 +97,23 @@ export async function pruneLegacyRankings(): Promise<void> {
 
     const rows = (await db
       .prepare(
+        // created_by = system user ONLY. No date fallback: user-created
+        // rankings are never eligible, no matter how old.
         `SELECT id, slug, title FROM rankings
          WHERE deleted_at IS NULL
-           AND (
-             created_by = ?
-             OR datetime(created_at) < datetime('2026-09-24 00:00:00')
-           )`
+           AND created_by = ?`
       )
       .all(systemUser.id)) as unknown as DoomedRanking[];
 
+    // A ranking is kept when its slug is in the KEEP set OR its exact
+    // title is one of the 134 required dataset titles. The title check
+    // matters because canonicalization reuses existing rows WITHOUT
+    // renaming their slugs (URLs are preserved): a reused row keeps its
+    // original slug, which may not be in KEEP_SLUGS.
     const doomed = rows.filter(
-      (r) => r.slug === null || !KEEP_SLUGS.has(r.slug)
+      (r) =>
+        (r.slug === null || !KEEP_SLUGS.has(r.slug)) &&
+        !REQUIRED_RANKING_TITLES.has(r.title)
     );
     if (doomed.length === 0) return;
 

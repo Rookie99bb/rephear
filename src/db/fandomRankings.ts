@@ -93,9 +93,10 @@ const CATEGORIES: CategorySeed[] = [
     ],
   },
   {
-    // Reuses the existing niche "tabletop-tcg-roleplaying" category.
+    // Reuses the existing "gaming" category (taxonomy v2: tabletop/TCG
+    // merged into Gaming / Tabletop subcategory).
     name: "Tabletop, TCG & Roleplaying",
-    slug: "tabletop-tcg-roleplaying",
+    slug: "gaming",
     rankings: [
       {
         title: "Board Games That End Friendships",
@@ -137,9 +138,9 @@ const CATEGORIES: CategorySeed[] = [
     ],
   },
   {
-    // Reuses the existing "university-societies" category.
+    // Reuses the existing "university" category (taxonomy v2).
     name: "University Societies",
-    slug: "university-societies",
+    slug: "university",
     rankings: [
       {
         title: "London University Anime Societies",

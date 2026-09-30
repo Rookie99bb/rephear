@@ -9,6 +9,10 @@ import { isAdminEmail } from "@/lib/admin";
 import { getMovement } from "@/db/rankingSnapshots";
 import { isFollowing } from "@/db/follows";
 import {
+  getRankingLocationLabel,
+  getRankingLocationPhrase,
+} from "@/lib/rankingDisplay";
+import {
   getRoadToTop3,
   getTop3Challengers,
   getCommunityStory,
@@ -19,7 +23,15 @@ import FollowButton from "@/components/FollowButton";
 import CheckoutBanner from "@/components/CheckoutBanner";
 import RaffleBanner from "@/components/RaffleBanner";
 import { RoadToTop3Section, CommunitySection } from "@/components/RoadToTop3";
+import RankingCard from "@/components/RankingCard";
 import { Suspense } from "react";
+import Link from "next/link";
+import { findCategoryById } from "@/db/categories";
+import {
+  getAdjacentRankings,
+  findSubcategoryById,
+} from "@/db/taxonomy";
+import { getRankingCardStats } from "@/db/rankings";
 
 // Per-page title/OG so a shared Ranking link unfurls with the Ranking's
 // own name and city instead of the site-wide default "RepHear" (see the
@@ -36,10 +48,11 @@ export async function generateMetadata({
   if (!ranking || ranking.isHidden || ranking.deletedAt) {
     return { title: "Ranking not found" };
   }
-  const title = `${ranking.title} — ${ranking.city}`;
+  const place = getRankingLocationPhrase(ranking);
+  const title = `${ranking.title} — ${place}`;
   const description =
     ranking.description ||
-    `See who's leading "${ranking.title}" in ${ranking.city}, ${ranking.country} on RepHear.`;
+    `See who's leading "${ranking.title}" in ${place} on RepHear.`;
   return {
     title,
     description,
@@ -98,6 +111,20 @@ getTop3Challengers(ranking.id),
 getCommunityStory(ranking.id),
 ]);
 
+// Taxonomy v2 (2026-09-30): category breadcrumb + "You might also like"
+// recommendations (same category, global-first).
+const [rankingCategory, rankingSubcategory] = await Promise.all([
+  ranking.categoryId ? findCategoryById(ranking.categoryId) : null,
+  ranking.subcategoryId ? findSubcategoryById(ranking.subcategoryId) : null,
+]);
+const adjacent = rankingCategory
+  ? await getAdjacentRankings(rankingCategory.slug, {
+      excludeIds: [ranking.id],
+      limit: 4,
+    })
+  : [];
+const adjacentStats = await getRankingCardStats(adjacent.map((r) => r.id));
+
 return (
 <div>
 <Suspense fallback={null}>
@@ -107,7 +134,19 @@ return (
 <RaffleBanner rankingId={ranking.id} />
 </Suspense>
 <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">
-{ranking.city}, {ranking.country}
+{getRankingLocationLabel(ranking)}
+{rankingCategory && (
+<>
+{" · "}
+<Link
+href={`/rankings/${rankingCategory.slug}`}
+className="underline hover:text-ink"
+>
+{rankingCategory.name}
+</Link>
+{rankingSubcategory && <> / {rankingSubcategory.name}</>}
+</>
+)}
 </p>
 <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
 {ranking.title}
@@ -173,6 +212,26 @@ totalBackers={community.totalBackers}
 milestones={community.milestones}
 challengers={challengers}
 />
+
+{/* Taxonomy v2: recommendations inside the same subcategory/category —
+    never an empty "more like this" promise. */}
+{adjacent.length > 0 && (
+<section aria-label="You might also like" className="mt-12">
+<h2 className="mb-4 text-lg font-semibold tracking-tight text-ink">
+You might also like
+</h2>
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+{adjacent.map((r) => (
+<RankingCard
+key={r.id}
+ranking={r}
+likeCount={adjacentStats[r.id]?.likeCount ?? 0}
+nomineeCount={adjacentStats[r.id]?.nomineeCount ?? 0}
+/>
+))}
+</div>
+</section>
+)}
 </div>
 );
 }

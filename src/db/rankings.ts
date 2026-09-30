@@ -1,5 +1,6 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
+import { authenticLikesClause } from "./visibility";
 import type { Ranking } from "@/lib/types";
 
 export interface RankingRow {
@@ -16,7 +17,20 @@ export interface RankingRow {
   category_id: string | null;
   is_pinned: number;
   display_order: number | null;
+  cover_image_url: string | null;
+  cover_image_source: string | null;
+  cover_image_updated_at: string | null;
+  cover_image_alt: string | null;
+  cover_image_status: string | null;
+  is_global: number;
+  scope: string | null;
+  subcategory_id: string | null;
+  tags: string | null;
+  is_system_generated: number;
+  is_archived: number;
 }
+
+export type CoverImageStatus = "pending" | "active" | "failed" | "manual";
 
 export function toRanking(row: RankingRow): Ranking {
   return {
@@ -37,6 +51,24 @@ export function toRanking(row: RankingRow): Ranking {
     // below always assigns one to new rows, so this fallback should
     // never actually be exercised in practice.
     displayOrder: row.display_order ?? 0,
+    coverImageUrl: row.cover_image_url,
+    coverImageSource: row.cover_image_source,
+    coverImageUpdatedAt: row.cover_image_updated_at,
+    coverImageAlt: row.cover_image_alt,
+    coverImageStatus: (row.cover_image_status as CoverImageStatus | null) ?? "pending",
+    isGlobal: !!row.is_global,
+    // Canonical scope (Phase 10); falls back to the legacy is_global
+    // flag for rows written before the scope column existed.
+    scope:
+      row.scope === "global" || row.scope === "country" || row.scope === "city"
+        ? row.scope
+        : row.is_global
+          ? "global"
+          : "city",
+    subcategoryId: row.subcategory_id,
+    tags: row.tags ?? "",
+    isSystemGenerated: !!row.is_system_generated,
+    isArchived: !!row.is_archived,
   };
 }
 
@@ -56,6 +88,20 @@ export async function getNextDisplayOrderForCity(city: string): Promise<number> 
 // slug/categoryId are optional overrides used only by curated/editorial
 // Ranking sets (see src/db/londonNicheRankings.ts) — ordinary
 // community-created Rankings never set either.
+// Taxonomy v2: subcategoryId/tags/isGlobal/isSystemGenerated are optional
+// overrides for curated seeds; user-created rankings leave them default.
+
+// Canonical scope values. Every ranking MUST have one of these —
+// there is no fourth state. Rejects anything else at write time.
+export const RANKING_SCOPES = ["global", "country", "city"] as const;
+export type RankingScope = (typeof RANKING_SCOPES)[number];
+export function assertValidScope(scope: unknown): asserts scope is RankingScope {
+  if (scope !== "global" && scope !== "country" && scope !== "city") {
+    throw new Error(
+      `Invalid ranking scope: ${JSON.stringify(scope)}. Must be one of: global, country, city.`
+    );
+  }
+}
 export async function createRanking(params: {
   title: string;
   country: string;
@@ -65,6 +111,14 @@ export async function createRanking(params: {
   createdAt?: string;
   slug?: string;
   categoryId?: string;
+  subcategoryId?: string;
+  tags?: string[] | string;
+  isGlobal?: boolean;
+  // Canonical scope (Phase 10). When provided it wins; otherwise it is
+  // derived from isGlobal for backward compatibility. is_global is
+  // always written in sync (1 = scope 'global').
+  scope?: "global" | "country" | "city";
+  isSystemGenerated?: boolean;
 }): Promise<Ranking> {
   const id = newId();
   const city = params.city.trim();
@@ -72,10 +126,18 @@ export async function createRanking(params: {
   // schema.ts) and slots in after every other Ranking already in this
   // city, admin-defined order is never disturbed by new arrivals.
   const displayOrder = await getNextDisplayOrderForCity(city);
+  const tags =
+    params.tags === undefined
+      ? ""
+      : Array.isArray(params.tags)
+        ? params.tags.map((t) => t.trim()).filter(Boolean).join(", ")
+        : params.tags.trim();
+  const scope = params.scope ?? (params.isGlobal ? "global" : "city");
+  assertValidScope(scope);
   await db
     .prepare(
-      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at, slug, category_id, display_order)
-     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`
+      `INSERT INTO rankings (id, title, country, city, description, created_by, created_at, slug, category_id, display_order, subcategory_id, tags, is_global, scope, is_system_generated)
+     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       id,
@@ -87,7 +149,12 @@ export async function createRanking(params: {
       params.createdAt ?? null,
       params.slug ?? null,
       params.categoryId ?? null,
-      displayOrder
+      displayOrder,
+      params.subcategoryId ?? null,
+      tags,
+      scope === "global" ? 1 : 0,
+      scope,
+      params.isSystemGenerated ? 1 : 0
     );
   return (await findRankingById(id))!;
 }
@@ -116,7 +183,7 @@ export async function findRankingById(id: string): Promise<Ranking | null> {
 // Rankings. This is the one filter clause repeated below; keep it in sync
 // with the schema, not with any query-builder abstraction — there's only
 // one table involved and a shared helper wouldn't earn its keep.
-const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL";
+const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL AND COALESCE(is_archived, 0) = 0";
 
 // city is optional — when given (the logged-in user's location), only
 // Rankings for that city are returned. Rankings are location-first: the
@@ -159,7 +226,7 @@ export async function listTrendingRankings(limit = 10, city?: string): Promise<R
   const rows = (await db
     .prepare(
       `SELECT r.*,
-        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
+        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id AND ${authenticLikesClause("l")}) +
         (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id)
           AS activity_score
        FROM rankings r
@@ -185,7 +252,7 @@ export async function listTrendingRankingsForCountry(
   const rows = (await db
     .prepare(
       `SELECT r.*,
-        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
+        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id AND ${authenticLikesClause("l")}) +
         (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id)
           AS activity_score
        FROM rankings r
@@ -236,6 +303,41 @@ export async function getRankingCountsByCity(): Promise<Record<string, number>> 
     )
     .all()) as unknown as { city: string; c: number }[];
   return Object.fromEntries(rows.map((r) => [r.city, r.c]));
+}
+
+// Batch engagement stats for ranking cards (likes + nominee counts).
+// One query for the whole set — never N+1 per card.
+export interface RankingCardStats {
+  likeCount: number;
+  nomineeCount: number;
+}
+
+export async function getRankingCardStats(
+  rankingIds: string[]
+): Promise<Record<string, RankingCardStats>> {
+  const out: Record<string, RankingCardStats> = {};
+  if (rankingIds.length === 0) return out;
+  const placeholders = rankingIds.map(() => "?").join(",");
+  const rows = (await db
+    .prepare(
+      `SELECT r.id AS id,
+              (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id AND ${authenticLikesClause("l")}) AS like_count,
+              (SELECT COUNT(*) FROM profiles p WHERE p.ranking_id = r.id AND p.deleted_at IS NULL) AS nominee_count
+       FROM rankings r
+       WHERE r.id IN (${placeholders})`
+    )
+    .all(...rankingIds)) as unknown as {
+    id: string;
+    like_count: number;
+    nominee_count: number;
+  }[];
+  for (const row of rows) {
+    out[row.id] = {
+      likeCount: row.like_count ?? 0,
+      nomineeCount: row.nominee_count ?? 0,
+    };
+  }
+  return out;
 }
 
 // Free-text search across Ranking titles and descriptions (case- and
@@ -312,6 +414,39 @@ export async function setRankingHidden(id: string, hidden: boolean): Promise<voi
   );
 }
 
+// Taxonomy v2 (2026-09-30): admin-only reassignment of a ranking's
+// category / subcategory / scope / tags. Never touches engagement data,
+// nominees, covers, or location — those are separate concerns with their
+// own controls.
+export async function updateRankingTaxonomy(
+  id: string,
+  params: {
+    categoryId: string | null;
+    subcategoryId: string | null;
+    scope: "global" | "country" | "city";
+    tags: string[];
+  }
+): Promise<void> {
+  assertValidScope(params.scope);
+  await db
+    .prepare(
+      `UPDATE rankings
+       SET category_id = ?, subcategory_id = ?, is_global = ?, scope = ?, tags = ?
+       WHERE id = ?`
+    )
+    .run(
+      params.categoryId,
+      params.subcategoryId,
+      params.scope === "global" ? 1 : 0,
+      params.scope,
+      params.tags
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .join(", "),
+      id
+    );
+}
+
 // Soft delete: marks the Ranking as deleted without touching anything
 // else. Nominees, Likes, Payments, and Credit Transactions tied to this
 // Ranking are left completely intact — there is no cascade. Restoring
@@ -337,6 +472,145 @@ export async function setRankingPinned(id: string, pinned: boolean): Promise<voi
   await db
     .prepare("UPDATE rankings SET is_pinned = ? WHERE id = ?")
     .run(pinned ? 1 : 0, id);
+}
+
+// --- Ranking cover image system (presentation-only) --------------------
+// None of these touch scoring, ordering, or eligibility — covers are
+// decoration/context only.
+
+export interface RankingCoverUpdate {
+  url: string;
+  // 'nominee' | 'category-fallback' | 'neutral-fallback' | 'manual'
+  source: string;
+  alt: string;
+  // 'active' when a real image was chosen; 'failed' when nothing valid
+  // was found and the caller wants that recorded; 'manual' when an
+  // admin uploaded/locked the cover (weekly job must skip these).
+  status: CoverImageStatus;
+}
+
+// Writes a new cover for a ranking (used by the weekly refresh job and
+// admin actions alike).
+export async function setRankingCover(
+  id: string,
+  cover: RankingCoverUpdate
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE rankings
+       SET cover_image_url = ?,
+           cover_image_source = ?,
+           cover_image_updated_at = datetime('now'),
+           cover_image_alt = ?,
+           cover_image_status = ?
+       WHERE id = ?`
+    )
+    .run(cover.url, cover.source, cover.alt, cover.status, id);
+}
+
+// Locks/unlocks a ranking's cover. Locked (status='manual') covers are
+// never touched by the weekly refresh job. Unlocking reverts the status
+// to 'pending' so the next weekly run can pick a fresh cover.
+export async function setCoverLocked(id: string, locked: boolean): Promise<void> {
+  await db
+    .prepare("UPDATE rankings SET cover_image_status = ? WHERE id = ?")
+    .run(locked ? "manual" : "pending", id);
+}
+
+// Toggles the global-scope flag (displayed as "Global" instead of
+// "city, country").
+export async function setRankingGlobal(id: string, isGlobal: boolean): Promise<void> {
+  await db
+    .prepare("UPDATE rankings SET is_global = ? WHERE id = ?")
+    .run(isGlobal ? 1 : 0, id);
+}
+
+export interface CoverRefreshLogEntry {
+  id: string;
+  rankingId: string;
+  runId: string;
+  oldImage: string | null;
+  newImage: string | null;
+  source: string | null;
+  reason: string;
+  status: string;
+  createdAt: string;
+}
+
+export type CoverRefreshReason =
+  | "top_nominee_changed"
+  | "trending"
+  | "stale_cover"
+  | "broken_source"
+  | "better_candidate"
+  | "fallback"
+  | "unchanged"
+  | "skipped_manual"
+  | "skipped_archived";
+
+// One row per (ranking, weekly run): what was checked, what changed,
+// and why. Admins can read this to understand cover changes after the
+// fact — see getCoverRefreshHistory().
+export async function logCoverRefresh(entry: {
+  rankingId: string;
+  runId: string;
+  oldImage: string | null;
+  newImage: string | null;
+  source: string | null;
+  reason: CoverRefreshReason;
+  status: "changed" | "unchanged" | "skipped";
+}): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO ranking_cover_refresh_log
+         (id, ranking_id, run_id, old_image, new_image, source, reason, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      newId(),
+      entry.rankingId,
+      entry.runId,
+      entry.oldImage,
+      entry.newImage,
+      entry.source,
+      entry.reason,
+      entry.status
+    );
+}
+
+export async function getCoverRefreshHistory(
+  rankingId: string,
+  limit = 20
+): Promise<CoverRefreshLogEntry[]> {
+  const rows = (await db
+    .prepare(
+      `SELECT * FROM ranking_cover_refresh_log
+       WHERE ranking_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`
+    )
+    .all(rankingId, limit)) as unknown as {
+    id: string;
+    ranking_id: string;
+    run_id: string;
+    old_image: string | null;
+    new_image: string | null;
+    source: string | null;
+    reason: string;
+    status: string;
+    created_at: string;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    rankingId: r.ranking_id,
+    runId: r.run_id,
+    oldImage: r.old_image,
+    newImage: r.new_image,
+    source: r.source,
+    reason: r.reason,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
 }
 
 // Persists a new drag-and-drop order for one city's Rankings. orderedIds
@@ -374,6 +648,9 @@ export async function listRankingsForAdmin(filters: {
   city?: string;
   hidden?: boolean;
   pinned?: boolean;
+  // Taxonomy v2 filters (2026-09-30).
+  categoryId?: string;
+  scope?: "global" | "city";
 }): Promise<Ranking[]> {
   const clauses: string[] = ["deleted_at IS NULL"];
   const values: (string | number)[] = [];
@@ -392,6 +669,14 @@ export async function listRankingsForAdmin(filters: {
   if (filters.pinned !== undefined) {
     clauses.push("is_pinned = ?");
     values.push(filters.pinned ? 1 : 0);
+  }
+  if (filters.categoryId) {
+    clauses.push("category_id = ?");
+    values.push(filters.categoryId);
+  }
+  if (filters.scope) {
+    clauses.push("is_global = ?");
+    values.push(filters.scope === "global" ? 1 : 0);
   }
   const where = `WHERE ${clauses.join(" AND ")}`;
   const rows = (await db

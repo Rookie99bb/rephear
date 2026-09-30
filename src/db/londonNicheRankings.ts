@@ -45,10 +45,12 @@ interface CategorySeed {
   rankings: RankingSeed[];
 }
 
+// Taxonomy v2 (2026-09-30): legacy category slugs were merged into the 13
+// primary categories (see migrateTaxonomyToV2()).
 const CATEGORIES: CategorySeed[] = [
   {
     name: "Underground Music",
-    slug: "underground-music",
+    slug: "music",
     rankings: [
       {
         title: "Most Loved London Underground Artist",
@@ -84,7 +86,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "DJs & Club Culture",
-    slug: "djs-club-culture",
+    slug: "music",
     rankings: [
       {
         title: "Best Emerging London DJ",
@@ -156,7 +158,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Anime & Japanese Subculture",
-    slug: "anime-japanese-subculture",
+    slug: "anime",
     rankings: [
       {
         title: "Most Loved London Anime Creator",
@@ -192,7 +194,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Gaming & Esports",
-    slug: "gaming-esports",
+    slug: "gaming",
     rankings: [
       {
         title: "Best London Fighting Game Player",
@@ -228,7 +230,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Tabletop, TCG & Roleplaying",
-    slug: "tabletop-tcg-roleplaying",
+    slug: "gaming",
     rankings: [
       {
         title: "Best London Dungeons & Dragons Game Master",
@@ -264,7 +266,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Skate & Street Culture",
-    slug: "skate-street-culture",
+    slug: "sports",
     rankings: [
       {
         title: "Most Loved London Street Skater",
@@ -300,7 +302,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Alternative Fashion",
-    slug: "alternative-fashion",
+    slug: "fashion",
     rankings: [
       {
         title: "Best London Goth Fashion Creator",
@@ -336,7 +338,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Independent Art & Zines",
-    slug: "independent-art-zines",
+    slug: "art",
     rankings: [
       {
         title: "Best Independent Zine Maker in London",
@@ -372,7 +374,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Cult Culture & Community",
-    slug: "cult-culture-community",
+    slug: "entertainment",
     rankings: [
       {
         title: "Best London Cult Film Curator",

@@ -10,9 +10,22 @@ import { seedFandomRankings } from "./fandomRankings";
 import { seedOpeningSlates } from "./openingSlates";
 import { seedFandomCandidates } from "./seedFandomCandidates";
 import { seedTcgEvergreen } from "./seedTcgEvergreen";
+import { seedTaxonomy } from "./seedTaxonomy";
+import { migrateTaxonomyToV2 } from "./migrateTaxonomy";
+import { attachFlagshipNominees } from "./seedFlagshipNominees";
+import { attachAnimeNominees } from "./seedAnimeNominees";
+import { attachMangaNominees } from "./seedMangaNominees";
+import { attachGamingNominees } from "./seedGamingNominees";
+import { seedMangaRankings } from "./seedMangaRankings";
+import { seedAnimeRankings } from "./seedAnimeRankings";
+import { seedGamingRankings } from "./seedGamingRankings";
+import { seedCosplayRankings } from "./seedCosplayRankings";
+import { seedCreatorRankings } from "./seedCreatorRankings";
 import { pruneLegacyRankings } from "./pruneLegacyRankings";
 import { hideRankingsFromPublic } from "./hideRankings";
-import { seedFakeLikes } from "./seedFakeLikes";
+// NOTE: seedFakeLikes is intentionally NOT imported — synthetic like
+// top-ups are disabled (see ensureMigrated). The module stays on disk
+// for reference only.
 import { fixSocietyNomineePhotos } from "./fixSocietyPhotos";
 import { fixNomineePhotosBatch } from "./fixNomineePhotosBatch";
 import { fixDjRankingTitle } from "./fixDjRankingTitle";
@@ -62,7 +75,27 @@ deleted_at TEXT,
 slug TEXT,
 category_id TEXT REFERENCES categories(id),
 is_pinned INTEGER NOT NULL DEFAULT 0,
-display_order INTEGER
+display_order INTEGER,
+-- Ranking cover image system (visual presentation only — never affects
+-- scoring). cover_image_status: 'pending' | 'active' | 'failed' |
+-- 'manual'. 'manual' = admin-uploaded/locked; the weekly refresh job
+-- must skip those rows unconditionally.
+cover_image_url TEXT,
+cover_image_source TEXT,
+cover_image_updated_at TEXT,
+cover_image_alt TEXT,
+cover_image_status TEXT NOT NULL DEFAULT 'pending',
+-- Location display fix: 1 = this ranking is global in scope
+-- ("Best Anime of All Time" shows Global, not "London, United Kingdom").
+is_global INTEGER NOT NULL DEFAULT 0,
+-- Taxonomy v2 (2026-09-30): optional subcategory link, comma-separated
+-- discovery tags, system-generated flag (seed-created vs user-created),
+-- and admin archive flag. See addRankingTaxonomyColumnsIfMissing() below.
+subcategory_id TEXT REFERENCES subcategories(id),
+tags TEXT NOT NULL DEFAULT '',
+is_system_generated INTEGER NOT NULL DEFAULT 0,
+is_archived INTEGER NOT NULL DEFAULT 0,
+scope TEXT NOT NULL DEFAULT 'city'
 );
 
 -- Parent Category for a Ranking (e.g. "Underground Music", "Cosplay").
@@ -79,6 +112,22 @@ slug TEXT NOT NULL UNIQUE,
 description TEXT NOT NULL DEFAULT '',
 created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Taxonomy v2 (2026-09-30): Subcategory. Always belongs to exactly one
+-- primary Category (e.g. "Rap & Grime" under "Music"). slug is the
+-- stable identifier, prefixed with the parent category slug
+-- ("music-rap-grime") so slugs stay globally unique even when names
+-- repeat across parents.
+CREATE TABLE IF NOT EXISTS subcategories (
+id TEXT PRIMARY KEY,
+category_id TEXT NOT NULL REFERENCES categories(id),
+name TEXT NOT NULL,
+slug TEXT NOT NULL UNIQUE,
+description TEXT NOT NULL DEFAULT '',
+sort_order INTEGER NOT NULL DEFAULT 0,
+created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_subcategories_category ON subcategories(category_id);
 
 -- Nominees. A nominee belongs to exactly ONE Ranking, there is no
 -- shared/reusable profile system. Nominating the same person in a
@@ -632,6 +681,81 @@ async function addProfileShareTokenColumnIfMissing() {
   });
 }
 
+// Ranking cover image columns + is_global (see CREATE TABLE rankings
+// above): added after the original rankings table shipped, so any
+// pre-existing (production) database needs these ALTER TABLEs; a fresh
+// database already has them from CREATE TABLE (harmless no-op, caught
+// below).
+async function addRankingCoverColumnsIfMissing() {
+  const columns: [string, string][] = [
+    ["cover_image_url", "TEXT"],
+    ["cover_image_source", "TEXT"],
+    ["cover_image_updated_at", "TEXT"],
+    ["cover_image_alt", "TEXT"],
+    ["cover_image_status", "TEXT NOT NULL DEFAULT 'pending'"],
+    ["is_global", "INTEGER NOT NULL DEFAULT 0"],
+  ];
+  for (const [name, type] of columns) {
+    try {
+      await rawClient.execute({
+        sql: `ALTER TABLE rankings ADD COLUMN ${name} ${type};`,
+        args: [],
+      });
+    } catch {
+      // Column already exists.
+    }
+  }
+}
+
+// Audit log for the weekly cover refresh job: every run records what it
+// checked and why a cover changed (or didn't), so admins can understand
+// image changes after the fact.
+async function createRankingCoverRefreshLogTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS ranking_cover_refresh_log (
+      id TEXT PRIMARY KEY,
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      run_id TEXT NOT NULL,
+      old_image TEXT,
+      new_image TEXT,
+      source TEXT,
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_cover_refresh_log_ranking ON ranking_cover_refresh_log(ranking_id);`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_cover_refresh_log_run ON ranking_cover_refresh_log(run_id);`,
+    args: [],
+  });
+}
+
+// One-time heuristic backfill for is_global: rankings whose titles are
+// clearly scope-global ("Best Anime of All Time", "... Global ...")
+// were all created with city=London by default. Conservative on
+// purpose — only matches unambiguous phrasing; admins can toggle the
+// rest from the admin board. Idempotent: only touches rows where
+// is_global = 0.
+async function backfillRankingIsGlobal() {
+  await rawClient.execute({
+    sql: `UPDATE rankings
+          SET is_global = 1
+          WHERE is_global = 0
+            AND deleted_at IS NULL
+            AND (
+              LOWER(title) LIKE '%all time%'
+              OR LOWER(title) LIKE '%global%'
+              OR LOWER(title) LIKE '%of all-time%'
+            );`,
+    args: [],
+  });
+}
+
 // Admin ranking controls (Pin + drag-and-drop ordering — see
 // src/app/admin/rankings). is_pinned and display_order are new columns
 // added after the original rankings table shipped, so any pre-existing
@@ -731,6 +855,80 @@ async function addCategorySortOrderColumnIfMissing() {
     });
   } catch {
     // Column already exists, nothing to do.
+  }
+}
+
+// Taxonomy v2 (2026-09-30): subcategories table. A Subcategory always
+// belongs to exactly one primary Category (e.g. "Rap & Grime" under
+// "Music"). slug is the stable identifier seed scripts key off of —
+// prefixed with the parent category slug ("music-rap-grime") so slugs
+// stay globally unique even when names repeat across parents (e.g.
+// "Music" exists both as an Anime subcategory and as a top-level
+// category).
+async function createSubcategoriesTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS subcategories (
+      id TEXT PRIMARY KEY,
+      category_id TEXT NOT NULL REFERENCES categories(id),
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );`,
+    args: [],
+  });
+  await rawClient.execute({
+    sql: `CREATE INDEX IF NOT EXISTS idx_subcategories_category ON subcategories(category_id);`,
+    args: [],
+  });
+}
+
+// Taxonomy v2 (2026-09-30): new columns on rankings.
+// - subcategory_id: optional link into subcategories (NULL = no
+//   subcategory; valid for user-created rankings and legacy rows).
+// - tags: comma-separated topic tags for discovery/search ("anime,
+//   shonen, 2026"). Plain TEXT, parsed by helpers in taxonomy.ts.
+// - is_system_generated: 1 = created by a RepHear seed/curation script
+//   (attributed to the RepHear Team account), 0 = created by a real
+//   user. Drives the admin System/User filter; never affects scoring.
+// - is_archived: 1 = admin-archived system ranking (kept in DB, hidden
+//   from every public read like is_hidden, restorable). Separate from
+//   is_hidden (spam) and deleted_at (user deletion) so each state keeps
+//   its own meaning.
+// - scope: canonical ranking scope — 'global' | 'country' | 'city'
+//   (2026-09-30, per content spec Phase 10). is_global is kept in sync
+//   as a derived compatibility column (1 = scope 'global') because
+//   display code and older queries read it; scope is the source of truth.
+async function addRankingTaxonomyColumnsIfMissing() {
+  const columns: [string, string][] = [
+    ["subcategory_id", "TEXT REFERENCES subcategories(id)"],
+    ["tags", "TEXT NOT NULL DEFAULT ''"],
+    ["is_system_generated", "INTEGER NOT NULL DEFAULT 0"],
+    ["is_archived", "INTEGER NOT NULL DEFAULT 0"],
+    ["scope", "TEXT NOT NULL DEFAULT 'city'"],
+  ];
+  for (const [name, type] of columns) {
+    try {
+      await rawClient.execute({
+        sql: `ALTER TABLE rankings ADD COLUMN ${name} ${type};`,
+        args: [],
+      });
+    } catch {
+      // Column already exists.
+    }
+  }
+  // One-time backfill: derive canonical scope from the legacy is_global
+  // flag for rows that predate the scope column (fresh ALTERs default to
+  // 'city', which is wrong for previously-global rows).
+  try {
+    await rawClient.execute({
+      sql: `UPDATE rankings SET scope = 'global'
+            WHERE is_global = 1 AND scope != 'global'`,
+      args: [],
+    });
+  } catch {
+    // Table/column not ready yet — the next boot retries.
   }
 }
 
@@ -941,13 +1139,19 @@ async function normalizeRankingCountries() {
 // restored from the admin moderation panel if a country reopens later.
 // Idempotent: only touches rows with deleted_at IS NULL, so running this
 // on every start is a no-op after the first pass.
+// Soft-deletes rankings stored in unsupported cities — but ONLY
+// city-scoped ones. Global- and country-scoped rankings are never
+// touched regardless of what their stored city value is (a global
+// ranking may carry "London" purely as a legacy DB-level placeholder;
+// display is driven by scope, see scopeLabel in taxonomy.ts).
 async function hideRankingsOutsideSupportedLocations() {
   const result = await rawClient.execute({
-    sql: "SELECT id, city FROM rankings WHERE deleted_at IS NULL",
+    sql: "SELECT id, city, COALESCE(scope, 'city') AS scope FROM rankings WHERE deleted_at IS NULL",
     args: [],
   });
-  const rows = result.rows as unknown as { id: string; city: string }[];
+  const rows = result.rows as unknown as { id: string; city: string; scope: string }[];
   for (const row of rows) {
+    if (row.scope !== "city") continue;
     if (!isValidLocation(row.city)) {
       await rawClient.execute({
         sql: "UPDATE rankings SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
@@ -1406,8 +1610,15 @@ export async function ensureMigrated(): Promise<void> {
     await runMigrations();
     await addRankingSlugAndCategoryColumnsIfMissing();
     await addRankingPinAndOrderColumnsIfMissing();
+    await addRankingCoverColumnsIfMissing();
+    await createRankingCoverRefreshLogTableIfMissing();
+    await backfillRankingIsGlobal();
     await addIsHiddenColumnIfMissing();
     await addCategorySortOrderColumnIfMissing();
+    // Taxonomy v2 (2026-09-30): subcategories table + new ranking
+    // columns (subcategory_id, tags, is_system_generated, is_archived).
+    await createSubcategoriesTableIfMissing();
+    await addRankingTaxonomyColumnsIfMissing();
     await addRefundedAtColumnToCreditTransactionsIfMissing();
     await addClaimWorkflowColumnsIfMissing();
     await addSoftDeleteColumnsIfMissing();
@@ -1479,15 +1690,47 @@ export async function ensureMigrated(): Promise<void> {
     // hiding runs, and before pruneLegacyRankings() which runs later in
     // this same migration (the slug is in its KEEP list).
     await seedTcgEvergreen();
+    // Taxonomy v2 (2026-09-30): create the 13 primary categories +
+    // subcategories, then remap every existing ranking from its legacy
+    // category onto the new taxonomy (with subcategory), backfill global
+    // scope and the system-generated flag, and retire merged-away legacy
+    // categories. Must run after all legacy seeds (so their categories
+    // exist to be remapped) and before pruneLegacyRankings().
+    await seedTaxonomy();
+    await migrateTaxonomyToV2();
+    // Taxonomy v2 content seeds (2026-09-30): the 134 required rankings
+    // (Anime 30, Manga 30, Gaming 30, Cosplay 30, Creator Bridge 14) from
+    // the canonical registry in requiredRankings.ts. Idempotent
+    // (exact-title reuse + canonicalization, slug lookup before create);
+    // must run before pruneLegacyRankings() — every slug is in its KEEP
+    // list.
+    await seedMangaRankings();
+    await seedAnimeRankings();
+    await seedGamingRankings();
+    await seedCosplayRankings();
+    await seedCreatorRankings();
+    // Factual nominee sets for the three all-time flagship rankings
+    // (10 each). Idempotent; never duplicates existing nominees.
+    await attachFlagshipNominees();
+    // Factual 10-nominee sets for the remaining Anime/Manga/Gaming
+    // rankings (29 each; series/characters/songs/games only — no real
+    // people). Idempotent; skipped when the ranking slug is absent.
+    await attachAnimeNominees();
+    await attachMangaNominees();
+    await attachGamingNominees();
     // Soft-delete every ranking that isn't one of the 89 cold-start
     // rankings (runs last so seeds always win; idempotent no-op afterwards).
     await pruneLegacyRankings();
     // Temporarily hide the Food Wars series from public listings (kept in
     // DB, restorable from admin panel; idempotent no-op afterwards).
     await hideRankingsFromPublic();
-    // Cold-start social proof: top every nominee up to a clustered 200+
-    // like target (idempotent; real likes are never touched).
-    await seedFakeLikes();
+    // Synthetic cold-start likes are DISABLED as a startup step
+    // (2026-09-30): like top-ups must never run automatically again.
+    // Existing seed_community_* like rows are preserved in the DB but
+    // excluded from every public metric via authenticLikesClause()
+    // (see src/db/visibility.ts). Do not re-enable without a product
+    // decision — fabricating engagement is not allowed.
+    // await seedFakeLikes();
     // Repair wrong generic-university photos on society nominees (only
     // touches rows still carrying a known-wrong seed photo; idempotent).
     await fixSocietyNomineePhotos();

@@ -62,10 +62,13 @@ interface CategorySeed {
   rankings: RankingSeed[];
 }
 
+// Taxonomy v2 (2026-09-30): legacy category slugs were merged into the 13
+// primary categories. Subcategory placement is handled by the
+// migrateTaxonomyToV2() migration (per-ranking overrides), not here.
 const CATEGORIES: CategorySeed[] = [
   {
     name: "UK Rap & Grime",
-    slug: "uk-rap-grime",
+    slug: "music",
     rankings: [
       {
         title: "London's Most Popular Grime MC 2026",
@@ -137,7 +140,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "DJ Genres",
-    slug: "dj-genres",
+    slug: "music",
     rankings: [
       {
         title: "London's Most Popular Amapiano DJ 2026",
@@ -173,7 +176,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Comedy",
-    slug: "comedy",
+    slug: "entertainment",
     rankings: [
       {
         title: "London's Most Popular Comedian 2026",
@@ -209,7 +212,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Nightlife Personalities",
-    slug: "nightlife-personalities",
+    slug: "events-nightlife",
     rankings: [
       {
         title: "London's Most Popular Club Photographer 2026",
@@ -245,7 +248,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Football Culture",
-    slug: "football-culture",
+    slug: "sports",
     rankings: [
       {
         title: "London's Most Popular Football Creator 2026",
@@ -281,7 +284,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Radio & Livestream",
-    slug: "radio-livestream",
+    slug: "music",
     rankings: [
       {
         title: "London's Most Popular Underground Radio DJ 2026",
@@ -317,7 +320,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Streetwear & Fashion Creators",
-    slug: "streetwear-fashion-creators",
+    slug: "fashion",
     rankings: [
       {
         title: "London's Most Popular Streetwear Influencer 2026",
@@ -353,7 +356,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Food & Drink Creators",
-    slug: "food-drink-creators",
+    slug: "food",
     rankings: [
       {
         title: "London's Most Popular Food Creator 2026",
@@ -389,7 +392,7 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Screen & Stage",
-    slug: "screen-stage",
+    slug: "entertainment",
     rankings: [
       {
         title: "London's Most Popular Reality TV Personality 2026",

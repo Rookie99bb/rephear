@@ -75,7 +75,9 @@ interface CategorySeed {
 const CATEGORIES: CategorySeed[] = [
   {
     name: "K-pop Dance",
-    slug: "kpop-dance",
+    // Taxonomy v2 (2026-09-30): merged under Music (K-pop subcategory via
+    // migration). New slug stops this legacy category being recreated.
+    slug: "music",
     rankings: [
       {
         title: "London's Best K-pop Dance Crew 2026",
@@ -105,7 +107,8 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "University Societies",
-    slug: "university-societies",
+    // Taxonomy v2 (2026-09-30): merged under University.
+    slug: "university",
     rankings: [
       {
         title: "London's Best University Society 2026",
@@ -141,7 +144,8 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Underground Rap",
-    slug: "underground-rap",
+    // Taxonomy v2 (2026-09-30): merged under Music.
+    slug: "music",
     rankings: [
       {
         title: "London's Hottest Upcoming Rapper 2026",
@@ -171,7 +175,8 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Club Nights",
-    slug: "club-nights",
+    // Taxonomy v2 (2026-09-30): merged under Events & Nightlife.
+    slug: "events-nightlife",
     rankings: [
       {
         title: "World's Best DJ 2026",

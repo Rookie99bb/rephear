@@ -14,19 +14,31 @@ export interface TrendingCard {
 // "🔥 Trending in London" — top-3 rankings by real 7-day activity,
 // London-scoped preferred for the featured slot. First card is the
 // large featured one; the other two are standard visual cards.
-export default function TrendingSection({ cards }: { cards: TrendingCard[] }) {
+//
+// Taxonomy v2 (2026-09-30): title/subtitle/ariaLabel are overridable so
+// the homepage can render a separate "🌍 Global Trending" section that
+// contains ONLY global rankings (never mixed scopes).
+export default function TrendingSection({
+  cards,
+  title = "🔥 Trending near you",
+  subtitle = "The rankings everyone is talking about right now.",
+  ariaLabel = "Trending near you",
+}: {
+  cards: TrendingCard[];
+  title?: string;
+  subtitle?: string;
+  ariaLabel?: string;
+}) {
   if (cards.length === 0) return null;
   const [featured, ...rest] = cards;
   return (
-    <section aria-label="Trending in London">
+    <section aria-label={ariaLabel}>
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-2 text-[22px] font-bold tracking-tight text-ink">
-            <span aria-hidden="true">🔥</span> Trending in London
+            {title}
           </h2>
-          <p className="mt-1 text-sm text-subtle">
-            The rankings everyone is talking about right now.
-          </p>
+          <p className="mt-1 text-sm text-subtle">{subtitle}</p>
         </div>
         <Link
           href="/rankings"

@@ -65,7 +65,8 @@ interface CategorySeed {
 const CATEGORIES: CategorySeed[] = [
   {
     name: "Football Tribes",
-    slug: "football-tribes",
+    // Taxonomy v2 (2026-09-30): merged under Sports.
+    slug: "sports",
     rankings: [
       {
         title: "London's Most Popular Football Club 2026",
@@ -101,7 +102,8 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Food Wars",
-    slug: "food-wars",
+    // Taxonomy v2 (2026-09-30): merged under Food.
+    slug: "food",
     rankings: [
       {
         title: "London's Best Jollof 2026",
@@ -137,7 +139,8 @@ const CATEGORIES: CategorySeed[] = [
   },
   {
     name: "Scene Rivalries",
-    slug: "scene-rivalries",
+    // Taxonomy v2 (2026-09-30): merged under Events & Nightlife.
+    slug: "events-nightlife",
     rankings: [
       {
         title: "London's Best Music Borough 2026",
