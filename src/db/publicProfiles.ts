@@ -7,14 +7,17 @@ import {
 } from "./visibility";
 import { isBlockedEither } from "./userReports";
 import { getMostSupported } from "./leaderboards";
+import { getPersonStoryEnrichment } from "./backingStories";
+import { growthStageForRank, type GrowthStage } from "@/lib/supportReasons";
 
 // Phase 2 (public identity): read models for /u/[id]. Every function
 // here takes an explicit visibility posture — `includePrivate` (owner
 // viewing their own profile) or effective-public-only (anyone else).
 // Private rows are excluded from the JOIN, never merely hidden in UI
-// (invariant 3). backing_moments is NOT read here: D2's base is
-// conviction_records (first-back index); Phase 5.3 will enrich with
-// moments through this module's interface (integration plan §1 row 13).
+// (invariant 3). Phase 5.3 enriches People I Back with backing_moments
+// (latest reason preset + journey anchor) via getPersonStoryEnrichment;
+// per-moment read-time effective visibility still governs what viewers
+// see.
 
 export interface InterestTag {
   id: string;
@@ -77,6 +80,18 @@ export interface PeopleIBackRow {
   // sees rows regardless; anyone else only sees isPublic rows.
   isPublic: boolean;
   lastSupportedAt: string;
+  // ── Phase 5.3 (People I Back v2) ─────────────────────────────────
+  // Latest support-reason preset key for this person ("custom" when the
+  // latest support used free text). latestReasonText carries the free
+  // text for the owner only — viewers never receive it.
+  latestReason: string | null;
+  latestReasonText: string | null;
+  // Journey progress: growth stage at first tracked support → now.
+  // journeyFrom falls back to growthStageForRank(rankAtFirstSupport)
+  // when the triple predates moments (never fabricated — both inputs
+  // are real recorded values).
+  journeyFrom: GrowthStage | null;
+  journeyTo: GrowthStage | null;
 }
 
 interface PeopleIBackDbRow {
@@ -136,26 +151,45 @@ export async function getPeopleIBack(
     rankByRanking.set(rankingId, m);
   }
 
-  return visible.map((r) => {
-    const currentRank =
-      rankByRanking.get(r.ranking_id)?.get(r.profile_id) ?? null;
-    const movement =
-      r.rank_at_first_support != null && currentRank != null
-        ? r.rank_at_first_support - currentRank
-        : null;
-    return {
-      rankingId: r.ranking_id,
-      rankingTitle: r.ranking_title,
-      profileId: r.profile_id,
-      profileName: r.profile_name,
-      profilePhotoUrl: r.profile_photo_url,
-      rankAtFirstSupport: r.rank_at_first_support,
-      currentRank,
-      movement,
-      isPublic: r.eff_vis === "public",
-      lastSupportedAt: r.last_supported_at ?? r.first_supported_at,
-    };
-  });
+  // Phase 5.3: per-person story enrichment from backing_moments
+  // (latest reason preset, journey anchor). One small indexed query
+  // per row — fine at profile scale.
+  const enriched = await Promise.all(
+    visible.map(async (r) => {
+      const currentRank =
+        rankByRanking.get(r.ranking_id)?.get(r.profile_id) ?? null;
+      const movement =
+        r.rank_at_first_support != null && currentRank != null
+          ? r.rank_at_first_support - currentRank
+          : null;
+      const story = await getPersonStoryEnrichment(
+        viewerId,
+        targetUserId,
+        r.ranking_id,
+        r.profile_id
+      );
+      return {
+        rankingId: r.ranking_id,
+        rankingTitle: r.ranking_title,
+        profileId: r.profile_id,
+        profileName: r.profile_name,
+        profilePhotoUrl: r.profile_photo_url,
+        rankAtFirstSupport: r.rank_at_first_support,
+        currentRank,
+        movement,
+        isPublic: r.eff_vis === "public",
+        lastSupportedAt: r.last_supported_at ?? r.first_supported_at,
+        latestReason: story.latestReason,
+        latestReasonText: story.latestReasonText,
+        journeyFrom:
+          story.firstGrowthStage ??
+          growthStageForRank(r.rank_at_first_support),
+        journeyTo: growthStageForRank(currentRank),
+      };
+    })
+  );
+
+  return enriched;
 }
 
 export interface IdentityStats {

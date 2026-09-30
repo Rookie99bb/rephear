@@ -1,25 +1,33 @@
-import { listAllRankings, findRankingById } from "@/db/rankings";
-import { findProfileById } from "@/db/profiles";
+import { listAllRankings } from "@/db/rankings";
+import type { Ranking } from "@/lib/types";
 import {
   getSupportedBoardState,
-  recordMilestoneEvent,
-  awardEarlyBackers,
-  getFirstMoments,
+  recordMilestoneEventsBatch,
+  getRankingProfileBasics,
+  getFirstMomentsBatch,
+  awardEarlyBackersBatch,
   EARLY_BACKER_THRESHOLDS,
   type MilestoneType,
+  type MilestoneCandidate,
+  type FirstMomentWithProfile,
+  type EarlyBackerAwardItem,
 } from "@/db/milestones";
 import {
-  createNotification,
-  type NotificationType,
+  createNotificationsBatch,
+  getNotifyMilestonesPrefs,
+  type NotificationBatchItem,
 } from "@/db/notifications";
 import {
-  listFollowerUserIds,
+  listFollowerUserIdsForTargets,
   type FollowTargetType,
 } from "@/db/follows";
-import { emitNotificationEvent } from "@/lib/notificationEvents";
 import {
-  notifyClaimedOwnerForMilestone,
-  checkTop10Approach,
+  emitNotificationEvent,
+  type NotificationEvent,
+} from "@/lib/notificationEvents";
+import {
+  OWNER_COPY,
+  recordApproachNoticesBatch,
 } from "@/lib/nomineeMilestones";
 
 // Phase 3 (§7, §14): milestone detection core, shared by the
@@ -37,6 +45,13 @@ import {
 //
 // Safe to run on any schedule: idempotent throughout, and a failure on
 // one ranking never stops the others (per-ranking try/catch).
+//
+// BATCHED for remote Turso: every per-ranking step is a constant
+// handful of statements (board state, profile basics, one chunked
+// event INSERT ... RETURNING, one moments query, one followers query,
+// one notification flush) instead of thousands of sequential
+// per-nominee round-trips. Same rows, same events, same idempotency —
+// only the access pattern changed.
 
 export interface MilestoneRunStats {
   rankings: number;
@@ -69,10 +84,25 @@ const ENTRY_THRESHOLDS = new Set<MilestoneType>([
   "reached_1",
 ]);
 
+// Phase 4: near-miss nudge gate (mirrors checkTop10Approach).
+const APPROACH_MAX_GAP_CREDITS = 1000;
+
 function rankLine(rankAtSupport: number | null): string {
   return rankAtSupport === null
     ? "before she was even ranked"
     : `at #${rankAtSupport}`;
+}
+
+interface Candidate extends MilestoneCandidate {
+  entry: boolean;
+}
+
+// A notification queued for the end-of-ranking flush, plus which
+// (console-only) event to emit for it: always, or only when the
+// notification actually landed.
+interface QueuedNotification extends NotificationBatchItem {
+  emitAlways?: NotificationEvent;
+  emitIfCreated?: NotificationEvent;
 }
 
 export async function runMilestoneDetection(): Promise<MilestoneRunStats> {
@@ -87,242 +117,424 @@ export async function runMilestoneDetection(): Promise<MilestoneRunStats> {
   const rankings = await listAllRankings();
   for (const ranking of rankings) {
     try {
-      const board = await getSupportedBoardState(ranking.id);
-      stats.rankings++;
-      // Credits total of the #10 nominee — the "approaching Top 10"
-      // cutoff for claimed-owner near-miss nudges (Phase 4).
-      const top10CutoffCredits =
-        board.length >= 10 ? board[9].totalCredits : null;
-      for (const nominee of board) {
-        await processNominee(
-          ranking.id,
-          ranking.title,
-          nominee,
-          top10CutoffCredits,
-          stats
-        );
-      }
+      await processRanking(ranking, stats);
     } catch (err) {
       stats.errors++;
-      console.error(
-        `[milestoneRunner] ranking ${ranking.id} failed:`,
-        err
-      );
+      console.error(`[milestoneRunner] ranking ${ranking.id} failed:`, err);
     }
   }
 
   return stats;
 }
 
-async function processNominee(
-  rankingId: string,
-  rankingTitle: string,
-  nominee: { profileId: string; rank: number; totalCredits: number; backerCount: number },
-  top10CutoffCredits: number | null,
-  stats: { events: number; awards: number; notifications: number }
-) {
-  const profile = await findProfileById(nominee.profileId);
-  if (!profile) return;
-  const name = profile.name;
+async function processRanking(
+  ranking: Ranking,
+  stats: MilestoneRunStats
+): Promise<void> {
+  const rankingId = ranking.id;
+  const rankingTitle = ranking.title;
   const link = `/rankings/${rankingId}`;
 
-  // Evaluate every threshold; recordMilestoneEvent is INSERT OR IGNORE
-  // so only genuinely new crossings return created=true.
-  const candidates: { type: MilestoneType; entry: boolean }[] = [
-    { type: "nominated", entry: false },
-    ...(nominee.totalCredits >= 1000
-      ? [{ type: "first_1k_credits" as MilestoneType, entry: false }]
-      : []),
-    ...(nominee.totalCredits >= 10000
-      ? [{ type: "credits_10k" as MilestoneType, entry: false }]
-      : []),
-    ...(nominee.backerCount >= 50
-      ? [{ type: "backers_50" as MilestoneType, entry: false }]
-      : []),
-    ...(nominee.rank <= 50
-      ? [{ type: "entered_top_50" as MilestoneType, entry: true }]
-      : []),
-    ...(nominee.rank <= 20
-      ? [{ type: "entered_top_20" as MilestoneType, entry: true }]
-      : []),
-    ...(nominee.rank <= 10
-      ? [{ type: "entered_top_10" as MilestoneType, entry: true }]
-      : []),
-    ...(nominee.rank <= 3
-      ? [{ type: "reached_3" as MilestoneType, entry: true }]
-      : []),
-    ...(nominee.rank === 1
-      ? [{ type: "reached_1" as MilestoneType, entry: true }]
-      : []),
-  ];
+  // Board state + profile basics: 2 statements for the whole ranking.
+  const board = await getSupportedBoardState(rankingId);
+  stats.rankings++;
+  const basics = await getRankingProfileBasics(rankingId);
+  // Credits total of the #10 nominee — the "approaching Top 10"
+  // cutoff for claimed-owner near-miss nudges (Phase 4).
+  const top10CutoffCredits =
+    board.length >= 10 ? board[9].totalCredits : null;
 
-  for (const { type, entry } of candidates) {
-    const { created } = await recordMilestoneEvent({
-      rankingId,
-      profileId: nominee.profileId,
-      type,
-      rankAtEvent: nominee.rank,
-      creditsAtEvent: nominee.totalCredits,
-      backersAtEvent: nominee.backerCount,
-    });
-    if (!created) continue;
-    stats.events++;
-
-    const label = MILESTONE_LABELS[type];
-
-    // 1. Early Backer awards on new entry thresholds (WHEN-based).
-    if (type in EARLY_BACKER_THRESHOLDS) {
-      const awarded = await awardEarlyBackers({
-        rankingId,
+  // 1. Threshold candidates for every nominee, in the same order the
+  // old per-nominee loop evaluated them.
+  const candidates: Candidate[] = [];
+  for (const nominee of board) {
+    candidates.push(
+      {
         profileId: nominee.profileId,
-        milestoneType: type as keyof typeof EARLY_BACKER_THRESHOLDS,
+        type: "nominated",
+        rankAtEvent: nominee.rank,
+        creditsAtEvent: nominee.totalCredits,
+        backersAtEvent: nominee.backerCount,
+        entry: false,
+      },
+      ...(nominee.totalCredits >= 1000
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "first_1k_credits" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: false,
+            },
+          ]
+        : []),
+      ...(nominee.totalCredits >= 10000
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "credits_10k" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: false,
+            },
+          ]
+        : []),
+      ...(nominee.backerCount >= 50
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "backers_50" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: false,
+            },
+          ]
+        : []),
+      ...(nominee.rank <= 50
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "entered_top_50" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: true,
+            },
+          ]
+        : []),
+      ...(nominee.rank <= 20
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "entered_top_20" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: true,
+            },
+          ]
+        : []),
+      ...(nominee.rank <= 10
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "entered_top_10" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: true,
+            },
+          ]
+        : []),
+      ...(nominee.rank <= 3
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "reached_3" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: true,
+            },
+          ]
+        : []),
+      ...(nominee.rank === 1
+        ? [
+            {
+              profileId: nominee.profileId,
+              type: "reached_1" as MilestoneType,
+              rankAtEvent: nominee.rank,
+              creditsAtEvent: nominee.totalCredits,
+              backersAtEvent: nominee.backerCount,
+              entry: true,
+            },
+          ]
+        : [])
+    );
+  }
+
+  // 2. Record crossings: one chunked INSERT OR IGNORE ... RETURNING.
+  // The returned keys are exactly the genuinely new crossings.
+  const createdKeys = await recordMilestoneEventsBatch(rankingId, candidates);
+  const newEvents = candidates.filter((c) =>
+    createdKeys.has(`${c.profileId}|${c.type}`)
+  );
+  stats.events += newEvents.length;
+  const newByProfile = new Map<string, Candidate[]>();
+  for (const e of newEvents) {
+    const list = newByProfile.get(e.profileId);
+    if (list) list.push(e);
+    else newByProfile.set(e.profileId, [e]);
+  }
+
+  // 3. Bulk prefetches — each skipped entirely when nothing needs it.
+  const needMoments = new Set<string>();
+  for (const e of newEvents) {
+    if (e.type in EARLY_BACKER_THRESHOLDS || e.type !== "nominated") {
+      needMoments.add(e.profileId);
+    }
+  }
+  const moments = await getFirstMomentsBatch(rankingId, [...needMoments]);
+  const momentsByProfile = new Map<string, FirstMomentWithProfile[]>();
+  const momentByUser = new Map<string, FirstMomentWithProfile>();
+  for (const m of moments) {
+    const list = momentsByProfile.get(m.profileId);
+    if (list) list.push(m);
+    else momentsByProfile.set(m.profileId, [m]);
+    momentByUser.set(`${m.profileId}|${m.userId}`, m);
+  }
+
+  const followerTargets: { targetType: FollowTargetType; targetId: string }[] =
+    [];
+  if (newEvents.some((e) => e.entry)) {
+    followerTargets.push({ targetType: "ranking", targetId: rankingId });
+  }
+  if (
+    newEvents.some((e) => e.type === "reached_1") &&
+    ranking.categoryId
+  ) {
+    followerTargets.push({
+      targetType: "category",
+      targetId: ranking.categoryId,
+    });
+  }
+  const followersByTarget =
+    await listFollowerUserIdsForTargets(followerTargets);
+
+  // 4. Early Backer awards (WHEN-based), one chunked INSERT ... RETURNING.
+  const awardItems: EarlyBackerAwardItem[] = [];
+  for (const e of newEvents) {
+    if (!(e.type in EARLY_BACKER_THRESHOLDS)) continue;
+    const threshold = EARLY_BACKER_THRESHOLDS[e.type];
+    for (const m of momentsByProfile.get(e.profileId) ?? []) {
+      // They backed before the crossing iff the nominee ranked worse
+      // than the threshold (or wasn't ranked at all) when they backed.
+      if (m.rankAtSupport !== null && m.rankAtSupport <= threshold) continue;
+      awardItems.push({
+        rankingId,
+        profileId: e.profileId,
+        milestoneType: e.type,
+        userId: m.userId,
       });
-      for (const userId of awarded) {
-        stats.awards++;
-        const first = (await getFirstMoments(rankingId, nominee.profileId)).find(
-          (m) => m.userId === userId
-        );
-        const n = await notify({
-          userId,
-          type: "early_backer_milestone",
-          title: `Early Backer: ${name} 🏅`,
-          body: `You backed ${name} ${rankLine(first?.rankAtSupport ?? null)}, before she ${label.replace("just ", "")}. Your judgement called it early — this one's on the record.`,
-          link,
-        });
-        stats.notifications += n;
-        emitNotificationEvent({
-          type: "early_backer_milestone",
-          userId,
-          profileId: nominee.profileId,
-          rankingId,
-          milestoneType: type,
-          rankAtSupport: first?.rankAtSupport ?? null,
-        });
-      }
     }
+  }
+  const createdAwards = await awardEarlyBackersBatch(awardItems);
+  stats.awards += createdAwards.size;
 
-    // 2. Self-notifications to every backer (private moments included —
-    // self-notification is NOT exposure). Copy reinforces judgement /
-    // belonging / history, never "support again" pressure.
-    if (type !== "nominated") {
-      const firstMoments = await getFirstMoments(rankingId, nominee.profileId);
-      for (const m of firstMoments) {
-        const n = await notify({
-          userId: m.userId,
-          type: "backed_nominee_milestone",
-          title: `${name} ${label}`,
-          body: `You backed her ${rankLine(m.rankAtSupport)} — you were there before the climb. See where the journey goes next.`,
-          link,
-        });
-        stats.notifications += n;
-        emitNotificationEvent({
-          type: "backed_nominee_milestone",
-          userId: m.userId,
-          profileId: nominee.profileId,
-          rankingId,
-          milestoneType: type,
-          rankAtSupport: m.rankAtSupport,
-        });
-      }
+  // 5. Phase 4: Top-10 approach pre-filter. The once-ever notice row is
+  // recorded only for pref-on owners (same rule as
+  // checkTop10Approach); the notification itself joins the flush below.
+  const approachInserts: {
+    profileId: string;
+    gap: number;
+    ownerId: string;
+    name: string;
+  }[] = [];
+  for (const nominee of board) {
+    if (nominee.rank <= 10) continue;
+    if (top10CutoffCredits === null) continue;
+    const gap = top10CutoffCredits - nominee.totalCredits;
+    if (gap <= 0 || gap > APPROACH_MAX_GAP_CREDITS) continue;
+    const basic = basics.get(nominee.profileId);
+    if (!basic || basic.claimStatus !== "claimed" || !basic.claimedBy) continue;
+    approachInserts.push({
+      profileId: nominee.profileId,
+      gap,
+      ownerId: basic.claimedBy,
+      name: basic.name,
+    });
+  }
+  let approachCreated = new Set<string>();
+  const approachByProfile = new Map<string, (typeof approachInserts)[number]>();
+  if (approachInserts.length > 0) {
+    const prefs = await getNotifyMilestonesPrefs(
+      approachInserts.map((a) => a.ownerId)
+    );
+    // Don't consume the once-ever notice when the owner can't receive
+    // it — the next cron run tries again if they're still in range.
+    const eligible = approachInserts.filter(
+      (a) => prefs.get(a.ownerId) ?? true
+    );
+    approachCreated = await recordApproachNoticesBatch(
+      eligible.map((a) => ({
+        rankingId,
+        profileId: a.profileId,
+        gapCredits: a.gap,
+      }))
+    );
+    for (const a of eligible) {
+      if (approachCreated.has(a.profileId)) approachByProfile.set(a.profileId, a);
     }
+  }
 
-    // 3. Follower updates: ranking followers on entry thresholds,
-    // category followers on #1 only (keeps volume sane).
-    if (entry && ENTRY_THRESHOLDS.has(type)) {
-      const followerTargets: { targetType: FollowTargetType; targetId: string }[] = [
-        { targetType: "ranking", targetId: rankingId },
-      ];
-      if (type === "reached_1") {
-        const ranking = await findRankingById(rankingId);
-        if (ranking?.categoryId) {
-          followerTargets.push({
+  // 6. Collect every notification in the exact order the old
+  // sequential code produced them (nominee by nominee, event by
+  // event), so the per-user daily rate cap drops the same items.
+  const queue: QueuedNotification[] = [];
+  for (const nominee of board) {
+    const basic = basics.get(nominee.profileId);
+    if (!basic) continue;
+    const name = basic.name;
+
+    for (const e of newByProfile.get(nominee.profileId) ?? []) {
+      const label = MILESTONE_LABELS[e.type];
+
+      // 6a. Early Backer award notifications (WHEN-based).
+      if (e.type in EARLY_BACKER_THRESHOLDS) {
+        for (const item of awardItems) {
+          if (item.profileId !== e.profileId || item.milestoneType !== e.type)
+            continue;
+          const key = `${rankingId}|${e.profileId}|${e.type}|${item.userId}`;
+          if (!createdAwards.has(key)) continue;
+          const first = momentByUser.get(`${e.profileId}|${item.userId}`);
+          const rankAtSupport = first?.rankAtSupport ?? null;
+          queue.push({
+            userId: item.userId,
+            type: "early_backer_milestone",
+            title: `Early Backer: ${name} 🏅`,
+            body: `You backed ${name} ${rankLine(rankAtSupport)}, before she ${label.replace("just ", "")}. Your judgement called it early — this one's on the record.`,
+            link,
+            emitAlways: {
+              type: "early_backer_milestone",
+              userId: item.userId,
+              profileId: e.profileId,
+              rankingId,
+              milestoneType: e.type,
+              rankAtSupport,
+            },
+          });
+        }
+      }
+
+      // 6b. Self-notifications to every backer (private moments
+      // included — self-notification is NOT exposure).
+      if (e.type !== "nominated") {
+        for (const m of momentsByProfile.get(e.profileId) ?? []) {
+          queue.push({
+            userId: m.userId,
+            type: "backed_nominee_milestone",
+            title: `${name} ${label}`,
+            body: `You backed her ${rankLine(m.rankAtSupport)} — you were there before the climb. See where the journey goes next.`,
+            link,
+            emitAlways: {
+              type: "backed_nominee_milestone",
+              userId: m.userId,
+              profileId: e.profileId,
+              rankingId,
+              milestoneType: e.type,
+              rankAtSupport: m.rankAtSupport,
+            },
+          });
+        }
+      }
+
+      // 6c. Follower updates: ranking followers on entry thresholds,
+      // category followers on #1 only (keeps volume sane).
+      if (e.entry && ENTRY_THRESHOLDS.has(e.type)) {
+        const targets: { targetType: FollowTargetType; targetId: string }[] = [
+          { targetType: "ranking", targetId: rankingId },
+        ];
+        if (e.type === "reached_1" && ranking.categoryId) {
+          targets.push({
             targetType: "category",
             targetId: ranking.categoryId,
           });
         }
-      }
-      const seen = new Set<string>();
-      for (const t of followerTargets) {
-        for (const userId of await listFollowerUserIds(t.targetType, t.targetId)) {
-          if (seen.has(userId)) continue;
-          seen.add(userId);
-          const n = await notify({
-            userId,
-            type: "follow_update",
-            title: `${rankingTitle}: ${name} ${label}`,
-            body: `${name} ${label} in ${rankingTitle}.`,
-            link,
-          });
-          stats.notifications += n;
-          emitNotificationEvent({
-            type: "follow_update",
-            userId,
-            profileId: nominee.profileId,
-            rankingId,
-            milestoneType: type,
-          });
+        const seen = new Set<string>();
+        for (const t of targets) {
+          for (const userId of followersByTarget.get(
+            `${t.targetType}:${t.targetId}`
+          ) ?? []) {
+            if (seen.has(userId)) continue;
+            seen.add(userId);
+            queue.push({
+              userId,
+              type: "follow_update",
+              title: `${rankingTitle}: ${name} ${label}`,
+              body: `${name} ${label} in ${rankingTitle}.`,
+              link,
+              emitAlways: {
+                type: "follow_update",
+                userId,
+                profileId: e.profileId,
+                rankingId,
+                milestoneType: e.type,
+              },
+            });
+          }
         }
       }
-    }
 
-    // 4. Generic ranking_milestone event for future (5.5) templates.
-    emitNotificationEvent({
-      type: "ranking_milestone",
-      profileId: nominee.profileId,
-      rankingId,
-      milestoneType: type,
-      rankAtEvent: nominee.rank,
-    });
-
-    // 5. Phase 4: claimed-owner milestone ping — the owner learns a
-    // milestone fired and can share their card (the growth loop).
-    // Non-blocking like everything else here: a notification failure
-    // must never disturb the cron.
-    try {
-      const { notified } = await notifyClaimedOwnerForMilestone({
+      // 6d. Generic ranking_milestone event for future (5.5) templates.
+      emitNotificationEvent({
+        type: "ranking_milestone",
+        profileId: e.profileId,
         rankingId,
-        rankingTitle,
-        profileId: nominee.profileId,
-        type,
+        milestoneType: e.type,
+        rankAtEvent: e.rankAtEvent,
       });
-      if (notified) stats.notifications++;
-    } catch (err) {
-      console.error(
-        `[milestoneRunner] notifyClaimedOwner failed for ${nominee.profileId}:`,
-        err
-      );
+
+      // 6e. Phase 4: claimed-owner milestone ping — the owner learns a
+      // milestone fired and can share their card (the growth loop).
+      // "nominated" is skipped: on backfill it fires for every nominee
+      // at once, and "you exist on a board" is noise, not a milestone.
+      if (
+        e.type !== "nominated" &&
+        basic.claimStatus === "claimed" &&
+        basic.claimedBy
+      ) {
+        const copy = OWNER_COPY[e.type];
+        queue.push({
+          userId: basic.claimedBy,
+          type: "nominee_milestone",
+          title: copy.title,
+          body: copy.body(name, rankingTitle),
+          link: `/profiles/${e.profileId}/share`,
+          emitIfCreated: {
+            type: "nominee_owner_milestone",
+            userId: basic.claimedBy,
+            profileId: e.profileId,
+            rankingId,
+            milestoneType: e.type,
+          },
+        });
+      }
+    }
+
+    // 6f. Phase 4: "approaching Top 10" near-miss nudge for claimed
+    // owners. Fires once ever per (ranking, nominee).
+    const approach = approachByProfile.get(nominee.profileId);
+    if (approach) {
+      const gapLabel = approach.gap.toLocaleString("en-US");
+      queue.push({
+        userId: approach.ownerId,
+        type: "nominee_milestone",
+        title: `You're ${gapLabel} credits from the Top 10`,
+        body: `${approach.name} is ${gapLabel} Support Credits away from the Top 10 in ${rankingTitle}. Share your story and let your people know.`,
+        link: `/profiles/${nominee.profileId}/share`,
+        emitIfCreated: {
+          type: "nominee_owner_milestone",
+          userId: approach.ownerId,
+          profileId: nominee.profileId,
+          rankingId,
+          milestoneType: "approaching_top_10",
+        },
+      });
     }
   }
 
-  // 6. Phase 4: "approaching Top 10" near-miss nudge for claimed owners.
-  // Fires once ever per (ranking, nominee) via the UNIQUE guard inside.
-  try {
-    const { noticed } = await checkTop10Approach({
-      rankingId,
-      rankingTitle,
-      profileId: nominee.profileId,
-      rank: nominee.rank,
-      totalCredits: nominee.totalCredits,
-      top10CutoffCredits,
-    });
-    if (noticed) stats.notifications++;
-  } catch (err) {
-    console.error(
-      `[milestoneRunner] checkTop10Approach failed for ${nominee.profileId}:`,
-      err
-    );
-  }
-}
-
-// Wrapper: createNotification enforces the notify_milestones pref and
-// the daily rate cap; returns 1 if a row was written, else 0.
-async function notify(params: {
-  userId: string;
-  type: NotificationType;
-  title: string;
-  body: string;
-  link: string;
-}): Promise<number> {
-  const { created } = await createNotification(params);
-  return created ? 1 : 0;
+  // 7. One flush for the whole ranking: pref gate + daily cap are
+  // evaluated in queue order, exactly as sequential
+  // createNotification calls would decide them.
+  const { created, createdFlags } = await createNotificationsBatch(queue);
+  stats.notifications += created;
+  queue.forEach((item, i) => {
+    if (item.emitAlways) emitNotificationEvent(item.emitAlways);
+    else if (item.emitIfCreated && createdFlags[i]) {
+      emitNotificationEvent(item.emitIfCreated);
+    }
+  });
 }

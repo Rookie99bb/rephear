@@ -339,11 +339,330 @@ async function main() {
   const smallThreshold = await getTop10CreditsThreshold(smallRanking.id);
   check("threshold null when < 10 nominees", smallThreshold === null);
 
+  // ── E. Phase 5.3: My Backing Stories + People I Back v2 ──────────
+  const {
+    formatStoryDate,
+    buildBeforeAfterCopy,
+    wasProvenClimb,
+    buildEarlyBadgeCopy,
+    buildRankArrow,
+    humanizeGrowthStage,
+    buildJourneyProgressCopy,
+    resolveStoryReasonEcho,
+  } = await import("@/lib/storyCopy");
+  const { getBackingStories, getPersonStoryEnrichment } = await import(
+    "@/db/backingStories"
+  );
+  const { getPeopleIBack: getPeopleIBack53 } = await import(
+    "@/db/publicProfiles"
+  );
+  const { recordConviction: recordConviction53 } = await import(
+    "@/db/convictionRecords"
+  );
+  const { recordBackingMoment: recordBackingMoment53 } = await import(
+    "@/db/backingMoments"
+  );
+
+  // E1. Pure copy builders.
+  check(
+    "before/after: #23 → #3",
+    buildBeforeAfterCopy({ profileName: "Mia", rankAtSupport: 23, currentRank: 3 }) ===
+      "You backed Mia at #23. Mia is now #3."
+  );
+  check(
+    "before/after: unknown rank → null (never fabricated)",
+    buildBeforeAfterCopy({ profileName: "Mia", rankAtSupport: null, currentRank: 3 }) === null
+  );
+  check("proven climb: 23 → 3", wasProvenClimb(23, 3) === true);
+  check("proven climb: flat 5 → 5 is not a climb", wasProvenClimb(5, 5) === false);
+  check("proven climb: declined 4 → 9 is not a climb", wasProvenClimb(4, 9) === false);
+  check("proven climb: unknown → false", wasProvenClimb(null, 3) === false);
+  check(
+    "early badge: proven climb only",
+    buildEarlyBadgeCopy(23, 3) === "🏆 I Was There Early"
+  );
+  check("early badge: declined → null", buildEarlyBadgeCopy(4, 9) === null);
+  check("early badge: flat → null", buildEarlyBadgeCopy(5, 5) === null);
+  check("rank arrow: declined renders honestly", buildRankArrow(4, 9) === "#4 → #9");
+  check("story date formats", formatStoryDate("2026-09-30 01:23:45") === "Sep 30, 2026");
+  check("growth stage label", humanizeGrowthStage("top_50") === "Top 50");
+  check("growth stage: null → null", humanizeGrowthStage(null) === null);
+  check(
+    "journey progress: Top 50 → Top 3",
+    buildJourneyProgressCopy("top_50", "top_3") === "Top 50 → Top 3"
+  );
+  check(
+    "journey progress: same stage → single label",
+    buildJourneyProgressCopy("top_10", "top_10") === "Top 10"
+  );
+  check(
+    "journey progress: unknown → null",
+    buildJourneyProgressCopy(null, "top_3") === null
+  );
+  check(
+    "reason echo: preset label",
+    resolveStoryReasonEcho("believe_potential", null) ===
+      "🌱 I believe in her potential"
+  );
+  check(
+    "reason echo: custom text quoted",
+    resolveStoryReasonEcho("custom", "she moves me") === "\u201Cshe moves me\u201D"
+  );
+  check(
+    "reason echo: skipped → null",
+    resolveStoryReasonEcho(null, null) === null
+  );
+
+  // E2. DB fixtures: carol (owner), dave (viewer), seed backer.
+  const carol = await createUser({
+    email: `p53-carol-${stamp}@example.com`,
+    passwordHash: bcrypt.hashSync("password123", 10),
+    name: `P53 Carol ${stamp}`,
+  });
+  const dave = await createUser({
+    email: `p53-dave-${stamp}@example.com`,
+    passwordHash: bcrypt.hashSync("password123", 10),
+    name: `P53 Dave ${stamp}`,
+  });
+  const seed53 = `seed_community_smoke53_${stamp}`;
+  await db
+    .prepare(`INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)`)
+    .run(seed53, `seed53-${stamp}@example.com`, "x", "Seed Community");
+
+  // One full support: payment + credit row + conviction + moment.
+  // vis "inherit" = NULL credit-row visibility (follows the user's
+  // show_supports at read time). payments.visibility_choice is NOT NULL
+  // (resolved at checkout: explicit choice → user's default → public).
+  async function mkSupport(opts: {
+    userId: string;
+    profileId: string;
+    credits: number;
+    vis: "public" | "private" | "inherit";
+    reason?: string | null;
+    reasonText?: string | null;
+    withMoment: boolean;
+    rankAtSupport?: number | null;
+  }) {
+    const pid = newId();
+    const payVis = opts.vis === "private" ? "private" : "public";
+    const ctVis = opts.vis === "inherit" ? null : payVis;
+    await db
+      .prepare(
+        `INSERT INTO payments (id, user_id, ranking_id, profile_id, package_id, credits, amount_cents, currency, stripe_checkout_session_id, status, visibility_choice, support_reason, support_reason_text)
+         VALUES (?, ?, ?, ?, 'smoke', ?, ?, 'gbp', ?, 'completed', ?, ?, ?)`
+      )
+      .run(
+        pid, opts.userId, ranking.id, opts.profileId, opts.credits,
+        opts.credits * 10, `sess-${pid}`, payVis,
+        opts.reason ?? null, opts.reasonText ?? null
+      );
+    await db
+      .prepare(
+        `INSERT INTO credit_transactions (id, profile_id, ranking_id, supporter_user_id, payment_id, credits, visibility)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(newId(), opts.profileId, ranking.id, opts.userId, pid, opts.credits, ctVis);
+    await recordConviction53({
+      userId: opts.userId,
+      rankingId: ranking.id,
+      profileId: opts.profileId,
+      rankAtSupport: opts.rankAtSupport ?? null,
+      supporterCountAtSupport: 5,
+      paymentId: pid,
+      amountCents: opts.credits * 10,
+      currency: "gbp",
+      visibility: opts.vis === "private" ? "private" : "public",
+    });
+    if (opts.withMoment) {
+      await recordBackingMoment53({
+        userId: opts.userId,
+        rankingId: ranking.id,
+        profileId: opts.profileId,
+        paymentId: pid,
+        credits: opts.credits,
+        rankAtSupport: opts.rankAtSupport ?? null,
+        totalCreditsAtSupport: 820,
+        backerCountAtSupport: 31,
+        supportReason: opts.reason ?? null,
+        supportReasonText: opts.reasonText ?? null,
+        visibilityAtSupport: "public",
+      });
+    }
+    return pid;
+  }
+
+  // Carol's three supports on the 12-nominee board (#1=12000 … #12=1000):
+  //  - profiles[4] (#5): public moment, climbed #9 → #5 (proven climb).
+  //  - profiles[8] (#9): PRIVATE moment, declined #4 → #9, custom reason.
+  //  - profiles[10] (#11): conviction only → legacy entry, #12 → #11.
+  await mkSupport({
+    userId: carol.id, profileId: profiles[4].id, credits: 50,
+    vis: "inherit", reason: "believe_potential", withMoment: true, rankAtSupport: 9,
+  });
+  await mkSupport({
+    userId: carol.id, profileId: profiles[8].id, credits: 50,
+    vis: "private", reason: "custom", reasonText: "she moves me",
+    withMoment: true, rankAtSupport: 4,
+  });
+  await mkSupport({
+    userId: carol.id, profileId: profiles[10].id, credits: 50,
+    vis: "inherit", withMoment: false, rankAtSupport: 12,
+  });
+  // Seed backer's moment must never surface anywhere.
+  await mkSupport({
+    userId: seed53, profileId: profiles[0].id, credits: 50,
+    vis: "inherit", reason: "love_work", withMoment: true, rankAtSupport: 1,
+  });
+
+  // E3. Owner sees everything, including the private moment + custom text.
+  const ownerStories = await getBackingStories(carol.id, carol.id);
+  check("owner sees all 3 stories", ownerStories.length === 3, `got ${ownerStories.length}`);
+  const ownerMoments = ownerStories.filter((s) => s.kind === "moment");
+  const ownerLegacy = ownerStories.filter((s) => s.kind === "legacy");
+  check("owner: 2 moments + 1 legacy", ownerMoments.length === 2 && ownerLegacy.length === 1);
+  const privMoment = ownerMoments.find((s) => s.profileId === profiles[8].id);
+  check(
+    "owner: private moment's custom text visible to owner",
+    privMoment?.kind === "moment" && privMoment.supportReasonText === "she moves me"
+  );
+  const climbMoment = ownerMoments.find((s) => s.profileId === profiles[4].id);
+  check(
+    "owner: climb moment THEN→NOW (#9 → #5)",
+    climbMoment?.kind === "moment" &&
+      climbMoment.rankAtSupport === 9 &&
+      climbMoment.currentRank === 5
+  );
+  check(
+    "owner: decline moment keeps honest ranks (#4 → #9)",
+    privMoment?.kind === "moment" &&
+      privMoment.rankAtSupport === 4 &&
+      privMoment.currentRank === 9
+  );
+  const legacy = ownerLegacy[0];
+  check(
+    "owner: legacy entry has real first-support fields only",
+    legacy?.kind === "legacy" &&
+      legacy.rankAtFirstSupport === 12 &&
+      legacy.currentRank === 11 &&
+      !("totalCreditsAtSupport" in legacy) &&
+      !("backerNumber" in legacy) &&
+      !("supportReason" in legacy)
+  );
+  const seedTargetStories = await getBackingStories(dave.id, seed53);
+  check(
+    "seed moment never surfaces in anyone's stories",
+    seedTargetStories.length === 0 &&
+      !ownerStories.some((s) => s.profileId === profiles[0].id),
+    `seed-target stories: ${seedTargetStories.length}`
+  );
+
+  // E4. Another viewer: public-only, no custom text, no private moment.
+  const viewerStories = await getBackingStories(dave.id, carol.id);
+  check("viewer sees 2 stories (public only)", viewerStories.length === 2, `got ${viewerStories.length}`);
+  check(
+    "viewer: private moment excluded",
+    !viewerStories.some((s) => s.profileId === profiles[8].id)
+  );
+  check(
+    "viewer: custom text never leaks",
+    viewerStories.every(
+      (s) => s.kind !== "moment" || (s as { supportReasonText: string | null }).supportReasonText === null
+    )
+  );
+  check(
+    "viewer: legacy entry visible (inherited public)",
+    viewerStories.some((s) => s.kind === "legacy" && s.profileId === profiles[10].id)
+  );
+
+  // E5. Flip carol's default to private → the inherited-visibility
+  // moment hides retroactively for viewers (read-time COALESCE). The
+  // legacy entry keeps Phase 2's first-wins semantics (resolved public
+  // choice at first support), exactly like its People I Back row.
+  await db.prepare(`UPDATE users SET show_supports = 'private' WHERE id = ?`).run(carol.id);
+  const viewerAfterFlip = await getBackingStories(dave.id, carol.id);
+  check(
+    "flip to private: inherited moment hides, legacy keeps first-wins",
+    viewerAfterFlip.length === 1 &&
+      viewerAfterFlip[0].kind === "legacy" &&
+      viewerAfterFlip[0].profileId === profiles[10].id,
+    `got ${viewerAfterFlip.length}`
+  );
+  const ownerAfterFlip = await getBackingStories(carol.id, carol.id);
+  check("flip to private: owner still sees all 3", ownerAfterFlip.length === 3);
+  await db.prepare(`UPDATE users SET show_supports = 'public' WHERE id = ?`).run(carol.id);
+
+  // E6. People I Back v2 enrichment.
+  const pibOwner = await getPeopleIBack53(carol.id, carol.id);
+  const pibClimb = pibOwner.find((r) => r.profileId === profiles[4].id);
+  check(
+    "pib v2: latest reason preset on public triple",
+    pibClimb?.latestReason === "believe_potential"
+  );
+  check(
+    "pib v2: journey progress top_10 → top_10",
+    pibClimb?.journeyFrom === "top_10" && pibClimb?.journeyTo === "top_10",
+    `got ${pibClimb?.journeyFrom} → ${pibClimb?.journeyTo}`
+  );
+  const pibPriv = pibOwner.find((r) => r.profileId === profiles[8].id);
+  check(
+    "pib v2: owner sees own custom reason text",
+    pibPriv?.latestReason === "custom" && pibPriv?.latestReasonText === "she moves me"
+  );
+  const pibViewer = await getPeopleIBack53(dave.id, carol.id);
+  check(
+    "pib v2: viewer rows exclude the private triple",
+    !pibViewer.some((r) => r.profileId === profiles[8].id)
+  );
+
+  // E7. Per-moment enrichment privacy gate.
+  const enrichPrivViewer = await getPersonStoryEnrichment(dave.id, carol.id, ranking.id, profiles[8].id);
+  check(
+    "enrichment: viewer gets nothing from a private triple",
+    enrichPrivViewer.latestReason === null && enrichPrivViewer.firstGrowthStage === null
+  );
+  const enrichPubViewer = await getPersonStoryEnrichment(dave.id, carol.id, ranking.id, profiles[4].id);
+  check(
+    "enrichment: viewer gets preset + stage from a public triple",
+    enrichPubViewer.latestReason === "believe_potential" && enrichPubViewer.firstGrowthStage === "top_10"
+  );
+
+  // E8. Source assertions: render path uses read-time visibility only.
+  const storiesDb = srcFile("src/db/backingStories.ts");
+  check(
+    "stories db: read-time effective visibility (COALESCE ct.visibility)",
+    storiesDb.includes("COALESCE(ct.visibility, u.show_supports, 'public')")
+  );
+  const storiesSection = srcFile("src/components/BackingStoriesSection.tsx");
+  check(
+    "stories section: titled My Backing Stories",
+    storiesSection.includes("My Backing Stories")
+  );
+  check(
+    "stories section: no transaction/purchase language",
+    !/Transactions|Purchase History|Spending|Payment History/i.test(storiesSection)
+  );
+  check(
+    "stories section: never reads visibility_at_support",
+    !/visibility_at_support/.test(storiesSection)
+  );
+  const profilePage = srcFile("src/app/u/[id]/page.tsx");
+  check(
+    "profile page: renders BackingStoriesSection",
+    profilePage.includes("<BackingStoriesSection")
+  );
+  const pibSection = srcFile("src/components/PeopleIBackSection.tsx");
+  check("people i back: View Story links", pibSection.includes("View Story"));
+  check("people i back: story anchors", /#story-/.test(pibSection));
+  check(
+    "people i back: no transaction/purchase language",
+    !/Transactions|Purchase History|Spending|Payment History/i.test(pibSection)
+  );
+
   if (failures > 0) {
     console.error(`\n${failures} check(s) FAILED`);
     process.exit(1);
   }
-  console.log("\nAll Phase 5.2 story checks passed.");
+  console.log("\nAll Phase 5 story checks passed.");
 }
 
 main().catch((err) => {

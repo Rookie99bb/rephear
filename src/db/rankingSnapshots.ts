@@ -28,6 +28,12 @@ interface BoardRow {
   added_at: string;
 }
 
+interface AllBoardRow extends BoardRow {
+  ranking_id: string;
+}
+
+type SqlValue = string | number | bigint | boolean | null | Uint8Array;
+
 async function getBoardRows(rankingId: string): Promise<BoardRow[]> {
   return (await db
     .prepare(
@@ -43,13 +49,32 @@ async function getBoardRows(rankingId: string): Promise<BoardRow[]> {
     .all(rankingId, rankingId, rankingId)) as unknown as BoardRow[];
 }
 
-// Writes today's snapshot for both boards. Safe to run multiple times a
-// day — the UNIQUE key turns repeats into no-ops.
-export async function writeRankingSnapshot(
-  rankingId: string,
-  snapshotDate: string = todayUTC()
-): Promise<{ rows: number }> {
-  const rows = await getBoardRows(rankingId);
+// Cross-ranking variant: ONE statement for every ranking's board rows.
+// On remote Turso each prepared statement is a network round-trip, so
+// the snapshot cron reads the whole fleet here instead of once per
+// ranking.
+async function getAllBoardRows(): Promise<AllBoardRow[]> {
+  return (await db
+    .prepare(
+      `SELECT p.ranking_id AS ranking_id,
+              p.id AS profile_id,
+              (SELECT COALESCE(SUM(l.count), 0) FROM likes l
+                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id) AS like_count,
+              (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
+                WHERE ct.ranking_id = p.ranking_id AND ct.profile_id = p.id) AS reputation_credits,
+              p.created_at AS added_at
+       FROM profiles p
+       WHERE p.deleted_at IS NULL`
+    )
+    .all()) as unknown as AllBoardRow[];
+}
+
+// Sort keys mirror getMostLoved / getMostSupported in
+// src/db/leaderboards.ts exactly.
+function sortBoards(rows: BoardRow[]): {
+  board: SnapshotBoard;
+  sorted: BoardRow[];
+}[] {
   const loved = [...rows].sort(
     (a, b) => b.like_count - a.like_count || a.added_at.localeCompare(b.added_at)
   );
@@ -58,26 +83,152 @@ export async function writeRankingSnapshot(
       b.reputation_credits - a.reputation_credits ||
       a.added_at.localeCompare(b.added_at)
   );
-  // Sort keys mirror getMostLoved / getMostSupported in
-  // src/db/leaderboards.ts exactly.
-  let written = 0;
-  const boards: { board: SnapshotBoard; sorted: BoardRow[] }[] = [
+  return [
     { board: "loved", sorted: loved },
     { board: "supported", sorted: supported },
   ];
-  for (const { board, sorted } of boards) {
+}
+
+function buildSnapshotTuples(
+  rankingId: string,
+  rows: BoardRow[],
+  snapshotDate: string
+): [string, string, string, SnapshotBoard, number, string][] {
+  const tuples: [string, string, string, SnapshotBoard, number, string][] = [];
+  for (const { board, sorted } of sortBoards(rows)) {
     for (let i = 0; i < sorted.length; i++) {
-      const result = await db
-        .prepare(
-          `INSERT OR IGNORE INTO ranking_snapshots
-            (id, ranking_id, profile_id, board, rank, snapshot_date)
-           VALUES (?, ?, ?, ?, ?, ?)`
-        )
-        .run(newId(), rankingId, sorted[i].profile_id, board, i + 1, snapshotDate);
-      written += result.changes;
+      tuples.push([
+        newId(),
+        rankingId,
+        sorted[i].profile_id,
+        board,
+        i + 1,
+        snapshotDate,
+      ]);
     }
   }
+  return tuples;
+}
+
+// Multi-row INSERT OR IGNORE, chunked so no single statement exceeds a
+// safe parameter count on any SQLite/Turso build. Returns the number of
+// rows actually inserted.
+async function insertSnapshotTuplesChunked(
+  tuples: [string, string, string, SnapshotBoard, number, string][]
+): Promise<number> {
+  const CHUNK = 250;
+  let written = 0;
+  for (let i = 0; i < tuples.length; i += CHUNK) {
+    const chunk = tuples.slice(i, i + CHUNK);
+    const values = chunk.map(() => "(?, ?, ?, ?, ?, ?)").join(",");
+    const args: SqlValue[] = chunk.flatMap((t) => [
+      t[0],
+      t[1],
+      t[2],
+      t[3],
+      t[4],
+      t[5],
+    ]);
+    const result = await db
+      .prepare(
+        `INSERT OR IGNORE INTO ranking_snapshots
+          (id, ranking_id, profile_id, board, rank, snapshot_date)
+         VALUES ${values}`
+      )
+      .run(...args);
+    written += result.changes;
+  }
+  return written;
+}
+
+// Writes today's snapshot for both boards. Safe to run multiple times a
+// day — the UNIQUE key turns repeats into no-ops.
+//
+// Batched: one board-rows read + one chunked multi-row INSERT (two
+// round-trips total for a typical ranking), not one INSERT per nominee —
+// the per-row loop hung the cron on remote Turso, where every statement
+// is a network round-trip.
+export async function writeRankingSnapshot(
+  rankingId: string,
+  snapshotDate: string = todayUTC()
+): Promise<{ rows: number }> {
+  const rows = await getBoardRows(rankingId);
+  const written = await insertSnapshotTuplesChunked(
+    buildSnapshotTuples(rankingId, rows, snapshotDate)
+  );
   return { rows: written };
+}
+
+// Fleet-wide snapshot writer for the daily cron: ONE board-rows read
+// for every ranking, then a handful of chunked multi-row INSERTs.
+// Per-ranking isolation is preserved — if a chunk fails, the rankings
+// in that chunk are retried individually via writeRankingSnapshot and
+// counted in errors, never silently dropped.
+export async function writeAllRankingSnapshots(
+  snapshotDate: string = todayUTC()
+): Promise<{ rankings: number; rows: number; errors: number }> {
+  const all = await getAllBoardRows();
+  const byRanking = new Map<string, BoardRow[]>();
+  for (const r of all) {
+    const list = byRanking.get(r.ranking_id);
+    if (list) list.push(r);
+    else byRanking.set(r.ranking_id, [r]);
+  }
+
+  // Flatten per-ranking tuples into fleet-wide 250-row chunks,
+  // remembering which rankings each chunk covers so a failing chunk
+  // can fall back to per-ranking writes.
+  const CHUNK = 250;
+  const chunks: {
+    tuples: [string, string, string, SnapshotBoard, number, string][];
+    rankingIds: string[];
+  }[] = [];
+  let pending: [string, string, string, SnapshotBoard, number, string][] = [];
+  let pendingRankings = new Set<string>();
+  const flush = () => {
+    if (pending.length > 0) {
+      chunks.push({ tuples: pending, rankingIds: [...pendingRankings] });
+      pending = [];
+      pendingRankings = new Set<string>();
+    }
+  };
+  for (const [rankingId, rows] of byRanking) {
+    for (const t of buildSnapshotTuples(rankingId, rows, snapshotDate)) {
+      pending.push(t);
+      pendingRankings.add(rankingId);
+      if (pending.length >= CHUNK) flush();
+    }
+  }
+  flush();
+
+  let rows = 0;
+  let errors = 0;
+  for (const chunk of chunks) {
+    try {
+      rows += await insertSnapshotTuplesChunked(chunk.tuples);
+    } catch (err) {
+      // Idempotent fallback: re-write the affected rankings the slow
+      // way. The UNIQUE key makes the retry a no-op for rows the chunk
+      // already wrote before failing.
+      console.error(
+        `[rankingSnapshots] chunk failed, falling back to per-ranking writes:`,
+        err
+      );
+      for (const rankingId of chunk.rankingIds) {
+        try {
+          const r = await writeRankingSnapshot(rankingId, snapshotDate);
+          rows += r.rows;
+        } catch (err2) {
+          errors++;
+          console.error(
+            `[rankingSnapshots] ranking ${rankingId} failed:`,
+            err2
+          );
+        }
+      }
+    }
+  }
+  return { rankings: byRanking.size, rows, errors };
 }
 
 export async function getLatestSnapshotDate(

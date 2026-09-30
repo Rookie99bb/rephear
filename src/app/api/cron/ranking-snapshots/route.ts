@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listAllRankings } from "@/db/rankings";
-import { writeRankingSnapshot } from "@/db/rankingSnapshots";
+import { writeAllRankingSnapshots } from "@/db/rankingSnapshots";
 
 // Phase 3 (§23/§26): daily ranking snapshots. Triggered by an external
 // scheduler (same CRON_SECRET bearer pattern as /api/cron/digest).
@@ -8,6 +7,10 @@ import { writeRankingSnapshot } from "@/db/rankingSnapshots";
 // makes re-runs and overlapping schedules idempotent. Movement arrows
 // on ranking pages derive from these snapshots — never from live
 // rank alone.
+//
+// Fleet-wide batched writer (one board-rows read + chunked multi-row
+// INSERTs): the old per-ranking × per-nominee INSERT loop did thousands
+// of sequential round-trips and hung on remote Turso.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
@@ -21,21 +24,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let rankings = 0;
-  let rows = 0;
-  let errors = 0;
-  for (const ranking of await listAllRankings()) {
-    try {
-      const r = await writeRankingSnapshot(ranking.id);
-      rankings++;
-      rows += r.rows;
-    } catch (err) {
-      errors++;
-      console.error(
-        `[cron ranking-snapshots] ranking ${ranking.id} failed:`,
-        err
-      );
-    }
-  }
+  const { rankings, rows, errors } = await writeAllRankingSnapshots();
   return NextResponse.json({ rankings, rows, errors });
 }

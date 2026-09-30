@@ -459,6 +459,130 @@ async function main() {
     !inTestRanking.some((u) => u.profile.id === climber.id)
   );
 
+  // ── 11. Query-count guard: cron endpoints must stay fast on ──────
+  // remote Turso, where every prepared statement is a network
+  // round-trip. Counts statements during a 5 rankings × 10 nominees
+  // fixture run of the exact cron paths. Pre-fix this measured 2,596
+  // (snapshots) / 27,255 (milestones) on a 156-ranking seed — enough
+  // to hang both endpoints in production (the Render crons run with a
+  // 10-minute curl guard).
+  const origPrepare = db.prepare.bind(db);
+  let queryCount = 0;
+  (db as { prepare: typeof db.prepare }).prepare = ((sql: string) => {
+    queryCount++;
+    return origPrepare(sql);
+  }) as typeof db.prepare;
+  try {
+    const { writeAllRankingSnapshots } = await import(
+      "@/db/rankingSnapshots"
+    );
+    const qcRankings: { id: string }[] = [];
+    for (let r = 0; r < 5; r++) {
+      const qcOwner = await mkUser(`qc${r}@example.com`, `QC Owner ${r}`);
+      const qr = await createRanking({
+        title: `QC Ranking ${r}`,
+        country: "UK",
+        city: "London",
+        description: "query-count guard",
+        createdBy: qcOwner.id,
+      });
+      qcRankings.push(qr);
+      const qcBacker = await mkUser(`qcb${r}@example.com`, `QC Backer ${r}`);
+      let topId = "";
+      for (let i = 0; i < 10; i++) {
+        const p = await createProfile({
+          rankingId: qr.id,
+          name: `QC Nominee ${r}-${i}`,
+          addedBy: qcOwner.id,
+        });
+        if (i === 0) topId = p.id;
+      }
+      const payment = await createPendingPayment({
+        userId: qcBacker.id,
+        rankingId: qr.id,
+        profileId: topId,
+        packageId: "qc-pkg",
+        credits: 1500,
+        amountCents: 15000,
+        currency: "gbp",
+        visibilityChoice: "public",
+        stripeCheckoutSessionId: `sess_${newId()}`,
+      });
+      await markPaymentCompleted(payment.id, `pi_${newId()}`);
+      const granted = await creditProfileForPayment({
+        profileId: topId,
+        rankingId: qr.id,
+        supporterUserId: qcBacker.id,
+        paymentId: payment.id,
+        credits: 1500,
+        visibility: null,
+      });
+      if (!granted) throw new Error("qc credit grant failed");
+      await recordBackingMoment({
+        userId: qcBacker.id,
+        rankingId: qr.id,
+        profileId: topId,
+        paymentId: payment.id,
+        credits: 1500,
+        rankAtSupport: null,
+        totalCreditsAtSupport: 1500,
+        backerCountAtSupport: 1,
+        supportReason: "talent_spotter",
+        supportReasonText: null,
+        visibilityAtSupport: "public",
+      });
+    }
+
+    queryCount = 0;
+    const fleet = await writeAllRankingSnapshots("2030-01-02");
+    const snapshotQueries = queryCount;
+    check(
+      "snapshot cron stays within query budget (<= 60)",
+      snapshotQueries <= 60,
+      `got ${snapshotQueries}`
+    );
+    check("fleet writer covered the 5 guard rankings", fleet.rankings >= 5);
+    let guardRowsOk = true;
+    for (const qr of qcRankings) {
+      const n = (await origPrepare(
+        `SELECT COUNT(*) AS n FROM ranking_snapshots WHERE ranking_id = ? AND snapshot_date = '2030-01-02'`
+      ).get(qr.id)) as { n: number };
+      // 10 nominees × 2 boards.
+      if (n.n !== 20) guardRowsOk = false;
+    }
+    check("fleet writer wrote the same rows as per-ranking writes", guardRowsOk);
+    queryCount = 0;
+    const fleetAgain = await writeAllRankingSnapshots("2030-01-02");
+    check(
+      "fleet snapshot write is idempotent (0 new rows)",
+      fleetAgain.rows === 0,
+      `got ${fleetAgain.rows}`
+    );
+
+    queryCount = 0;
+    const guardStats = await runMilestoneDetection();
+    const milestoneQueries = queryCount;
+    check(
+      "milestone cron stays within query budget (<= 1500)",
+      milestoneQueries <= 1500,
+      `got ${milestoneQueries}`
+    );
+    check(
+      "guard fixture recorded new milestone events",
+      guardStats.events > 0,
+      `got ${guardStats.events}`
+    );
+    check("guard milestone run had no errors", guardStats.errors === 0);
+    const guardStats2 = await runMilestoneDetection();
+    check(
+      "second guard run records 0 new events",
+      guardStats2.events === 0,
+      `got ${guardStats2.events}`
+    );
+  } finally {
+    (db as { prepare: typeof db.prepare }).prepare = origPrepare;
+  }
+
   if (failures > 0) {
     console.error(`\n${failures} check(s) FAILED`);
     process.exit(1);

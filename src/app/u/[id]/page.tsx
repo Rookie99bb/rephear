@@ -12,8 +12,10 @@ import {
   getTasteMatch,
   hasPublicActivity,
 } from "@/db/publicProfiles";
+import { getBackingStories } from "@/db/backingStories";
 import Avatar from "@/components/Avatar";
 import PeopleIBackSection from "@/components/PeopleIBackSection";
+import BackingStoriesSection from "@/components/BackingStoriesSection";
 import TasteMatchPanel from "@/components/TasteMatchPanel";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
@@ -71,15 +73,20 @@ export default async function UserProfilePage({
   }
 
   const includePrivate = isOwner;
-  const [tags, stats, likes, peopleIBack, publicActivity] = await Promise.all([
-    getInterestTags(target.id, includePrivate),
-    getIdentityStats(target.id, includePrivate),
-    isOwner
-      ? likedItemsForUser(target.id)
-      : likedPublicItemsForUser(target.id),
-    getPeopleIBack(viewerId, target.id),
-    hasPublicActivity(target.id),
-  ]);
+  const [tags, stats, likes, peopleIBack, publicActivity, backingStories] =
+    await Promise.all([
+      getInterestTags(target.id, includePrivate),
+      getIdentityStats(target.id, includePrivate),
+      isOwner
+        ? likedItemsForUser(target.id)
+        : likedPublicItemsForUser(target.id),
+      getPeopleIBack(viewerId, target.id),
+      hasPublicActivity(target.id),
+      // Phase 5.3: My Backing Stories — viewer-gated inside
+      // getBackingStories (owner sees all, others see effective-public
+      // moments only). Fully-private profiles never reach this branch.
+      getBackingStories(viewerId, target.id),
+    ]);
 
   // Taste Match: logged-in viewer, someone else's profile, gates pass.
   const tasteMatch =
@@ -166,7 +173,9 @@ export default async function UserProfilePage({
             </div>
           )}
 
-          <PeopleIBackSection rows={peopleIBack} />
+          <PeopleIBackSection rows={peopleIBack} targetUserId={target.id} />
+
+          <BackingStoriesSection stories={backingStories} isOwner={isOwner} />
 
           {/* Public Likes */}
           {likes.length > 0 && (

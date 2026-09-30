@@ -136,6 +136,42 @@ export async function listFollowerUserIds(
   return rows.map((r) => r.user_id);
 }
 
+// Batched variant for the milestone cron: follower lists for several
+// (targetType, targetId) pairs in ONE query, with the same
+// seed-exclusion and hidden-user exclusion as listFollowerUserIds.
+// Returns a map keyed by `${targetType}:${targetId}`.
+export async function listFollowerUserIdsForTargets(
+  targets: { targetType: FollowTargetType; targetId: string }[]
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (targets.length === 0) return out;
+  const conditions = targets.map(
+    () => `(f.target_type = ? AND f.target_id = ?)`
+  );
+  const args: string[] = targets.flatMap((t) => [t.targetType, t.targetId]);
+  const rows = (await db
+    .prepare(
+      `SELECT f.target_type AS target_type, f.target_id AS target_id, f.user_id AS user_id
+       FROM follows f
+       JOIN users u ON u.id = f.user_id
+       WHERE (${conditions.join(" OR ")})
+         AND u.id NOT LIKE 'seed\\_community\\_%' ESCAPE '\\'
+         AND u.is_hidden = 0`
+    )
+    .all(...args)) as unknown as {
+    target_type: string;
+    target_id: string;
+    user_id: string;
+  }[];
+  for (const r of rows) {
+    const key = `${r.target_type}:${r.target_id}`;
+    const list = out.get(key);
+    if (list) list.push(r.user_id);
+    else out.set(key, [r.user_id]);
+  }
+  return out;
+}
+
 export async function countFollowers(
   targetType: FollowTargetType,
   targetId: string

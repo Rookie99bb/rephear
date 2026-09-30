@@ -188,6 +188,203 @@ export async function getSupportedBoardState(
   }));
 }
 
+// ── Batched cron primitives ─────────────────────────────────────────
+// On remote Turso every prepared statement is a network round-trip.
+// The milestone cron used to do thousands of sequential round-trips
+// per run (one INSERT+SELECT per threshold candidate, one profile
+// lookup per nominee, one notification-preflight per recipient) and
+// hung in production. These batch variants collapse each per-ranking
+// step to a constant handful of statements. Behavior (rows written,
+// events fired, idempotency) is identical — only the access pattern
+// changed.
+
+type SqlValue = string | number | bigint | boolean | null | Uint8Array;
+
+function chunked<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+export interface MilestoneCandidate {
+  profileId: string;
+  type: MilestoneType;
+  rankAtEvent: number | null;
+  creditsAtEvent: number | null;
+  backersAtEvent: number | null;
+}
+
+// Records many threshold crossings with chunked multi-row
+// INSERT OR IGNORE ... RETURNING. Returns the set of
+// `${profileId}|${type}` keys that were actually inserted — the
+// batch equivalent of recordMilestoneEvent's { created } flag.
+export async function recordMilestoneEventsBatch(
+  rankingId: string,
+  candidates: MilestoneCandidate[]
+): Promise<Set<string>> {
+  const created = new Set<string>();
+  for (const chunk of chunked(candidates, 250)) {
+    const values = chunk.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(",");
+    const args: SqlValue[] = chunk.flatMap((c) => [
+      newId(),
+      rankingId,
+      c.profileId,
+      c.type,
+      c.rankAtEvent,
+      c.creditsAtEvent,
+      c.backersAtEvent,
+    ]);
+    const rows = (await db
+      .prepare(
+        `INSERT OR IGNORE INTO milestone_events
+          (id, ranking_id, profile_id, type, rank_at_event, credits_at_event, backers_at_event)
+         VALUES ${values}
+         RETURNING profile_id, type`
+      )
+      .all(...args)) as unknown as { profile_id: string; type: string }[];
+    for (const r of rows) created.add(`${r.profile_id}|${r.type}`);
+  }
+  return created;
+}
+
+export interface RankingProfileBasic {
+  id: string;
+  name: string;
+  claimStatus: string;
+  claimedBy: string | null;
+}
+
+// One query for every nominee's display/claim basics in a ranking —
+// replaces the per-nominee findProfileById calls in the cron.
+export async function getRankingProfileBasics(
+  rankingId: string
+): Promise<Map<string, RankingProfileBasic>> {
+  const rows = (await db
+    .prepare(
+      `SELECT id, name, claim_status, claimed_by
+       FROM profiles
+       WHERE ranking_id = ? AND deleted_at IS NULL`
+    )
+    .all(rankingId)) as unknown as {
+    id: string;
+    name: string;
+    claim_status: string;
+    claimed_by: string | null;
+  }[];
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      {
+        id: r.id,
+        name: r.name,
+        claimStatus: r.claim_status,
+        claimedBy: r.claimed_by,
+      },
+    ])
+  );
+}
+
+export interface FirstMomentWithProfile extends FirstMoment {
+  profileId: string;
+}
+
+// First backing moments for MANY nominees in one query — same filters
+// as getFirstMoments (seed-excluded, hidden-excluded), just with an IN
+// list instead of one profile_id.
+export async function getFirstMomentsBatch(
+  rankingId: string,
+  profileIds: string[]
+): Promise<FirstMomentWithProfile[]> {
+  if (profileIds.length === 0) return [];
+  const out: FirstMomentWithProfile[] = [];
+  for (const chunk of chunked(profileIds, 500)) {
+    const placeholders = chunk.map(() => "?").join(",");
+    const rows = (await db
+      .prepare(
+        `SELECT bm.profile_id AS profile_id,
+                bm.user_id AS user_id,
+                bm.rank_at_support AS rank_at_support,
+                bm.supported_at AS supported_at
+         FROM backing_moments bm
+         JOIN users u ON u.id = bm.user_id
+         WHERE bm.ranking_id = ? AND bm.profile_id IN (${placeholders})
+           AND bm.supported_at = (
+             SELECT MIN(bm2.supported_at)
+             FROM backing_moments bm2
+             WHERE bm2.user_id = bm.user_id
+               AND bm2.ranking_id = bm.ranking_id
+               AND bm2.profile_id = bm.profile_id
+           )
+           AND ${notSeedClause("u")}
+           AND ${activeUserClause("u")}`
+      )
+      .all(rankingId, ...chunk)) as unknown as {
+      profile_id: string;
+      user_id: string;
+      rank_at_support: number | null;
+      supported_at: string;
+    }[];
+    for (const r of rows) {
+      out.push({
+        profileId: r.profile_id,
+        userId: r.user_id,
+        rankAtSupport: r.rank_at_support,
+        supportedAt: r.supported_at,
+      });
+    }
+  }
+  return out;
+}
+
+export interface EarlyBackerAwardItem {
+  rankingId: string;
+  profileId: string;
+  milestoneType: string;
+  userId: string;
+}
+
+// Awards many Early Backer rows with chunked multi-row INSERT OR
+// IGNORE ... RETURNING. Returns the set of
+// `${rankingId}|${profileId}|${milestoneType}|${userId}` keys actually
+// inserted — the batch equivalent of awardEarlyBackers' per-user
+// changes>0 check. Callers must pre-filter by the WHEN rule (first
+// moment rank worse than the threshold, or unranked), exactly as
+// awardEarlyBackers does.
+export async function awardEarlyBackersBatch(
+  items: EarlyBackerAwardItem[]
+): Promise<Set<string>> {
+  const created = new Set<string>();
+  for (const chunk of chunked(items, 250)) {
+    const values = chunk.map(() => "(?, ?, ?, ?, ?)").join(",");
+    const args: SqlValue[] = chunk.flatMap((i) => [
+      newId(),
+      i.userId,
+      i.rankingId,
+      i.profileId,
+      i.milestoneType,
+    ]);
+    const rows = (await db
+      .prepare(
+        `INSERT OR IGNORE INTO early_backer_awards
+          (id, user_id, ranking_id, profile_id, milestone_type)
+         VALUES ${values}
+         RETURNING user_id, ranking_id, profile_id, milestone_type`
+      )
+      .all(...args)) as unknown as {
+      user_id: string;
+      ranking_id: string;
+      profile_id: string;
+      milestone_type: string;
+    }[];
+    for (const r of rows) {
+      created.add(
+        `${r.ranking_id}|${r.profile_id}|${r.milestone_type}|${r.user_id}`
+      );
+    }
+  }
+  return created;
+}
+
 // ── Early Backer awards (§7) ────────────────────────────────────────────
 // Awarded by the milestone cron when an entry threshold fires. The
 // recipient set: users whose FIRST backing moment for this

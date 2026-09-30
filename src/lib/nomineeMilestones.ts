@@ -18,7 +18,10 @@ import type { MilestoneType } from "@/db/milestones";
 // - createNotification enforces the notify_milestones pref + the 5/day
 //   rate cap, same as every other milestone ping.
 
-const OWNER_COPY: Record<
+// Exported for the batched milestone cron, which inlines the
+// claimed-owner lookup (one profile map per ranking) but reuses the
+// exact same copy.
+export const OWNER_COPY: Record<
   Exclude<MilestoneType, "nominated">,
   { title: string; body: (name: string, rankingTitle: string) => string }
 > = {
@@ -101,6 +104,41 @@ export async function notifyClaimedOwnerForMilestone(params: {
     });
   }
   return { notified: created, reason: created ? undefined : "pref_or_cap" };
+}
+
+// Batched variant for the milestone cron: records many Top-10
+// approach notices with chunked multi-row INSERT OR IGNORE ...
+// RETURNING. Returns the profileIds that were actually inserted — the
+// batch equivalent of checkTop10Approach's once-ever UNIQUE guard.
+// Callers must pre-filter (rank > 10, gap in (0, 1000], claimed owner,
+// pref on) exactly as checkTop10Approach does; in particular the
+// once-ever row is NOT consumed when the owner's pref is off.
+export async function recordApproachNoticesBatch(
+  items: { rankingId: string; profileId: string; gapCredits: number }[]
+): Promise<Set<string>> {
+  const created = new Set<string>();
+  const CHUNK = 250;
+  for (let i = 0; i < items.length; i += CHUNK) {
+    const chunk = items.slice(i, i + CHUNK);
+    const values = chunk.map(() => "(?, ?, ?, ?, ?)").join(",");
+    const args: (string | number)[] = chunk.flatMap((it) => [
+      newId(),
+      it.rankingId,
+      it.profileId,
+      APPROACH_THRESHOLD,
+      it.gapCredits,
+    ]);
+    const rows = (await db
+      .prepare(
+        `INSERT OR IGNORE INTO nominee_approach_notices
+           (id, ranking_id, profile_id, threshold, gap_credits)
+         VALUES ${values}
+         RETURNING profile_id`
+      )
+      .all(...args)) as unknown as { profile_id: string }[];
+    for (const r of rows) created.add(r.profile_id);
+  }
+  return created;
 }
 
 // Near-miss nudge: claimed nominee outside the Top 10 but within

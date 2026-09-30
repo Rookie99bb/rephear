@@ -103,7 +103,7 @@ export default function NotificationBell() {
   // Never unmount while the panel is open: opening marks everything
   // read (setUnread(0)), which must not collapse the panel the user is
   // looking at.
-  if (!loaded || (unread === 0 && !open)) return null;
+  if (!loaded) return null;
 
   return (
     <div ref={panelRef} className="relative">
