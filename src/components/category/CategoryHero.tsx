@@ -94,11 +94,6 @@ export default function CategoryHero({
                 alt={`${category.name} cover illustration`}
                 className="absolute inset-0 h-full w-full object-cover object-top"
               />
-              {/* Soft transition: white text side melts into the art. */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-r from-white via-white/25 to-transparent md:via-white/10"
-              />
             </>
           ) : (
             <div

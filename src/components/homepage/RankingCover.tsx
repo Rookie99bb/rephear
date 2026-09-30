@@ -5,6 +5,27 @@ import { initialsForName } from "@/lib/avatar";
 
 type CoverVariant = "featured" | "card" | "compact" | "thumb" | "fullbleed" | "fill";
 
+// Readability overlay for copy placed directly over a cover image.
+// Cover-first rule: the artwork is always the primary visual surface at
+// full color and full opacity — never a white wash, never a full-image
+// dim, never blurred. Only the text zone gets a LOCAL dark gradient so
+// faces/subjects keep 100% of their original color and detail.
+type CoverOverlay = "dark-gradient" | "bottom-fade" | "top-fade" | "none";
+
+// Local dark gradient: dark where the copy sits (left), fading to fully
+// transparent so the subject area stays original.
+const DARK_GRADIENT =
+  "linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.12) 68%, rgba(0,0,0,0) 100%)";
+
+const DEFAULT_OVERLAY: Record<CoverVariant, CoverOverlay> = {
+  featured: "dark-gradient",
+  card: "dark-gradient",
+  compact: "dark-gradient",
+  fullbleed: "bottom-fade",
+  fill: "top-fade",
+  thumb: "none",
+};
+
 // Visual cover for a ranking card. Cover priority (per approved mockup):
 //   1. Ranking's cover image (AI editorial / manual / nominee-derived,
 //      via cover_image_url when status is active/manual)
@@ -19,6 +40,7 @@ export default function RankingCover({
   rankingTitle,
   variant,
   eager = false,
+  overlay,
 }: {
   coverUrl?: string | null;
   coverAlt?: string | null;
@@ -28,6 +50,7 @@ export default function RankingCover({
   rankingTitle: string;
   variant: CoverVariant;
   eager?: boolean;
+  overlay?: CoverOverlay;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -37,20 +60,14 @@ export default function RankingCover({
   const coverSrc = coverUrl && !errored ? coverUrl : null;
   const hasPhoto = (!!coverSrc || (!!photoUrl && !errored));
   const imgSrc = coverSrc || photoUrl;
-  const dark = variant === "featured" || variant === "fullbleed";
-  const fullbleed = variant === "fullbleed";
-  // "fill" (category cards): image fills the whole frame, object-top so
-  // the character's face is never cropped; only a whisper of top scrim
-  // for badge legibility.
-  const fill = variant === "fill";
-  // Homepage trending cards ("featured" large card and "card" small
-  // cards): the artwork is Layer 1 and must extend underneath the ENTIRE
-  // card — left edge to right edge, top to bottom, rounded corners kept
-  // by the parent's overflow-hidden. The readability scrim (Layer 2)
-  // sits ABOVE the artwork and never replaces part of it; content is
-  // Layer 3. object-top keeps character faces/heads visible.
-  const fullFrame =
-    fullbleed || fill || variant === "featured" || variant === "card";
+  const resolvedOverlay = overlay ?? DEFAULT_OVERLAY[variant];
+  // Variants that render light copy over the image need a dark branded
+  // fallback when no photo exists; the rest keep the light fallback.
+  const darkFallback =
+    variant === "featured" ||
+    variant === "card" ||
+    variant === "compact" ||
+    variant === "fullbleed";
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   // If the image already settled (loaded or failed) before React attached
@@ -83,35 +100,39 @@ export default function RankingCover({
             fetchPriority={eager ? "high" : "auto"}
             onLoad={() => setLoaded(true)}
             onError={() => setErrored(true)}
-            className={`absolute top-0 h-full transition-[opacity,transform] duration-300 ease-out group-hover:scale-[1.04] ${
-              fullFrame
-                ? "left-0 w-full object-cover object-top"
-                : "right-0 w-[68%] object-cover object-top"
-            } ${loaded ? "opacity-100" : "opacity-0"}`}
+            className={`absolute left-0 top-0 h-full w-full object-cover object-top transition-[opacity,transform] duration-300 ease-out group-hover:scale-[1.04] ${
+              loaded ? "opacity-100" : "opacity-0"
+            }`}
           />
-          {/* Readability scrim: dark for the featured card, light wash for
-              the smaller cards so dark body copy stays legible, dark bottom
-              gradient for full-bleed cards with overlaid white copy, and a
-              whisper of top scrim for the fill variant (badge legibility). */}
-          <div
-            aria-hidden="true"
-            className={
-              fullbleed
-                ? "absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
-                : fill
-                  ? "absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent"
-                  : dark
-                    ? "absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/10"
-                    : "absolute inset-0 bg-gradient-to-r from-white via-white/85 to-white/10"
-            }
-          />
+          {/* Readability scrim (Layer 2): sits ABOVE the artwork, never
+              replaces part of it. Local dark gradient where copy sits;
+              the subject area stays at full original color. */}
+          {resolvedOverlay === "dark-gradient" && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{ background: DARK_GRADIENT }}
+            />
+          )}
+          {resolvedOverlay === "bottom-fade" && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
+            />
+          )}
+          {resolvedOverlay === "top-fade" && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent"
+            />
+          )}
         </>
       ) : (
         <div
           aria-hidden="true"
           className="absolute inset-0"
           style={{
-            background: dark
+            background: darkFallback
               ? `linear-gradient(135deg, ${avatarColor || "#3b2a6d"}, #111113 75%)`
               : "linear-gradient(135deg, #EFEAFF 0%, #E3ECFF 60%, #D9E4FF 100%)",
           }}
@@ -120,19 +141,19 @@ export default function RankingCover({
               like a photo would be, plus soft brand-purple blobs. */}
           <div
             className={`absolute -right-4 top-1/2 -translate-y-1/2 select-none font-extrabold tracking-tighter ${
-              dark ? "text-white/15" : "text-brand/15"
+              darkFallback ? "text-white/15" : "text-brand/15"
             }`}
             style={{ fontSize: variant === "thumb" ? 44 : 120, lineHeight: 1 }}
           >
             {initialsForName(rankingTitle)}
           </div>
-          {!dark && (
+          {!darkFallback && (
             <>
               <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-brand/20 blur-2xl" />
               <div className="absolute -bottom-12 right-8 h-44 w-44 rounded-full bg-brand-deep/20 blur-2xl" />
             </>
           )}
-          {dark && (
+          {darkFallback && (
             <div className="absolute -bottom-12 -right-8 h-52 w-52 rounded-full bg-brand/25 blur-3xl" />
           )}
         </div>
@@ -146,6 +167,6 @@ export default function RankingCover({
   );
 }
 
-// Re-exported so server components can pick the right variant without
-// importing the client module's internals.
-export type { CoverVariant };
+// Re-exported so server components can pick the right variant/overlay
+// without importing the client module's internals.
+export type { CoverVariant, CoverOverlay };

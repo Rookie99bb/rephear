@@ -148,7 +148,7 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
   return (
     <Link
       href={cardHref(ranking)}
-      className="group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-2xl border border-border bg-white p-5"
+      className="group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-2xl bg-ink p-5 text-white"
     >
       <RankingCover
         coverUrl={ranking.coverImageUrl}
@@ -166,13 +166,13 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
               ✦ {categoryName}
             </span>
           )}
-          <span className="text-xs font-medium text-subtle">📍 {location}</span>
+          <span className="text-xs font-medium text-white/80">📍 {location}</span>
         </div>
-        <h3 className="line-clamp-2 text-[19px] font-bold leading-snug tracking-tight text-ink">
+        <h3 className="line-clamp-2 text-[19px] font-bold leading-snug tracking-tight text-white">
           {ranking.title}
         </h3>
         {ranking.description && (
-          <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-subtle">
+          <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-white/75">
             {ranking.description}
           </p>
         )}
@@ -185,7 +185,7 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
           />
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-[13px] font-medium text-subtle">
+          <div className="flex items-center gap-3 text-[13px] font-medium text-white/85">
             <span>👥 {data.nomineeCount} nominees</span>
             <span>
               ❤️ <span className="text-[#e5486f]">{compact(data.totalLikes)}</span>{" "}
