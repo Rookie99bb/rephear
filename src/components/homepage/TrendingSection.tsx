@@ -68,6 +68,8 @@ function FeaturedRankingCard({
       className="group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-2xl bg-ink p-6 text-white"
     >
       <RankingCover
+        coverUrl={ranking.coverImageUrl}
+        coverAlt={ranking.coverImageAlt}
         photoUrl={top?.photoUrl ?? ""}
         nomineeName={top?.name ?? ""}
         avatarColor={top?.avatarColor ?? ""}
@@ -127,6 +129,8 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
       className="group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-2xl border border-border bg-white p-5"
     >
       <RankingCover
+        coverUrl={ranking.coverImageUrl}
+        coverAlt={ranking.coverImageAlt}
         photoUrl={top?.photoUrl ?? ""}
         nomineeName={top?.name ?? ""}
         avatarColor={top?.avatarColor ?? ""}

@@ -2,32 +2,36 @@ import Link from "next/link";
 import NomineeCoverImage from "@/components/NomineeCoverImage";
 import LikeButton from "@/components/LikeButton";
 import SupportButton from "@/components/SupportButton";
-import NomineeStats from "@/components/NomineeStats";
+import ShareProfileButton from "@/components/ShareProfileButton";
 import NomineeCardGlow from "@/components/NomineeCardGlow";
 import type { LeaderboardEntry } from "@/lib/types";
 
-// Premium, full-photo "magazine cover" nominee card. Replaces the old
-// text-first list row. The whole card is one stretched link to the
-// profile (an absolutely-positioned <Link> underneath everything else,
-// z-10). Every interactive control (Support, Like, Share, More, Claim) is
-// a separate sibling positioned on top of it at a higher z-index — since
-// they aren't nested inside the stretched link, clicking one only
-// triggers its own action/navigation, never both, purely from normal DOM
-// stacking (no stopPropagation needed).
+// Nominee card per the approved visual mockup: photo-forward, with the
+// rank badge (#1/#2/#3) as the ONLY overlay on the image. All primary
+// interaction controls (Like / Support / Share / More) live BELOW the
+// image in a clearly separated action area — never floating over the
+// nominee's face.
+//
+// Layout:
+//   [ NOMINEE IMAGE ]          <- rank badge top-left only
+//   ---------------------------
+//   Nominee Name
+//   City, Country
+//   [❤️ Like 4.8K] [🪙 Support]
+//   [↗ Share]            [•••]
+//
+// Like = pink/red filled pill with heart. Support = gold/yellow filled
+// pill. Share = secondary. More = tertiary icon-only.
 //
 // This component has no "use client" directive — it's a Server
 // Component, rendered per-Nominee on the server. Do NOT add inline
 // event handlers (onClick, etc.) to anything in this file, including
 // props passed to <Link>: Next.js throws "Event handlers cannot be
 // passed to Client Component props" at request time for dynamic routes,
-// which `next build` does NOT catch (this exact mistake shipped once and
-// 500'd every Ranking page that had a Nominee on it). Any control that
-// truly needs client-side interactivity (animation, state, context)
-// belongs in its own small "use client" component instead — see
-// SupportButton.tsx, NomineeStats.tsx, NomineeCardGlow.tsx and
-// LikeButton.tsx for the pattern. Those subscribe to
-// SupportCelebrationProvider's context (mounted once in
-// src/app/layout.tsx) to know when THIS profile was just Supported.
+// which `next build` does NOT catch. Any control that truly needs
+// client-side interactivity belongs in its own small "use client"
+// component instead — see SupportButton.tsx, LikeButton.tsx,
+// ShareProfileButton.tsx and NomineeCardGlow.tsx for the pattern.
 export default function NomineeCard({
   rank,
   entry,
@@ -67,97 +71,119 @@ export default function NomineeCard({
 
   return (
     <li
-      className={`group relative aspect-[4/5] list-none overflow-hidden rounded-3xl bg-surface shadow-[0_8px_24px_-12px_rgba(17,17,19,0.35)] transition-transform duration-[250ms] ease-out hover:-translate-y-2 hover:shadow-[0_28px_48px_-16px_rgba(17,17,19,0.45)] ${podium.card}`}
+      className={`group relative list-none overflow-hidden rounded-3xl bg-white shadow-[0_8px_24px_-12px_rgba(17,17,19,0.25)] transition-transform duration-[250ms] ease-out hover:-translate-y-1 hover:shadow-[0_28px_48px_-16px_rgba(17,17,19,0.35)] ${podium.card}`}
     >
-      {/* Stretched link: the whole card navigates to the profile. */}
-      <Link
-        href={`/profiles/${profile.id}`}
-        className="absolute inset-0 z-10"
-        aria-label={`View ${profile.name}'s profile`}
-      />
-
-      <NomineeCoverImage
-        name={profile.name}
-        photoUrl={profile.photoUrl}
-        avatarColor={profile.avatarColor}
-        claimed={profile.claimStatus === "claimed"}
-        profileId={profile.id}
-        loggedIn={loggedIn}
-        priority={priority}
-      />
-
-      {/* Premium gradient overlay: transparent at top, fully readable
-          at the bottom, confined to the bottom 40% of the card. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] h-[40%] bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-
-      {/* Pink glow ring, lit up for ~1s the instant this profile's
-          Support is confirmed elsewhere on the page — connects the
-          full-screen celebration dialog back to this exact card. */}
-      <NomineeCardGlow profileId={profile.id} />
-
-      {/* Top-left: rank badge + movement arrow (Phase 3: snapshot-backed only) */}
-      <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5">
-        <span className="inline-flex items-center rounded-full bg-black/35 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md">
-          {rankBadgeLabel(rank)}
-        </span>
-        {movement && movement.direction !== "same" && (
-          <span
-            title={movementTitle(movement)}
-            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold backdrop-blur-md ${
-              movement.direction === "up"
-                ? "bg-green-600/70 text-white"
-                : movement.direction === "down"
-                  ? "bg-red-600/70 text-white"
-                  : "bg-blue-600/70 text-white"
-            }`}
-          >
-            {movement.direction === "up" && `↑ ${movement.delta}`}
-            {movement.direction === "down" && `↓ ${movement.delta}`}
-            {movement.direction === "new" && "NEW"}
-          </span>
-        )}
-      </div>
-
-      {/* Top-right: Support / Like / Share / More */}
-      <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
-        <SupportButton rankingId={rankingId} profileId={profile.id} loggedIn={loggedIn} />
-        <LikeButton
-          rankingId={rankingId}
-          profileId={profile.id}
-          profileName={profile.name}
-          likeCount={likeCount}
-          allowedLikes={allowedLikes}
-          loggedIn={loggedIn}
-          variant="icon"
+      {/* Image area: photo is the hero. Only the rank badge overlays it. */}
+      <div className="relative aspect-[4/5] overflow-hidden">
+        {/* Stretched link: the image area navigates to the profile. */}
+        <Link
+          href={`/profiles/${profile.id}`}
+          className="absolute inset-0 z-10"
+          aria-label={`View ${profile.name}'s profile`}
+          tabIndex={-1}
         />
-        <button
-          type="button"
-          title="More"
-          aria-haspopup="true"
-          className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-[15px] leading-none text-white backdrop-blur-md transition hover:bg-white/30"
-        >
-          ⋯
-        </button>
+
+        <NomineeCoverImage
+          name={profile.name}
+          photoUrl={profile.photoUrl}
+          avatarColor={profile.avatarColor}
+          claimed={profile.claimStatus === "claimed"}
+          profileId={profile.id}
+          loggedIn={loggedIn}
+          priority={priority}
+        />
+
+        {/* Pink glow ring, lit up for ~1s the instant this profile's
+            Support is confirmed elsewhere on the page. */}
+        <NomineeCardGlow profileId={profile.id} />
+
+        {/* Top-left: rank badge + movement arrow ONLY. No action buttons
+            over the image — they live in the action area below. */}
+        <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5">
+          <span className="inline-flex items-center rounded-full bg-black/35 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md">
+            {rankBadgeLabel(rank)}
+          </span>
+          {movement && movement.direction !== "same" && (
+            <span
+              title={movementTitle(movement)}
+              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold backdrop-blur-md ${
+                movement.direction === "up"
+                  ? "bg-green-600/70 text-white"
+                  : movement.direction === "down"
+                    ? "bg-red-600/70 text-white"
+                    : "bg-blue-600/70 text-white"
+              }`}
+            >
+              {movement.direction === "up" && `↑ ${movement.delta}`}
+              {movement.direction === "down" && `↓ ${movement.delta}`}
+              {movement.direction === "new" && "NEW"}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Bottom overlay: name, verified badge, city, stats */}
-      <div className="absolute inset-x-0 bottom-0 z-20 p-4 sm:p-5">
-        <p className="flex items-center gap-1.5 text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl">
+      {/* Content + action area: clearly separated below the image. */}
+      <div className="relative z-20 p-4 sm:p-5">
+        {/* Stretched link for the text area (separate from image link so
+            the action buttons below remain independently clickable). */}
+        <Link
+          href={`/profiles/${profile.id}`}
+          className="absolute inset-0 z-10"
+          aria-label={`View ${profile.name}'s profile`}
+          tabIndex={-1}
+        />
+
+        <p className="flex items-center gap-1.5 text-lg font-bold leading-tight tracking-tight text-ink sm:text-xl">
           <span className="truncate">{profile.name}</span>
           {profile.claimStatus === "claimed" && <VerifiedBadge />}
         </p>
-        <p className="mt-0.5 truncate text-sm text-white/80">
+        <p className="mt-0.5 truncate text-sm text-subtle">
           {city}
           {country ? `, ${country}` : ""}
         </p>
-        <NomineeStats
-          profileId={profile.id}
-          likeCount={entry.likeCount}
-          credits={entry.reputationCredits}
-          emphasis={emphasis}
-        />
+
+        {/* Primary actions: Like (pink) + Support (gold). */}
+        <div className="relative z-20 mt-3 flex items-center gap-2">
+          <LikeButton
+            rankingId={rankingId}
+            profileId={profile.id}
+            profileName={profile.name}
+            likeCount={likeCount}
+            allowedLikes={allowedLikes}
+            loggedIn={loggedIn}
+            variant="card"
+          />
+          <SupportButton
+            rankingId={rankingId}
+            profileId={profile.id}
+            loggedIn={loggedIn}
+            variant="card"
+            credits={entry.reputationCredits}
+          />
+        </div>
+
+        {/* Secondary actions: Share + More. */}
+        <div className="relative z-20 mt-2 flex items-center justify-between">
+          <ShareProfileButton
+            rankingId={rankingId}
+            profileId={profile.id}
+            profileName={profile.name}
+            loggedIn={loggedIn}
+            variant="card"
+          />
+          <button
+            type="button"
+            title="More"
+            aria-haspopup="true"
+            aria-label="More actions"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-lg leading-none text-subtle transition hover:bg-surface hover:text-ink"
+          >
+            •••
+          </button>
+        </div>
+
         {emphasis === "credits" && creditsGap != null && (
-          <p className="mt-1 text-xs font-medium text-white/70">
+          <p className="mt-2 text-xs font-medium text-subtle">
             {creditsGap > 0
               ? `${creditsGap.toLocaleString()} credits away from #${rank - 1}`
               : `Tied with #${rank - 1}`}

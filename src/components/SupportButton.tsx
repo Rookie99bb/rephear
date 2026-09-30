@@ -10,20 +10,49 @@ import { useSupportCelebration } from "@/components/SupportCelebrationProvider";
 // instant this exact profile's Support is confirmed (via
 // SupportCelebrationProvider's cardPulseProfileId) — the card-level half
 // of the "connect the full-screen dialog back to the real card" effect.
+// variant="icon" (default): the floating pink-gradient circle used on
+// photo overlays (legacy placement).
+// variant="card": the APPROVED mockup treatment — a vivid gold/yellow
+// filled pill with 🪙, rendered BELOW the nominee image in the card's
+// action area. Label follows the mockup: "🪙 Support" when credits = 0,
+// "🪙 Support · 420 Credits" once activity exists. Never shows £/$ —
+// Credits only, per product rules.
 export default function SupportButton({
   rankingId,
   profileId,
   loggedIn,
+  variant = "icon",
+  credits = 0,
 }: {
   rankingId: string;
   profileId: string;
   loggedIn: boolean;
+  variant?: "icon" | "card";
+  credits?: number;
 }) {
   const { cardPulseProfileId } = useSupportCelebration();
   const prefersReducedMotion = useReducedMotion();
   const isPulsing = cardPulseProfileId === profileId;
 
   const href = loggedIn ? `/rankings/${rankingId}/support/${profileId}` : "/login";
+
+  if (variant === "card") {
+    return (
+      <Link
+        href={href}
+        aria-label={
+          credits > 0
+            ? `Support this nominee (${credits.toLocaleString()} Credits so far)`
+            : "Support this nominee"
+        }
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 px-5 py-2.5 text-sm font-bold text-white shadow-[0_6px_16px_-4px_rgba(180,83,9,0.6)] transition hover:shadow-[0_10px_22px_-4px_rgba(180,83,9,0.8)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 active:scale-95"
+      >
+        <span aria-hidden="true">🪙</span>
+        {credits > 0 ? `Support · ${credits.toLocaleString()} Credits` : "Support"}
+      </Link>
+    );
+  }
 
   return (
     <motion.div

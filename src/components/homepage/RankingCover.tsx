@@ -5,16 +5,14 @@ import { initialsForName } from "@/lib/avatar";
 
 type CoverVariant = "featured" | "card" | "compact" | "thumb" | "fullbleed";
 
-// Visual cover for a ranking card. The cover is ALWAYS the ranking's top
-// candidate's real photo (right-positioned, per the design), never a
-// decorative stock/AI image.
-//
-// Honest fallback chain for rankings with no usable candidate photo:
-//   1. top candidate photo_url
-//   2. RepHear branded gradient + ranking initials
-// (There is no category imagery in the data model, so the brand fallback
-// is the terminal step — the card still links to a real ranking.)
+// Visual cover for a ranking card. Cover priority (per approved mockup):
+//   1. Ranking's cover image (AI editorial / manual / nominee-derived,
+//      via cover_image_url when status is active/manual)
+//   2. Top nominee's real photo
+//   3. RepHear branded gradient + ranking initials (never broken)
 export default function RankingCover({
+  coverUrl,
+  coverAlt,
   photoUrl,
   nomineeName,
   avatarColor,
@@ -22,6 +20,8 @@ export default function RankingCover({
   variant,
   eager = false,
 }: {
+  coverUrl?: string | null;
+  coverAlt?: string | null;
   photoUrl: string;
   nomineeName: string;
   avatarColor: string;
@@ -31,7 +31,12 @@ export default function RankingCover({
 }) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
-  const hasPhoto = !!photoUrl && !errored;
+  // Priority 1: ranking cover image (AI editorial / manual). Priority 2:
+  // top nominee photo. If the cover fails to load, fall through to the
+  // nominee photo, then to the branded fallback.
+  const coverSrc = coverUrl && !errored ? coverUrl : null;
+  const hasPhoto = (!!coverSrc || (!!photoUrl && !errored));
+  const imgSrc = coverSrc || photoUrl;
   const dark = variant === "featured" || variant === "fullbleed";
   const fullbleed = variant === "fullbleed";
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -57,9 +62,9 @@ export default function RankingCover({
               imgRef.current = el;
               if (el) checkSettled();
             }}
-            src={photoUrl}
-            alt=""
-            aria-hidden="true"
+            src={imgSrc}
+            alt={coverSrc ? (coverAlt || "") : ""}
+            aria-hidden={coverSrc ? "false" : "true"}
             referrerPolicy="no-referrer"
             loading={eager ? "eager" : "lazy"}
             decoding="async"

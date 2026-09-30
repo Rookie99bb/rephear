@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { likeAction } from "@/lib/actions/likes";
 import { shareAction } from "@/lib/actions/shares";
 import ShareProfileDialog from "@/components/ShareProfileDialog";
+import { formatCompactCount } from "@/lib/rankingDisplay";
 
 // Renders the Like + Share cluster for one Nominee. A user's first Like is
 // free; after that the Like button stays disabled until they Share this
@@ -18,6 +19,10 @@ import ShareProfileDialog from "@/components/ShareProfileDialog";
 // future non-card usage). variant="icon" renders the same logic as two
 // small glass icon buttons, meant to sit on top of a photo (used by the
 // premium nominee cover card in NomineeCard) — Like first, then Share.
+// variant="card" is the APPROVED mockup treatment: a vivid pink/red
+// filled pill with a heart, rendered BELOW the nominee image in the
+// card's action area (never floating over the face). Share is rendered
+// separately via ShareProfileButton.
 export default function LikeButton({
   rankingId,
   profileId,
@@ -33,7 +38,7 @@ export default function LikeButton({
   likeCount: number;
   allowedLikes: number;
   loggedIn: boolean;
-  variant?: "pill" | "icon";
+  variant?: "pill" | "icon" | "card";
 }) {
   const [count, setCount] = useState(likeCount);
   const [allowed, setAllowed] = useState(allowedLikes);
@@ -84,6 +89,51 @@ export default function LikeButton({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     recordShare();
+  }
+
+  if (variant === "card") {
+    // Approved mockup: vivid pink/red filled pill, heart icon, count.
+    // ❤️ 4.8K  /  ❤️ Like  /  ❤️ Liked
+    const cardClass =
+      "inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-[0_6px_16px_-4px_rgba(219,39,119,0.6)] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-600 active:scale-95 " +
+      (canLike && !pending
+        ? "bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 hover:shadow-[0_10px_22px_-4px_rgba(219,39,119,0.8)]"
+        : "cursor-not-allowed bg-pink-300 opacity-60");
+    const label =
+      error ?? (!canLike ? "Share to Like again" : count > 0 ? formatCompactCount(count) : "Like");
+    const liked = count > 0 && !canLike;
+
+    if (!loggedIn) {
+      return (
+        <Link
+          href="/login"
+          aria-label="Log in to Like"
+          className={cardClass + " bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600"}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span aria-hidden="true">❤️</span>
+          {count > 0 ? formatCompactCount(count) : "Like"}
+        </Link>
+      );
+    }
+    return (
+      <button
+        type="button"
+        disabled={!canLike || pending}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleLike();
+        }}
+        title={label}
+        aria-label={liked ? `Liked (${count})` : `Like this nominee${count > 0 ? ` (${count} likes)` : ""}`}
+        aria-pressed={liked}
+        className={cardClass}
+      >
+        <span aria-hidden="true">❤️</span>
+        {liked ? "Liked" : count > 0 ? formatCompactCount(count) : "Like"}
+      </button>
+    );
   }
 
   if (variant === "icon") {

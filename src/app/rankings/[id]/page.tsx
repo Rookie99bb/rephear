@@ -6,6 +6,7 @@ import { likeCountsForUser } from "@/db/likes";
 import { shareCountsForUser } from "@/db/shares";
 import { getCurrentUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import RankingCoverHero from "@/components/RankingCoverHero";
 import {
   getRankingLocationLabel,
   getRankingLocationPhrase,
@@ -111,6 +112,7 @@ return (
 <Suspense fallback={null}>
 <RaffleBanner rankingId={ranking.id} />
 </Suspense>
+<RankingCoverHero ranking={ranking} />
 <p className="text-[10px] font-medium uppercase tracking-wide text-subtle">
 {getRankingLocationLabel(ranking)}
 </p>
