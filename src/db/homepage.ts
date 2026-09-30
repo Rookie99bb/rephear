@@ -266,16 +266,31 @@ export async function listExploreRankings(
     where.push("r.city = ?");
     params.push(q.city);
   }
+  // ACG-first merchandising (soft preference): in the default unfiltered
+  // view, ACG categories surface first (Anime > Gaming > Manga >
+  // Cosplay), ordered by activity within each tier. Explicit user intent
+  // (category/city filter, newest sort) always overrides — we never
+  // re-rank filtered results.
+  const isDefaultView = !q.categorySlug && !q.city && q.sort !== "newest";
   const orderBy =
     q.sort === "newest"
       ? "r.created_at DESC"
-      : "activity_score DESC, r.created_at DESC";
+      : isDefaultView
+        ? "cat_prio ASC, activity_score DESC, r.created_at DESC"
+        : "activity_score DESC, r.created_at DESC";
   const rows = (await db
     .prepare(
       `SELECT r.*,
          (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id) +
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id) AS activity_score,
-         c.name AS category_name
+         c.name AS category_name,
+         CASE c.slug
+           WHEN 'anime' THEN 0
+           WHEN 'gaming' THEN 1
+           WHEN 'manga' THEN 2
+           WHEN 'cosplay' THEN 3
+           ELSE 4
+         END AS cat_prio
        FROM rankings r
        LEFT JOIN categories c ON c.id = r.category_id
        WHERE ${where.join(" AND ")}
