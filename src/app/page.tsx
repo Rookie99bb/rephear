@@ -17,6 +17,9 @@ import {
   listExploreRankings,
   listVelocityRankings,
 } from "@/db/homepage";
+import {
+  prioritizeForHomepage,
+} from "@/lib/homepageMerchandising";
 
 export default async function HomePage({
   searchParams,
@@ -30,14 +33,24 @@ export default async function HomePage({
   // own public ranking, so no unfiltered lookup is ever needed.
   const velocity = await listVelocityRankings(8);
 
-  // "🔥 Trending in London": top-3 by real 7-day activity. Only the best
-  // London entry is preferred for the featured slot; the other two slots
-  // fill from overall velocity order (never elevating lower-scoring
-  // London entries above higher-scoring ones).
-  const bestLondon = velocity.find((v) => v.ranking.city === "London");
+  // "🔥 Trending in London": ACG-first merchandising (see
+  // homepageMerchandising.ts). The underlying velocity scores are never
+  // changed — we only re-prioritize which eligible rankings fill the
+  // three cards. Prefer London ACG for the featured slot; allow Global
+  // ACG to fill when London ACG is insufficient. Never use unrelated
+  // London content merely to fill the row.
+  const merchandised = await prioritizeForHomepage(velocity);
+  const isLondon = (v: (typeof velocity)[number]) =>
+    (v.ranking.city ?? "").trim().toLowerCase() === "london";
+  // Featured: best London ACG, else best ACG (any scope), else best London, else best overall.
+  const featuredPick =
+    merchandised.find(isLondon) ??
+    merchandised[0] ??
+    velocity.find(isLondon) ??
+    velocity[0];
   const picks = [
-    ...(bestLondon ? [bestLondon] : []),
-    ...velocity.filter((v) => v !== bestLondon),
+    ...(featuredPick ? [featuredPick] : []),
+    ...merchandised.filter((v) => v !== featuredPick),
   ].slice(0, 3);
   const trendingCards: TrendingCard[] = await Promise.all(
     picks.map(async (v) => ({
@@ -52,9 +65,12 @@ export default async function HomePage({
   const battle = await findCloseBattle(await listTrendingRankings(12));
 
   // Rising Now: honest 7-day velocity (likes + credits), never position
-  // deltas (no ranking-history data exists).
+  // deltas (no ranking-history data exists). ACG-first merchandising
+  // applies here too — same prioritizeForHomepage ordering as Trending.
+  // We never fabricate growth; if insufficient ACG content qualifies,
+  // the section shows what genuinely qualifies (truthfully labelled).
   const rising: RisingItem[] = [];
-  for (const v of velocity.slice(0, 3)) {
+  for (const v of merchandised.slice(0, 3)) {
     const data = await getRankingCardData(v.rankingId);
     const top = data.topNominees[0];
     rising.push({
