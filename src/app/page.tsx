@@ -5,7 +5,6 @@ import TrendingSection, {
 } from "@/components/homepage/TrendingSection";
 import ActivityGrid, {
   type RisingItem,
-  RISING_NOW_DEMO_ITEMS,
 } from "@/components/homepage/ActivityGrid";
 import ExploreRankings from "@/components/homepage/ExploreRankings";
 import { listCategories } from "@/db/categories";
@@ -17,6 +16,7 @@ import {
   getRankingCardData,
   listExploreRankings,
   listFeaturedRankings,
+  listRisingNow,
   listVelocityRankings,
 } from "@/db/homepage";
 import {
@@ -91,30 +91,28 @@ export default async function HomePage({
   // most active rankings. Null → the module hides itself (never faked).
   const battle = await findCloseBattle(await listTrendingRankings(12));
 
-  // Rising Now: honest 7-day velocity (likes + credits), never position
-  // deltas (no ranking-history data exists). ACG-first merchandising
-  // applies here too — same prioritizeForHomepage ordering as Trending.
-  // We never fabricate growth; if insufficient ACG content qualifies,
-  // the section shows what genuinely qualifies (truthfully labelled).
-  // Up to 6 compact rows; production always uses real organic weekly
-  // counts. RISING_NOW_DEMO=1 swaps in clearly-labelled placeholder rows
-  // for demo/dev environments only (never production).
+  // Rising Now: cold-start aware (see src/config/risingColdStart.ts).
+  // Cold-start ON (production launch phase): ~6 ACG-diverse public
+  // rankings; the displayed number is organic weekly + seed weekly.
+  // Seed lives in config only — no fake accounts, no fake like rows,
+  // organic data untouched and internally distinguishable.
+  // Cold-start OFF: organic-only 7-day velocity.
+  // Up to 6 compact rows; the UI formats the number, never invents it.
+  const risingNow = await listRisingNow(6);
   const rising: RisingItem[] = [];
-  for (const v of merchandised.slice(0, 6)) {
-    const data = await getRankingCardData(v.rankingId);
+  for (const row of risingNow) {
+    const data = await getRankingCardData(row.ranking.id);
     const top = data.topNominees[0];
     rising.push({
-      ranking: v.ranking,
-      likes7d: v.likes7d,
-      credits7d: v.credits7d,
-      likesPrev7d: v.likesPrev7d,
+      ranking: row.ranking,
+      likes7d: row.displayLikes7d,
+      credits7d: row.credits7d,
+      likesPrev7d: row.likesPrev7d,
       thumbPhotoUrl: top?.photoUrl ?? "",
       thumbName: top?.name ?? "",
       thumbColor: top?.avatarColor ?? "",
     });
   }
-  const risingDemo =
-    process.env.RISING_NOW_DEMO === "1" ? RISING_NOW_DEMO_ITEMS : undefined;
 
   // Event deep-links: only these two rankings are known to exist as real
   // event-adjacent rankings (resolved by slug, public-only). Anything else
@@ -172,7 +170,7 @@ export default async function HomePage({
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex flex-col gap-10 py-10 md:gap-12">
           <TrendingSection cards={trendingCards} mode={trendingMode} />
-          <ActivityGrid battle={battle} rising={rising} risingDemo={risingDemo} eventHrefs={eventHrefs} />
+          <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
           <ExploreRankings
             items={explore}
             activeCategory={activeCategory}

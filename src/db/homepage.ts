@@ -225,14 +225,14 @@ export async function findCloseBattle(
     if (board.length < 2) continue;
     const first = board[0];
     const second = board[1];
-    if (first.reputationCredits <= 0 || second.reputationCredits <= 0) continue;
-    const gap = first.reputationCredits - second.reputationCredits;
+    if (first.supportScore <= 0 || second.supportScore <= 0) continue;
+    const gap = first.supportScore - second.supportScore;
     if (gap < 0) continue;
     if (!best || gap < best.gap) {
       best = {
         ranking,
         top: board.slice(0, 3).map((e) => e.profile),
-        credits: board.slice(0, 3).map((e) => e.reputationCredits),
+        credits: board.slice(0, 3).map((e) => e.supportScore),
         gap,
       };
     }
@@ -331,3 +331,177 @@ export async function listExploreRankings(
     activityScore: r.activity_score,
   }));
 }
+
+/* ---------------- Rising Now (cold-start aware) ---------------- */
+
+import {
+  COLD_START_CATEGORY_PRIORITY,
+  COLD_START_SEED_BY_SLUG,
+  COLD_START_SEED_VALUES,
+  isRisingColdStartEnabled,
+} from "@/config/risingColdStart";
+
+export interface RisingNowRow {
+  ranking: Ranking;
+  /** Genuine organic likes in the last 7 days (never touched by seed). */
+  organicLikes7d: number;
+  /** Cold-start seed likes shown on top of organic. 0 when cold-start is off. */
+  seedLikes7d: number;
+  /** Public displayed number: organic + seed (or organic-only when off). */
+  displayLikes7d: number;
+  credits7d: number;
+  likesPrev7d: number;
+}
+
+interface CandidateRow extends RankingRow {
+  category_slug: string | null;
+  total_likes: number;
+}
+
+/** Deterministic pool of public ACG rankings with at least one nominee. */
+async function listColdStartCandidates(): Promise<Ranking[]> {
+  const rows = await db
+    .prepare(
+      `SELECT r.*, c.slug AS category_slug,
+              (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes
+       FROM rankings r
+       LEFT JOIN categories c ON c.id = r.category_id
+       WHERE r.${PUBLIC_WHERE}
+         AND EXISTS (
+           SELECT 1 FROM profiles p
+           WHERE p.ranking_id = r.id AND p.deleted_at IS NULL
+         )
+       ORDER BY total_likes DESC, r.created_at DESC, r.id ASC
+       LIMIT 60`,
+    )
+    .all();
+  return (rows as CandidateRow[]).map((r) => ({
+    ...rowToRanking(r as unknown as RankingRow),
+    // stash category slug for diversity picking (not part of public type)
+    __categorySlug: r.category_slug,
+  })) as Ranking[];
+}
+
+type RankedWithCat = Ranking & { __categorySlug?: string | null };
+
+function pickDiverse(candidates: RankedWithCat[], limit: number): RankedWithCat[] {
+  const groups = new Map<string, RankedWithCat[]>();
+  for (const c of candidates) {
+    const key = c.__categorySlug ?? "other";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(c);
+  }
+  const otherCats: string[] = [];
+  for (const key of groups.keys()) {
+    if (!COLD_START_CATEGORY_PRIORITY.includes(key)) otherCats.push(key);
+  }
+  const catOrder = [...COLD_START_CATEGORY_PRIORITY, ...otherCats];
+  const picked: RankedWithCat[] = [];
+  for (let round = 0; picked.length < limit; round++) {
+    let progressed = false;
+    for (const cat of catOrder) {
+      const g = groups.get(cat);
+      if (g && g.length > 0 && picked.length < limit) {
+        picked.push(g.shift()!);
+        progressed = true;
+      }
+    }
+    if (!progressed) break;
+  }
+  return picked;
+}
+
+async function organicStats(ids: string[]): Promise<{
+  cur: Map<string, number>;
+  prev: Map<string, number>;
+  credits: Map<string, number>;
+}> {
+  const cur = new Map<string, number>();
+  const prev = new Map<string, number>();
+  const credits = new Map<string, number>();
+  if (ids.length === 0) return { cur, prev, credits };
+  const placeholders = ids.map(() => "?").join(",");
+  const likeClause = authenticLikesClause("l");
+  const curRows = (await db
+    .prepare(
+      `SELECT l.ranking_id AS ranking_id, COALESCE(SUM(l.count), 0) AS n
+       FROM likes l
+       WHERE l.ranking_id IN (${placeholders})
+         AND l.created_at >= datetime('now', '-7 days')
+         AND ${likeClause}
+       GROUP BY l.ranking_id`,
+    )
+    .all(...ids)) as { ranking_id: string; n: number }[];
+  for (const r of curRows) cur.set(r.ranking_id, r.n);
+  const prevRows = (await db
+    .prepare(
+      `SELECT l.ranking_id AS ranking_id, COALESCE(SUM(l.count), 0) AS n
+       FROM likes l
+       WHERE l.ranking_id IN (${placeholders})
+         AND l.created_at >= datetime('now', '-14 days')
+         AND l.created_at < datetime('now', '-7 days')
+         AND ${likeClause}
+       GROUP BY l.ranking_id`,
+    )
+    .all(...ids)) as { ranking_id: string; n: number }[];
+  for (const r of prevRows) prev.set(r.ranking_id, r.n);
+  const creditRows = (await db
+    .prepare(
+      `SELECT ct.ranking_id AS ranking_id, COALESCE(SUM(ct.credits), 0) AS n
+       FROM credit_transactions ct
+       WHERE ct.ranking_id IN (${placeholders})
+         AND ct.created_at >= datetime('now', '-7 days')
+       GROUP BY ct.ranking_id`,
+    )
+    .all(...ids)) as { ranking_id: string; n: number }[];
+  for (const r of creditRows) credits.set(r.ranking_id, r.n);
+  return { cur, prev, credits };
+}
+
+/**
+ * Rising Now rows.
+ *
+ * Cold-start ON:  ~6 ACG-diverse public rankings, display value =
+ * organic_weekly_likes + seed_weekly_likes (seed from config, stable,
+ * never random). Organic data is untouched and stays distinguishable.
+ *
+ * Cold-start OFF: organic-only velocity, same as before.
+ */
+export async function listRisingNow(limit = 6): Promise<RisingNowRow[]> {
+  if (!isRisingColdStartEnabled()) {
+    const velocity = await listVelocityRankings(limit);
+    const ids = velocity.map((v) => v.ranking.id);
+    const { prev } = await organicStats(ids);
+    return velocity.map((v) => ({
+      ranking: v.ranking,
+      organicLikes7d: v.likes7d,
+      seedLikes7d: 0,
+      displayLikes7d: v.likes7d,
+      credits7d: v.credits7d,
+      likesPrev7d: prev.get(v.ranking.id) ?? 0,
+    }));
+  }
+
+  const candidates = await listColdStartCandidates();
+  const picked = pickDiverse(candidates as RankedWithCat[], limit);
+  const { cur, prev, credits } = await organicStats(picked.map((p) => p.id));
+  const rows: RisingNowRow[] = picked.map((p, i) => {
+    const seed =
+      (p.slug ? COLD_START_SEED_BY_SLUG[p.slug] : undefined) ??
+      COLD_START_SEED_VALUES[i % COLD_START_SEED_VALUES.length];
+    const organic = cur.get(p.id) ?? 0;
+    return {
+      ranking: p,
+      organicLikes7d: organic,
+      seedLikes7d: seed,
+      displayLikes7d: organic + seed,
+      credits7d: credits.get(p.id) ?? 0,
+      likesPrev7d: prev.get(p.id) ?? 0,
+    };
+  });
+  rows.sort((a, b) => b.displayLikes7d - a.displayLikes7d);
+  return rows;
+}
+
+/** Re-export for the homepage (keeps the old flag name working too). */
+export { isRisingColdStartEnabled };
