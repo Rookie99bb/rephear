@@ -6,7 +6,6 @@
 // identities or private-support counts.
 
 import { db } from "./client";
-import { authenticLikesClause } from "./visibility";
 import { findCategoryById, findCategoryBySlug } from "./categories";
 import { getMostSupported } from "./leaderboards";
 import { toProfile, type ProfileRow } from "./profiles";
@@ -96,7 +95,7 @@ export async function listVelocityRankings(
     .prepare(
       `SELECT r.*,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days') AND ${authenticLikesClause("l")}) AS likes7d,
+            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days')) AS likes7d,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
             WHERE ct.ranking_id = r.id AND ct.created_at >= datetime('now', '-7 days')) AS credits7d
        FROM rankings r
