@@ -1,37 +1,47 @@
 import { db } from "./client";
 import type { LeaderboardEntry } from "@/lib/types";
 import { toProfile, type ProfileRow } from "./profiles";
-import { seedAccountExclusion, authenticLikesClause } from "./visibility";
+import { seedAccountExclusion } from "./visibility";
+import { getLikeWeights, weightedLikeScore } from "./engagementWeights";
 
 interface StatsRow extends ProfileRow {
-  like_count: number;
+  seed_likes: number;
+  organic_likes: number;
   reputation_credits: number;
 }
 
-function toEntry(row: StatsRow): LeaderboardEntry {
+function toEntry(row: StatsRow, seedWeight: number, organicWeight: number): LeaderboardEntry {
+  const seedLikes = Number(row.seed_likes) || 0;
+  const organicLikes = Number(row.organic_likes) || 0;
   return {
     profile: toProfile(row),
-    likeCount: row.like_count,
+    // Public display: weighted combined score (cold-start defaults 1.0/1.0).
+    likeCount: weightedLikeScore(seedLikes, organicLikes, { seedWeight, organicWeight }),
     reputationCredits: row.reputation_credits,
+    seedLikes,
+    organicLikes,
   };
 }
 
 // One query gets both stats for every Nominee in a Ranking. Nominees
 // belong directly to a Ranking now (no join table), so this is a plain
-// filter on profiles.ranking_id.
+// filter on profiles.ranking_id. Seed and organic likes are summed
+// separately so the weighted score can be applied (Seed Likes Policy).
 async function getRankingStats(
   rankingId: string
 ): Promise<{ entry: LeaderboardEntry; addedAt: string }[]> {
+  const { seedWeight, organicWeight } = await getLikeWeights();
   const rows = (await db
     .prepare(
       `SELECT p.*,
-(SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND ${authenticLikesClause("l")}) AS like_count,
+(SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'seed') AS seed_likes,
+(SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'organic') AS organic_likes,
 (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
 FROM profiles p
 WHERE p.ranking_id = ? AND p.deleted_at IS NULL`
     )
-    .all(rankingId, rankingId, rankingId)) as unknown as StatsRow[];
-  return rows.map((row) => ({ entry: toEntry(row), addedAt: row.created_at }));
+    .all(rankingId, rankingId, rankingId, rankingId)) as unknown as StatsRow[];
+  return rows.map((row) => ({ entry: toEntry(row, seedWeight, organicWeight), addedAt: row.created_at }));
 }
 
 // Most Loved: sorted ONLY by Total Likes, descending. Never mixed with

@@ -321,7 +321,7 @@ export async function getRankingCardStats(
   const rows = (await db
     .prepare(
       `SELECT r.id AS id,
-              (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id AND ${authenticLikesClause("l")}) AS like_count,
+              (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS like_count,
               (SELECT COUNT(*) FROM profiles p WHERE p.ranking_id = r.id AND p.deleted_at IS NULL) AS nominee_count
        FROM rankings r
        WHERE r.id IN (${placeholders})`

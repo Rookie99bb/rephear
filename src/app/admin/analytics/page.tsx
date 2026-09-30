@@ -1,4 +1,6 @@
 import { getAdminStats } from "@/db/adminStats";
+import { previewFandomSeed } from "@/db/seedFandomLaunchLikes";
+import SeedLikesControl from "@/components/SeedLikesControl";
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -25,6 +27,7 @@ const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, "
 
 export default async function AdminAnalyticsPage() {
   const stats = await getAdminStats();
+  const seedPreview = await previewFandomSeed();
 
   const dayMax = Math.max(1, ...stats.activityByDay.map((d) => d.count));
   const signupMax = Math.max(1, ...stats.signupsByDay.map((d) => d.count));
@@ -44,7 +47,24 @@ export default async function AdminAnalyticsPage() {
             value={stats.totalActiveRankings.toLocaleString()}
             hint={`${stats.totalHiddenOrDeletedRankings.toLocaleString()} hidden/deleted`}
           />
-          <StatCard label="Total likes" value={stats.totalLikes.toLocaleString()} />
+          <StatCard
+            label="Displayed likes"
+            value={stats.totalLikes.toLocaleString()}
+            hint={`seed ${stats.seedLikes.toLocaleString()} + organic ${stats.organicLikes.toLocaleString()}`}
+          />
+          <StatCard
+            label="Organic likes · today"
+            value={stats.organicLikesToday.toLocaleString()}
+            hint="genuine user likes only"
+          />
+          <StatCard
+            label="Organic likes · 7 days"
+            value={stats.organicLikes7d.toLocaleString()}
+          />
+          <StatCard
+            label="Organic likes · 30 days"
+            value={stats.organicLikes30d.toLocaleString()}
+          />
           <StatCard label="Total shares" value={stats.totalShares.toLocaleString()} />
           <StatCard
             label="Support payments"
@@ -60,6 +80,18 @@ export default async function AdminAnalyticsPage() {
             value={stats.totalCreditsGranted.toLocaleString()}
           />
         </div>
+      </div>
+
+      <div>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-subtle">
+          Seed likes
+        </h2>
+        <SeedLikesControl
+          alreadyApplied={seedPreview.alreadyApplied}
+          eligibleRankings={seedPreview.eligibleRankings}
+          eligibleNominees={seedPreview.eligibleNominees}
+          projectedTotal={seedPreview.projectedTotal}
+        />
       </div>
 
       <div>

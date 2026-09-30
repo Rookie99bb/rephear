@@ -66,6 +66,8 @@ export const AUDIT_ACTIONS = {
   // Taxonomy v2 (2026-09-30): admin reassigned category/subcategory/
   // scope/tags on a ranking.
   RANKING_TAXONOMY_UPDATED: "ranking_taxonomy_updated",
+  // Seed Likes Policy (2026-09-30): editorial seed-like run applied.
+  SEED_LIKES_APPLIED: "seed_likes_applied",
   RAFFLE_CREATED: "raffle_created",
   RAFFLE_DRAWN: "raffle_drawn",
   RAFFLE_CANCELLED: "raffle_cancelled",

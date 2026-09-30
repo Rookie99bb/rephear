@@ -61,7 +61,7 @@ export async function getMostActiveRankings(limit = 24): Promise<Ranking[]> {
     .prepare(
       `SELECT r.*,
               (SELECT COUNT(*) FROM likes l
-                WHERE l.ranking_id = r.id AND ${authenticLikesClause("l")}) AS likes_all,
+                WHERE l.ranking_id = r.id) AS likes_all,
               (SELECT COUNT(*) FROM credit_transactions ct
                 WHERE ct.ranking_id = r.id AND ct.credits > 0) AS supports_all
        FROM rankings r
@@ -119,7 +119,7 @@ export async function getUnderratedNominees(
               r.id AS ranking_id,
               r.title AS ranking_title,
               (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id AND ${authenticLikesClause("l")}) AS like_count,
+                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id) AS like_count,
               (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
                 WHERE ct.ranking_id = p.ranking_id AND ct.profile_id = p.id) AS reputation_credits
        FROM profiles p

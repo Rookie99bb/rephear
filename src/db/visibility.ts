@@ -70,12 +70,27 @@ export function notSeedClause(userAlias: string): string {
   return seedAccountExclusion(userAlias);
 }
 
-// Public-metric guard for like aggregations: excludes the synthetic
-// cold-start like rows held by seed_community_* accounts. Every public
-// like total (leaderboards, Most Loved, discovery, snapshots, digests)
-// must apply this; admin-only stats intentionally keep the raw table.
+// Seed Likes Policy (2026-09-30): like provenance is explicit via
+// likes.like_source = 'seed' | 'organic'. Public display may combine both;
+// analytics, Rising/Trending velocity, and growth measurement must use
+// organic only. Most Loved uses the weighted score (see
+// engagementWeights.ts); cold-start defaults weight both at 1.0.
+
+// Organic-only guard for like aggregations. Use for: Rising/Trending
+// velocity, analytics, growth measurement, "new likes" counts.
 export function authenticLikesClause(likesAlias: string): string {
-  return seedAccountExclusion(likesAlias).replace(".id NOT LIKE", ".user_id NOT LIKE");
+  return `${likesAlias}.like_source = 'organic'`;
+}
+
+// Seed-only guard. Use for admin seed/organic split displays.
+export function seedLikesClause(likesAlias: string): string {
+  return `${likesAlias}.like_source = 'seed'`;
+}
+
+// Legacy name kept for call sites not yet migrated; identical to
+// authenticLikesClause. New code should use authenticLikesClause.
+export function organicLikesClause(likesAlias: string): string {
+  return authenticLikesClause(likesAlias);
 }
 
 // Moderation hiding (users.is_hidden, added in Phase 2): hidden users

@@ -296,3 +296,46 @@ export async function updateRankingTaxonomyAction(
   revalidatePath("/admin/rankings");
   return {};
 }
+
+// ── Seed Likes Policy (2026-09-30) ───────────────────────────────────
+// Explicit editorial operation: applies the versioned fandom seed dataset
+// (fandom_launch_v1). Idempotent — a second call is a safe no-op. Never
+// runs on boot; only via this admin action or the CLI script.
+export async function applyFandomSeedLikesAction(): Promise<
+  ModerationResult & {
+    version?: string;
+    skipped?: boolean;
+    reason?: string;
+    rankingsSeeded?: number;
+    nomineesSeeded?: number;
+    totalSeedLikes?: number;
+  }
+> {
+  const admin = await getCurrentAdmin();
+  if (!admin) return { error: "Admin access required." };
+  const { seedFandomLaunchLikes } = await import("@/db/seedFandomLaunchLikes");
+  try {
+    const result = await seedFandomLaunchLikes();
+    await recordAuditLog({
+      actorUserId: admin.id,
+      action: AUDIT_ACTIONS.SEED_LIKES_APPLIED,
+      targetType: "system",
+      targetId: result.version,
+      details: {
+        version: result.version,
+        skipped: result.skipped,
+        reason: result.reason,
+        rankingsSeeded: result.rankingsSeeded,
+        nomineesSeeded: result.nomineesSeeded,
+        totalSeedLikes: result.totalSeedLikes,
+      },
+      ...getRequestContext(),
+    });
+    revalidatePath("/admin/analytics");
+    revalidatePath("/rankings");
+    revalidatePath("/");
+    return { ...result };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Seed run failed." };
+  }
+}

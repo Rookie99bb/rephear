@@ -169,6 +169,11 @@ profile_id TEXT NOT NULL REFERENCES profiles(id),
 user_id TEXT NOT NULL REFERENCES users(id),
 created_at TEXT NOT NULL DEFAULT (datetime('now')),
 count INTEGER NOT NULL DEFAULT 1,
+-- Seed Likes Policy (2026-09-30): every Like is either 'seed'
+-- (system/editorial cold-start engagement) or 'organic' (a genuine user
+-- action). The distinction is permanent and internal; public display may
+-- combine both, but analytics/Rising/Most-Supported must use organic only.
+like_source TEXT NOT NULL DEFAULT 'organic',
 UNIQUE (ranking_id, profile_id, user_id)
 );
 
@@ -1027,6 +1032,67 @@ async function addLikesCountColumnIfMissing() {
   }
 }
 
+// Seed Likes Policy (2026-09-30): like_source = 'seed' | 'organic'.
+// Backfills the 15k historical seed_community_* rows as 'seed'; every
+// other existing row is a genuine user action → 'organic'.
+async function addLikeSourceColumnIfMissing() {
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE likes ADD COLUMN like_source TEXT NOT NULL DEFAULT 'organic';",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
+  await rawClient.execute({
+    sql: `UPDATE likes SET like_source = 'seed'
+          WHERE like_source = 'organic' AND user_id LIKE 'seed\\_community\\_%' ESCAPE '\\'`,
+    args: [],
+  });
+}
+
+// Versioned, auditable seed-like runs. A seed version is applied at most
+// once — the seeder checks this table first (idempotency), and seeding
+// never runs on server boot.
+async function createSeedLikeRunsTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS seed_like_runs (
+      version TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now')),
+      rankings_count INTEGER NOT NULL DEFAULT 0,
+      nominees_count INTEGER NOT NULL DEFAULT 0,
+      total_seed_likes INTEGER NOT NULL DEFAULT 0,
+      notes TEXT
+    );`,
+    args: [],
+  });
+}
+
+// Engagement weight configuration: ranking_score =
+// (seed_score × seed_weight) + (organic_score × organic_weight).
+// Defaults 1.0/1.0 (cold-start: Most Loved may include seed likes).
+// Organic weight stays 1.0; seed weight may be reduced later (1.0 → 0.5 →
+// 0.25 → 0) without deleting any historical seed records.
+async function createEngagementConfigTableIfMissing() {
+  await rawClient.execute({
+    sql: `CREATE TABLE IF NOT EXISTS engagement_config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );`,
+    args: [],
+  });
+  for (const [key, value] of [
+    ["seed_weight", "1.0"],
+    ["organic_weight", "1.0"],
+  ] as const) {
+    await rawClient.execute({
+      sql: "INSERT OR IGNORE INTO engagement_config (key, value) VALUES (?, ?)",
+      args: [key, value],
+    });
+  }
+}
+
 async function addUserLocationColumnIfMissing() {
   try {
     await rawClient.execute({
@@ -1626,6 +1692,9 @@ export async function ensureMigrated(): Promise<void> {
     await addUserLocationColumnIfMissing();
     await addLastDigestSentAtColumnIfMissing();
     await addLikesCountColumnIfMissing();
+    await addLikeSourceColumnIfMissing();
+    await createSeedLikeRunsTableIfMissing();
+    await createEngagementConfigTableIfMissing();
     await addIsAdminColumnIfMissing();
     await addInviteBonusLikesColumnToUsersIfMissing();
     await addPhase1VisibilityColumnsIfMissing();

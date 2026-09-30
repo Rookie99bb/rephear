@@ -29,6 +29,13 @@ export interface AdminStats {
   totalActiveRankings: number;
   totalHiddenOrDeletedRankings: number;
   totalLikes: number;
+  // Seed Likes Policy (2026-09-30 §6): admin must expose the split.
+  // totalLikes = combined display count (seed + organic).
+  seedLikes: number;
+  organicLikes: number;
+  organicLikesToday: number;
+  organicLikes7d: number;
+  organicLikes30d: number;
   totalShares: number;
   totalCompletedSupportCount: number;
   totalSupportAmountCents: number;
@@ -52,6 +59,11 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalActiveRankings,
     totalHiddenOrDeletedRankings,
     totalLikes,
+    seedLikes,
+    organicLikes,
+    organicLikesToday,
+    organicLikes7d,
+    organicLikes30d,
     totalShares,
     totalCompletedSupportCount,
     totalSupportAmountCents,
@@ -65,6 +77,11 @@ export async function getAdminStats(): Promise<AdminStats> {
       "SELECT COUNT(*) AS c FROM rankings WHERE is_hidden = 1 OR deleted_at IS NOT NULL"
     ),
     scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes"),
+    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'seed'"),
+    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic'"),
+    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic' AND date(created_at) = date('now')"),
+    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic' AND created_at >= datetime('now', '-7 days')"),
+    scalar("SELECT COALESCE(SUM(count), 0) AS c FROM likes WHERE like_source = 'organic' AND created_at >= datetime('now', '-30 days')"),
     scalar("SELECT COUNT(*) AS c FROM shares"),
     scalar("SELECT COUNT(*) AS c FROM payments WHERE status = 'completed'"),
     scalar(
@@ -105,10 +122,13 @@ export async function getAdminStats(): Promise<AdminStats> {
     )
     .all()) as unknown as { day: string; c: number }[];
 
+  // Seed Likes Policy §7/§10/§19: internal growth analytics use ORGANIC
+  // likes only — seed engagement must never count as user traction or
+  // create fake temporal activity.
   const activityDayRows = (await db
     .prepare(
       `SELECT date(created_at) AS day, COUNT(*) AS c FROM (
-         SELECT created_at FROM likes
+         SELECT created_at FROM likes WHERE like_source = 'organic'
          UNION ALL
          SELECT created_at FROM shares
        )
@@ -121,7 +141,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   const activityHourRows = (await db
     .prepare(
       `SELECT strftime('%H', created_at) AS hour, COUNT(*) AS c FROM (
-         SELECT created_at FROM likes
+         SELECT created_at FROM likes WHERE like_source = 'organic'
          UNION ALL
          SELECT created_at FROM shares
        )
@@ -135,6 +155,11 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalActiveRankings,
     totalHiddenOrDeletedRankings,
     totalLikes,
+    seedLikes,
+    organicLikes,
+    organicLikesToday,
+    organicLikes7d,
+    organicLikes30d,
     totalShares,
     totalCompletedSupportCount,
     totalSupportAmountCents,

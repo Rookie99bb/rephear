@@ -177,6 +177,11 @@ export interface LeaderboardEntry {
   profile: Profile;
   likeCount: number;
   reputationCredits: number;
+  // Seed Likes Policy (2026-09-30): internal split. likeCount is the
+  // weighted combined score; seedLikes/organicLikes preserve the
+  // distinction for admin display. Absent on older call sites.
+  seedLikes?: number;
+  organicLikes?: number;
 }
 
 export type RedemptionStatus = "pending" | "paid" | "rejected" | "cancelled";

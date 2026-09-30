@@ -1,6 +1,5 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
-import { authenticLikesClause } from "./visibility";
 
 // Phase 3 (§23/§26): daily rank snapshots. The snapshot job
 // (src/app/api/cron/ranking-snapshots) writes one row per
@@ -40,7 +39,7 @@ async function getBoardRows(rankingId: string): Promise<BoardRow[]> {
     .prepare(
       `SELECT p.id AS profile_id,
               (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-                WHERE l.ranking_id = ? AND l.profile_id = p.id AND ${authenticLikesClause("l")}) AS like_count,
+                WHERE l.ranking_id = ? AND l.profile_id = p.id) AS like_count,
               (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
                 WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits,
               p.created_at AS added_at
@@ -60,7 +59,7 @@ async function getAllBoardRows(): Promise<AllBoardRow[]> {
       `SELECT p.ranking_id AS ranking_id,
               p.id AS profile_id,
               (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id AND ${authenticLikesClause("l")}) AS like_count,
+                WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id) AS like_count,
               (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
                 WHERE ct.ranking_id = p.ranking_id AND ct.profile_id = p.id) AS reputation_credits,
               p.created_at AS added_at
