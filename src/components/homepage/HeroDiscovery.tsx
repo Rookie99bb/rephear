@@ -23,14 +23,12 @@ export default function HeroDiscovery({
     { label: "Anime", icon: "🎭", href: "/rankings?category=anime", active: true },
     { label: "Cosplay", icon: "🦸", href: "/rankings?category=cosplay" },
     { label: "Gaming", icon: "🎮", href: "/rankings?category=gaming" },
-    { label: "University", icon: "🎓", href: "/rankings?category=university-societies" },
+    { label: "University", icon: "🎓", href: "/rankings?category=university" },
     { label: "Music", icon: "🎵", href: "/rankings?category=underground-music" },
     { label: "Artists", icon: "🎨", href: "/rankings?category=independent-art-zines" },
     { label: "Creators", icon: "📸", href: "/rankings?category=digital-creators" },
-    // Manga and Events have no category in the data model — render as
-    // plain (non-linked) chips rather than dead links.
-    { label: "Manga", icon: "📚", href: null },
-    { label: "Events", icon: "🗓️", href: null },
+    { label: "Manga", icon: "📚", href: "/rankings?category=manga" },
+    { label: "Events", icon: "🗓️", href: "/rankings?category=events-nightlife" },
     { label: "More", icon: "⋯", href: "/rankings" },
   ].map((chip) => {
     if (!chip.href) return chip;
