@@ -6,6 +6,7 @@
 // identities or private-support counts.
 
 import { db } from "./client";
+import { authenticLikesClause } from "./visibility";
 import { findCategoryById, findCategoryBySlug } from "./categories";
 import { getMostSupported } from "./leaderboards";
 import { toProfile, type ProfileRow } from "./profiles";
@@ -95,7 +96,7 @@ export async function listVelocityRankings(
     .prepare(
       `SELECT r.*,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l
-            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days')) AS likes7d,
+            WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days') AND ${authenticLikesClause("l")}) AS likes7d,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct
             WHERE ct.ranking_id = r.id AND ct.created_at >= datetime('now', '-7 days')) AS credits7d
        FROM rankings r
@@ -126,6 +127,52 @@ export async function getWeeklyVelocity(
     likes7d,
     credits7d,
   }));
+}
+
+// Featured fallback for the homepage trending section: the section must
+// always render 3 cards, but real Trending is organic-only and may yield
+// fewer than 3 (or zero). This fills the remaining slots with public,
+// populated rankings in editorial category priority (Anime > Gaming >
+// Manga > Cosplay > everything else), ordered by total displayed likes
+// (seed + organic may show in public totals — seed only never *triggers*
+// a trending/rising signal, it just counts toward a displayed total).
+// Deterministic; never invents rankings.
+export async function listFeaturedRankings(
+  excludeIds: string[],
+  limit: number
+): Promise<Ranking[]> {
+  if (limit <= 0) return [];
+  const exclude =
+    excludeIds.length > 0
+      ? `AND r.id NOT IN (${excludeIds.map(() => "?").join(",")})`
+      : "";
+  const rows = (await db
+    .prepare(
+      `SELECT r.*,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes,
+         CASE c.slug
+           WHEN 'anime' THEN 0
+           WHEN 'gaming' THEN 1
+           WHEN 'manga' THEN 2
+           WHEN 'cosplay' THEN 3
+           ELSE 4
+         END AS cat_prio
+       FROM rankings r
+       LEFT JOIN categories c ON c.id = r.category_id
+       WHERE r.is_hidden = 0 AND r.deleted_at IS NULL AND COALESCE(r.is_archived, 0) = 0
+         ${exclude}
+         AND EXISTS (
+           SELECT 1 FROM profiles p
+           WHERE p.ranking_id = r.id AND p.deleted_at IS NULL
+         )
+       ORDER BY cat_prio ASC, total_likes DESC, r.created_at DESC
+       LIMIT ?`
+    )
+    .all(...excludeIds, limit)) as unknown as (RankingRow & {
+    total_likes: number;
+    cat_prio: number;
+  })[];
+  return rows.map((r) => rowToRanking(r));
 }
 
 // Public ranking ids for a set of slugs (event deep-links). Every slug

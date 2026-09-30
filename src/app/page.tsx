@@ -15,6 +15,7 @@ import {
   getCategoryNameForRanking,
   getRankingCardData,
   listExploreRankings,
+  listFeaturedRankings,
   listVelocityRankings,
 } from "@/db/homepage";
 import {
@@ -52,13 +53,38 @@ export default async function HomePage({
     ...(featuredPick ? [featuredPick] : []),
     ...merchandised.filter((v) => v !== featuredPick),
   ].slice(0, 3);
-  const trendingCards: TrendingCard[] = await Promise.all(
-    picks.map(async (v) => ({
-      ranking: v.ranking,
-      categoryName: await getCategoryNameForRanking(v.ranking),
-      data: await getRankingCardData(v.ranking.id),
-    }))
-  );
+  // The section always renders 3 cards: real organic trending first,
+  // then Featured fallback (Anime > Gaming > Manga > Cosplay priority)
+  // for the remaining slots. Seed likes never trigger a trending slot —
+  // they only count toward the displayed like totals.
+  const featuredFills =
+    picks.length < 3
+      ? await listFeaturedRankings(
+          picks.map((v) => v.ranking.id),
+          3 - picks.length
+        )
+      : [];
+  const trendingCards: TrendingCard[] = [
+    ...(await Promise.all(
+      picks.map(async (v) => ({
+        ranking: v.ranking,
+        categoryName: await getCategoryNameForRanking(v.ranking),
+        data: await getRankingCardData(v.ranking.id),
+        isFeaturedFill: false,
+      }))
+    )),
+    ...(await Promise.all(
+      featuredFills.map(async (ranking) => ({
+        ranking,
+        categoryName: await getCategoryNameForRanking(ranking),
+        data: await getRankingCardData(ranking.id),
+        isFeaturedFill: true,
+      }))
+    )),
+  ];
+  // No real organic trending at all → the section is honestly labelled
+  // as Featured instead of Trending.
+  const trendingMode = picks.length === 0 ? "featured" : "trending";
 
   // Close Battles: tightest real top-2 support-credit race across the
   // most active rankings. Null → the module hides itself (never faked).
@@ -138,7 +164,7 @@ export default async function HomePage({
       </div>
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex flex-col gap-10 py-10 md:gap-12">
-          <TrendingSection cards={trendingCards} />
+          <TrendingSection cards={trendingCards} mode={trendingMode} />
           <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
           <ExploreRankings
             items={explore}

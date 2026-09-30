@@ -9,23 +9,45 @@ export interface TrendingCard {
   ranking: Ranking;
   categoryName: string | null;
   data: RankingCardData;
+  // True when this card is a Featured fallback fill, not real organic
+  // trending. Fill cards are never labelled as trending.
+  isFeaturedFill: boolean;
 }
 
-// "🔥 Trending in London" — top-3 rankings by real 7-day activity,
-// London-scoped preferred for the featured slot. First card is the
-// large featured one; the other two are standard visual cards.
-export default function TrendingSection({ cards }: { cards: TrendingCard[] }) {
+// Homepage top section. Always renders 3 cards: real organic trending
+// first, Featured fallback fills after. When there is no real organic
+// trending at all, the section is honestly labelled "Featured in
+// London" instead of "Trending in London". Card layout is identical in
+// both modes — only the heading and the featured-slot badge change.
+export default function TrendingSection({
+  cards,
+  mode,
+}: {
+  cards: TrendingCard[];
+  mode: "trending" | "featured";
+}) {
   if (cards.length === 0) return null;
   const [featured, ...rest] = cards;
+  const isFeaturedMode = mode === "featured";
   return (
-    <section aria-label="Trending in London">
+    <section aria-label={isFeaturedMode ? "Featured in London" : "Trending in London"}>
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-2 text-[22px] font-bold tracking-tight text-ink">
-            <span aria-hidden="true">🔥</span> Trending in London
+            {isFeaturedMode ? (
+              <>
+                <span aria-hidden="true">✨</span> Featured in London
+              </>
+            ) : (
+              <>
+                <span aria-hidden="true">🔥</span> Trending in London
+              </>
+            )}
           </h2>
           <p className="mt-1 text-sm text-subtle">
-            The rankings everyone is talking about right now.
+            {isFeaturedMode
+              ? "Handpicked rankings from London's fandom communities."
+              : "The rankings everyone is talking about right now."}
           </p>
         </div>
         <Link
@@ -80,7 +102,7 @@ function FeaturedRankingCard({
       <div className="relative">
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-[#ff4d6d] px-3 py-1 text-xs font-semibold text-white">
-            🔥 Trending
+            {card.isFeaturedFill ? "✨ Featured" : "🔥 Trending"}
           </span>
           <span className="text-xs font-medium text-white/80">
             📍 {location === "Global" ? "Global" : `${location}, United Kingdom`}
