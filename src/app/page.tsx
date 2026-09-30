@@ -20,6 +20,8 @@ import {
 } from "@/db/homepage";
 import {
   prioritizeForHomepage,
+  selectFeaturedThree,
+  selectExploreEight,
 } from "@/lib/homepageMerchandising";
 
 export default async function HomePage({
@@ -34,25 +36,14 @@ export default async function HomePage({
   // own public ranking, so no unfiltered lookup is ever needed.
   const velocity = await listVelocityRankings(8);
 
-  // "🔥 Trending in London": ACG-first merchandising (see
-  // homepageMerchandising.ts). The underlying velocity scores are never
-  // changed — we only re-prioritize which eligible rankings fill the
-  // three cards. Prefer London ACG for the featured slot; allow Global
-  // ACG to fill when London ACG is insufficient. Never use unrelated
-  // London content merely to fill the row.
+  // "🔥 Trending in London" / "✨ Featured in London": strict spec §2.
+  // When eligible content exists, the 3 cards MUST come from 3 different
+  // Tier-1 categories (Anime > Gaming > Manga > Cosplay priority).
+  // The underlying velocity scores are never changed — we only select
+  // which eligible rankings fill the three cards. Seed likes never
+  // trigger a trending slot; they only count toward displayed totals.
   const merchandised = await prioritizeForHomepage(velocity);
-  const isLondon = (v: (typeof velocity)[number]) =>
-    (v.ranking.city ?? "").trim().toLowerCase() === "london";
-  // Featured: best London ACG, else best ACG (any scope), else best London, else best overall.
-  const featuredPick =
-    merchandised.find(isLondon) ??
-    merchandised[0] ??
-    velocity.find(isLondon) ??
-    velocity[0];
-  const picks = [
-    ...(featuredPick ? [featuredPick] : []),
-    ...merchandised.filter((v) => v !== featuredPick),
-  ].slice(0, 3);
+  const picks = await selectFeaturedThree(merchandised);
   // The section always renders 3 cards: real organic trending first,
   // then Featured fallback (Anime > Gaming > Manga > Cosplay priority)
   // for the remaining slots. Seed likes never trigger a trending slot —
@@ -122,15 +113,27 @@ export default async function HomePage({
   }
 
   // Explore Rankings: filter state lives in the URL query params.
+  // Strict spec §3-§4: in the DEFAULT state (no user filters), the first
+  // 4 cards MUST be 1 Anime + 1 Gaming + 1 Manga + 1 Cosplay, and the
+  // first 8 MUST be predominantly ACG. User-selected filters override
+  // this policy entirely.
   const activeCategory = searchParams.category?.trim() ?? "";
   const activeCity = searchParams.city?.trim() ?? "";
   const activeSort = searchParams.sort === "newest" ? "newest" : "trending";
-  const explore = await listExploreRankings({
+  const isDefaultExplore =
+    !activeCategory && !activeCity && searchParams.sort !== "newest";
+  const exploreRaw = await listExploreRankings({
     categorySlug: activeCategory || undefined,
     city: activeCity || undefined,
     sort: activeSort,
-    limit: 4,
+    // Default state: fetch a large pool so selectExploreEight can ensure
+    // Tier-1 category coverage (Anime+Gaming+Manga+Cosplay). Filtered
+    // states use the normal limit (user intent overrides).
+    limit: isDefaultExplore ? 100 : 4,
   });
+  const explore = isDefaultExplore
+    ? await selectExploreEight(exploreRaw)
+    : exploreRaw;
 
   if (trendingCards.length === 0 && explore.length === 0) {
     return (
