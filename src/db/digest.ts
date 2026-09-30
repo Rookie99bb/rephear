@@ -1,4 +1,5 @@
 import { db } from "./client";
+import { authenticLikesClause } from "./visibility";
 
 export interface DigestRankingUpdate {
   rankingId: string;
@@ -47,7 +48,7 @@ async function rankingUpdatesForUser(userId: string, cutoff: string): Promise<Di
   const rows = (await db
     .prepare(
       `SELECT r.id AS ranking_id, r.title, r.city, r.country,
-        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id AND l.created_at > ?) AS new_likes,
+        (SELECT COUNT(*) FROM likes l WHERE l.ranking_id = r.id AND l.created_at > ? AND ${authenticLikesClause("l")}) AS new_likes,
         (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = r.id AND ct.created_at > ?) AS new_credits
        FROM rankings r
        WHERE r.is_hidden = 0 AND r.deleted_at IS NULL

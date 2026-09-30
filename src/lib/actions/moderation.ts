@@ -7,6 +7,7 @@ import {
   restoreRanking,
   setRankingHidden,
   findRankingById,
+  updateRankingTaxonomy,
 } from "@/db/rankings";
 import {
   softDeleteNominee,
@@ -16,6 +17,8 @@ import {
 import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
 import { getRequestContext } from "@/lib/requestContext";
 import { findUserById } from "@/db/users";
+import { findCategoryById } from "@/db/categories";
+import { findSubcategoryById } from "@/db/taxonomy";
 import {
   setReportStatus,
   setUserHidden,
@@ -84,8 +87,7 @@ export async function restoreRankingAction(
 export async function setRankingHiddenAction(
   rankingId: string,
   hidden: boolean
-): Promise<ModerationResult> {
-  const admin = await getCurrentAdmin();
+): Promise<ModerationResult> {  const admin = await getCurrentAdmin();
   if (!admin) return { error: "Forbidden." };
 
   const ranking = await findRankingById(rankingId);
@@ -223,5 +225,74 @@ export async function unhideUserAction(
   });
 
   revalidateUserModerationPaths(userId);
+  return {};
+}
+
+// Taxonomy v2 (2026-09-30): admin-only reassignment of a ranking's
+// category / subcategory / scope / tags. Validates that the category
+// and subcategory exist and that the subcategory belongs to the
+// category; a null categoryId clears both. Engagement data, nominees,
+// covers, and location are never touched here.
+export async function updateRankingTaxonomyAction(
+  rankingId: string,
+  params: {
+    categoryId: string | null;
+    subcategoryId: string | null;
+    scope: "global" | "country" | "city";
+    tags: string[];
+  }
+): Promise<ModerationResult> {
+  const admin = await getCurrentAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const ranking = await findRankingById(rankingId);
+  if (!ranking) return { error: "Ranking not found." };
+
+  let categoryId: string | null = null;
+  let subcategoryId: string | null = null;
+  if (params.categoryId) {
+    const category = await findCategoryById(params.categoryId);
+    if (!category) return { error: "Category not found." };
+    categoryId = category.id;
+    if (params.subcategoryId) {
+      const sub = await findSubcategoryById(params.subcategoryId);
+      if (!sub) return { error: "Subcategory not found." };
+      if (sub.categoryId !== category.id)
+        return { error: "Subcategory does not belong to that category." };
+      subcategoryId = sub.id;
+    }
+  }
+
+  const tags = Array.from(
+    new Set(
+      params.tags
+        .map((t) => t.trim().toLowerCase().replace(/\s+/g, "-"))
+        .filter((t) => t.length > 0 && t.length <= 40)
+    )
+  ).slice(0, 12);
+
+  await updateRankingTaxonomy(rankingId, {
+    categoryId,
+    subcategoryId,
+    scope: params.scope,
+    tags,
+  });
+  await recordAuditLog({
+    actorUserId: admin.id,
+    action: AUDIT_ACTIONS.RANKING_TAXONOMY_UPDATED,
+    targetType: "ranking",
+    targetId: rankingId,
+    details: {
+      title: ranking.title,
+      categoryId,
+      subcategoryId,
+      scope: params.scope,
+      tags,
+    },
+    ...getRequestContext(),
+  });
+
+  revalidateModerationPaths(rankingId);
+  revalidatePath("/admin/rankings");
   return {};
 }

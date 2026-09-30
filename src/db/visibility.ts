@@ -70,6 +70,14 @@ export function notSeedClause(userAlias: string): string {
   return seedAccountExclusion(userAlias);
 }
 
+// Public-metric guard for like aggregations: excludes the synthetic
+// cold-start like rows held by seed_community_* accounts. Every public
+// like total (leaderboards, Most Loved, discovery, snapshots, digests)
+// must apply this; admin-only stats intentionally keep the raw table.
+export function authenticLikesClause(likesAlias: string): string {
+  return seedAccountExclusion(likesAlias).replace(".id NOT LIKE", ".user_id NOT LIKE");
+}
+
 // Moderation hiding (users.is_hidden, added in Phase 2): hidden users
 // vanish from every identity-adjacent surface (supporter lists, taste
 // match sets, profile pages).

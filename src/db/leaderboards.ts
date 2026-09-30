@@ -1,7 +1,7 @@
 import { db } from "./client";
 import type { LeaderboardEntry } from "@/lib/types";
 import { toProfile, type ProfileRow } from "./profiles";
-import { seedAccountExclusion } from "./visibility";
+import { seedAccountExclusion, authenticLikesClause } from "./visibility";
 
 interface StatsRow extends ProfileRow {
   like_count: number;
@@ -25,7 +25,7 @@ async function getRankingStats(
   const rows = (await db
     .prepare(
       `SELECT p.*,
-(SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id) AS like_count,
+(SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND ${authenticLikesClause("l")}) AS like_count,
 (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
 FROM profiles p
 WHERE p.ranking_id = ? AND p.deleted_at IS NULL`
