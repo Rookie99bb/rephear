@@ -14,6 +14,10 @@
 //   D. Surfaces are independent.
 //   E. Manual-first: listRisingNow puts curated picks first (in admin
 //      order) and never duplicates them in the automatic fill.
+//   F. Explore surface: max 30 enforced (31 throws, 30 ok).
+//   G. Manual-first: listExploreRankings puts curated explore picks
+//      first (trending default view only); newest sort and filtered
+//      views ignore curation; clearing restores automatic order.
 import { ensureMigrated } from "../src/db/schema";
 import { db } from "../src/db/client";
 import { createRanking } from "../src/db/rankings";
@@ -26,7 +30,7 @@ import {
   getManualCuratedRankings,
   CURATION_SURFACES,
 } from "../src/db/curation";
-import { listRisingNow } from "../src/db/homepage";
+import { listRisingNow, listExploreRankings } from "../src/db/homepage";
 
 let failures = 0;
 function check(name: string, cond: boolean, detail = "") {
@@ -205,6 +209,78 @@ async function main() {
     JSON.stringify(afterIds) === JSON.stringify(baselineIds),
     `baseline=${baselineIds.join(",")} after=${afterIds.join(",")}`,
   );
+
+  console.log("F. Explore surface (max 30)");
+  check("empty by default (explore)", (await getManualCuration("explore")).length === 0);
+  check("explore max constant is 30", CURATION_SURFACES.explore.maxPicks === 30);
+  const manyIds: string[] = [];
+  for (let i = 0; i < 31; i++) {
+    manyIds.push((await makeRanking(`Curation Explore ${i}`)).id);
+  }
+  check(
+    "explore max 30 enforced",
+    await throws(() => setManualCuration("explore", manyIds)),
+  );
+  await setManualCuration("explore", manyIds.slice(0, 30));
+  check("explore exactly 30 ok", (await getManualCuration("explore")).length === 30);
+  const exploreResolved = await getManualCuratedRankings("explore");
+  check(
+    "explore resolves in admin order",
+    exploreResolved.length === 30 &&
+      exploreResolved[0].id === manyIds[0] &&
+      exploreResolved[29].id === manyIds[29],
+  );
+  await clearManualCuration("explore");
+
+  console.log("G. Manual-first in listExploreRankings");
+  // r4 already has organic likes from section E, so the automatic
+  // trending order ranks it first on its own. Curate r1 (zero
+  // activity) and assert manual-first with no duplication.
+  const exploreBaseline = (
+    await listExploreRankings({ sort: "trending", limit: 6 })
+  ).map((e) => e.ranking.id);
+  await setManualCuration("explore", [r1.id]);
+  const exploreRows = await listExploreRankings({ sort: "trending", limit: 6 });
+  const exploreIds = exploreRows.map((e) => e.ranking.id);
+  check(
+    "manual pick is first",
+    exploreIds.length > 0 && exploreIds[0] === r1.id,
+    exploreIds.join(","),
+  );
+  check(
+    "no duplicated rankings",
+    new Set(exploreIds).size === exploreIds.length,
+    exploreIds.join(","),
+  );
+  check(
+    "automatic fill follows in automatic order",
+    JSON.stringify(exploreIds) ===
+      JSON.stringify([r1.id, ...exploreBaseline.filter((id) => id !== r1.id)].slice(0, 6)),
+    `baseline=${exploreBaseline.join(",")} got=${exploreIds.join(",")}`,
+  );
+  await clearManualCuration("explore");
+  const exploreAfter = (
+    await listExploreRankings({ sort: "trending", limit: 6 })
+  ).map((e) => e.ranking.id);
+  check(
+    "no curation → automatic order unchanged",
+    JSON.stringify(exploreAfter) === JSON.stringify(exploreBaseline),
+    `baseline=${exploreBaseline.join(",")} after=${exploreAfter.join(",")}`,
+  );
+  // Newest sort must ignore curation entirely.
+  const newestBaseline = (
+    await listExploreRankings({ sort: "newest", limit: 6 })
+  ).map((e) => e.ranking.id);
+  await setManualCuration("explore", [r1.id]);
+  const newestCurated = (
+    await listExploreRankings({ sort: "newest", limit: 6 })
+  ).map((e) => e.ranking.id);
+  check(
+    "newest sort ignores curation",
+    JSON.stringify(newestCurated) === JSON.stringify(newestBaseline),
+    `baseline=${newestBaseline.join(",")} curated=${newestCurated.join(",")}`,
+  );
+  await clearManualCuration("explore");
 
   console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURES`);
   process.exit(failures === 0 ? 0 : 1);

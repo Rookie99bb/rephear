@@ -2,24 +2,26 @@ import { db } from "./client";
 import { findRankingById } from "./rankings";
 import type { Ranking } from "@/lib/types";
 
-// Admin homepage curation: manual ranking picks for the two homepage
+// Admin homepage curation: manual ranking picks for the homepage
 // surfaces. Manual-first semantics: curated picks occupy the first
 // slots in position order; the existing automatic logic fills whatever
-// slots remain. The two surfaces are fully independent of each other.
+// slots remain. All surfaces are fully independent of each other.
 // Public UI is untouched — curation only swaps the data source.
 //
 // Surfaces:
-//   trending — "Trending in London", up to 3 manual picks
-//   rising   — "Rising Now",       up to 6 manual picks
+//   trending — "Trending in London",        up to 3 manual picks
+//   rising   — "Rising Now",                up to 6 manual picks
+//   explore  — "Explore Rankings Trending", up to 30 manual picks
 export const CURATION_SURFACES = {
   trending: { maxPicks: 3, label: "Trending in London" },
   rising: { maxPicks: 6, label: "Rising Now" },
+  explore: { maxPicks: 30, label: "Explore Rankings Trending" },
 } as const;
 
 export type CurationSurface = keyof typeof CURATION_SURFACES;
 
 export function isCurationSurface(value: string): value is CurationSurface {
-  return value === "trending" || value === "rising";
+  return value in CURATION_SURFACES;
 }
 
 export interface ManualPick {

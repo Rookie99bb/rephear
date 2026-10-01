@@ -2,12 +2,21 @@ import Link from "next/link";
 import { getManualCuration, CURATION_SURFACES, type CurationSurface } from "@/db/curation";
 import { findRankingById, listAllRankingsForAdmin } from "@/db/rankings";
 
-// Admin homepage curation: manually pin rankings onto the two homepage
+// Admin homepage curation: manually pin rankings onto the homepage
 // surfaces. Manual picks are manual-first — they occupy the first slots
 // in the saved order, and the automatic logic fills whatever slots
 // remain (never duplicating a curated ranking). Clearing a surface
 // hands it fully back to the automatic logic. Public UI is untouched.
-const SURFACE_ORDER: CurationSurface[] = ["trending", "rising"];
+const SURFACE_ORDER: CurationSurface[] = ["trending", "rising", "explore"];
+
+const SURFACE_DESCRIPTIONS: Record<CurationSurface, string> = {
+  trending:
+    "The “🔥 Trending in London” cards. Empty slots are filled by real organic trending, then Featured fallback.",
+  rising:
+    "The “🚀 Rising Now” rows. Empty slots are filled by the automatic velocity / cold-start logic.",
+  explore:
+    "The “Explore Rankings” grid when sorted by Trending (default view). Curated picks come first; the automatic trending order fills the rest. Category / city filters and the Newest sort always ignore curation.",
+};
 
 function rankingLabel(r: { title: string; city: string; country: string; isGlobal: boolean }) {
   const place = r.isGlobal ? "Global" : [r.city, r.country].filter(Boolean).join(", ");
@@ -19,14 +28,16 @@ export default async function AdminCurationPage({
 }: {
   searchParams: { saved?: string; error?: string };
 }) {
-  const [trendingPicks, risingPicks, allRankings] = await Promise.all([
+  const [trendingPicks, risingPicks, explorePicks, allRankings] = await Promise.all([
     getManualCuration("trending"),
     getManualCuration("rising"),
+    getManualCuration("explore"),
     listAllRankingsForAdmin(),
   ]);
   const picksBySurface: Record<CurationSurface, typeof trendingPicks> = {
     trending: trendingPicks,
     rising: risingPicks,
+    explore: explorePicks,
   };
   // Only public rankings can be curated (setManualCuration enforces this
   // too — the dropdown just doesn't offer the choice).
@@ -37,7 +48,7 @@ export default async function AdminCurationPage({
   for (const r of publicRankings) titles.set(r.id, rankingLabel(r));
   // Picks whose ranking has gone non-public since being saved are shown
   // as-is (raw admin view); the homepage silently skips them.
-  for (const picks of [trendingPicks, risingPicks]) {
+  for (const picks of [trendingPicks, risingPicks, explorePicks]) {
     for (const p of picks) {
       if (!titles.has(p.rankingId)) {
         const r = await findRankingById(p.rankingId);
@@ -55,7 +66,7 @@ export default async function AdminCurationPage({
         <p className="max-w-2xl text-sm text-subtle">
           Manually pin rankings onto the homepage. Curated picks always come
           first, in the order saved below; the automatic ranking fills any
-          remaining slots. The two sections are independent. Clearing a
+          remaining slots. All sections are independent. Clearing a
           section hands it fully back to the automatic logic.
         </p>
         {searchParams.saved !== undefined && (
@@ -88,9 +99,7 @@ export default async function AdminCurationPage({
               </span>
             </div>
             <p className="mb-4 text-sm text-subtle">
-              {surface === "trending"
-                ? "The “🔥 Trending in London” cards. Empty slots are filled by real organic trending, then Featured fallback."
-                : "The “🚀 Rising Now” rows. Empty slots are filled by the automatic velocity / cold-start logic."}
+              {SURFACE_DESCRIPTIONS[surface]}
             </p>
             <form action="/api/admin/curation" method="POST" className="flex flex-col gap-3">
               <input type="hidden" name="surface" value={surface} />

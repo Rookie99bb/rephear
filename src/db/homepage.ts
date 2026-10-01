@@ -282,6 +282,24 @@ export async function listExploreRankings(
   // (category/city filter, newest sort) always overrides — we never
   // re-rank filtered results.
   const isDefaultView = !q.categorySlug && !q.city && q.sort !== "newest";
+  // Admin curation (Explore Rankings Trending, up to 30 manual picks):
+  // in the default trending view, curated picks come first in admin
+  // order and the automatic logic fills the rest. Explicit user intent
+  // (category/city filter, newest sort) always overrides — curation
+  // never re-ranks filtered results. Public UI untouched.
+  let manualOrder = "";
+  const manualParams: (string | number)[] = [];
+  if (q.sort === "trending" && isDefaultView) {
+    const manualIds = (await getManualCuratedRankings("explore")).map(
+      (r) => r.id,
+    );
+    if (manualIds.length > 0) {
+      manualOrder = `CASE r.id ${manualIds
+        .map((_, i) => `WHEN ? THEN ${i}`)
+        .join(" ")} ELSE ${manualIds.length} END, `;
+      manualParams.push(...manualIds);
+    }
+  }
   const orderBy =
     q.sort === "newest"
       ? "r.created_at DESC"
@@ -304,10 +322,10 @@ export async function listExploreRankings(
        FROM rankings r
        LEFT JOIN categories c ON c.id = r.category_id
        WHERE ${where.join(" AND ")}
-       ORDER BY ${orderBy}
+       ORDER BY ${manualOrder}${orderBy}
        LIMIT ?`
     )
-    .all(...params, q.limit)) as unknown as {
+    .all(...params, ...manualParams, q.limit)) as unknown as {
       id: string;
       title: string;
       country: string;
