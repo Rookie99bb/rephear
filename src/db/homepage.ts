@@ -17,6 +17,7 @@ const PUBLIC_WHERE = "is_hidden = 0 AND deleted_at IS NULL AND COALESCE(is_archi
 
 interface StatsRow extends ProfileRow {
   like_count: number;
+  organic_like_count: number;
   reputation_credits: number;
 }
 
@@ -28,14 +29,17 @@ import { toRanking as rowToRanking, type RankingRow } from "./rankings";
 export interface RankingCardData {
   nomineeCount: number;
   totalLikes: number;
+  /** Real organic likes only (like_source = 'organic'). Never seeded. */
+  organicLikes: number;
   totalCredits: number;
   // Top nominees by likes, for the avatar strip and the cover photo.
   topNominees: Profile[];
   topLikeCounts: number[];
 }
 
-// One query per ranking: nominee count, total likes, total credits and
-// the top-5 nominees by likes (avatar strip + cover photo source).
+// One query per ranking: nominee count, total likes, organic likes,
+// total credits and the top-5 nominees by likes (avatar strip + cover
+// photo source).
 export async function getRankingCardData(
   rankingId: string
 ): Promise<RankingCardData> {
@@ -43,19 +47,96 @@ export async function getRankingCardData(
     .prepare(
       `SELECT p.*,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id) AS like_count,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = ? AND l.profile_id = p.id AND l.like_source = 'organic') AS organic_like_count,
          (SELECT COALESCE(SUM(ct.credits), 0) FROM credit_transactions ct WHERE ct.ranking_id = ? AND ct.profile_id = p.id) AS reputation_credits
        FROM profiles p
        WHERE p.ranking_id = ? AND p.deleted_at IS NULL
        ORDER BY like_count DESC, p.created_at ASC`
     )
-    .all(rankingId, rankingId, rankingId)) as unknown as StatsRow[];
+    .all(rankingId, rankingId, rankingId, rankingId)) as unknown as StatsRow[];
   return {
     nomineeCount: rows.length,
     totalLikes: rows.reduce((s, r) => s + r.like_count, 0),
+    organicLikes: rows.reduce((s, r) => s + r.organic_like_count, 0),
     totalCredits: rows.reduce((s, r) => s + r.reputation_credits, 0),
     topNominees: rows.slice(0, 5).map((r) => toProfile(r)),
     topLikeCounts: rows.slice(0, 5).map((r) => r.like_count),
   };
+}
+
+// Bulk card stats for browse grids (the /rankings "all" grid renders
+// hundreds of cards — one query beats hundreds of getRankingCardData
+// calls). Same numbers, same public-read convention. Map key = ranking
+// id; rankings with no nominees still get a row (zeroes).
+export interface RankingBrowseStat {
+  rankingId: string;
+  nomineeCount: number;
+  /** Combined likes (seed + organic): the public engagement number. */
+  heat: number;
+  /** Real organic likes only. */
+  organicLikes: number;
+  topPhotoUrl: string;
+  topNomineeName: string;
+  topAvatarColor: string;
+}
+
+export async function getRankingsBrowseStats(
+  rankingIds: string[],
+): Promise<Map<string, RankingBrowseStat>> {
+  const out = new Map<string, RankingBrowseStat>();
+  if (rankingIds.length === 0) return out;
+  const placeholders = rankingIds.map(() => "?").join(", ");
+  const rows = (await db
+    .prepare(
+      `SELECT r.id AS ranking_id,
+         (SELECT COUNT(*) FROM profiles p WHERE p.ranking_id = r.id AND p.deleted_at IS NULL) AS nominee_count,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS heat,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id AND l.like_source = 'organic') AS organic_likes
+       FROM rankings r
+       WHERE r.id IN (${placeholders})`,
+    )
+    .all(...rankingIds)) as unknown as {
+    ranking_id: string;
+    nominee_count: number;
+    heat: number;
+    organic_likes: number;
+  }[];
+  // Top nominee per ranking (cover fallback + avatar strip): the
+  // highest-liked live profile, ties broken by earliest creation.
+  const tops = (await db
+    .prepare(
+      `SELECT ranking_id, photo_url, name, avatar_color FROM (
+         SELECT p.ranking_id AS ranking_id, p.photo_url AS photo_url,
+                p.name AS name, p.avatar_color AS avatar_color,
+                ROW_NUMBER() OVER (
+                  PARTITION BY p.ranking_id
+                  ORDER BY (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.profile_id = p.id) DESC,
+                           p.created_at ASC
+                ) AS rn
+         FROM profiles p
+         WHERE p.ranking_id IN (${placeholders}) AND p.deleted_at IS NULL
+       ) WHERE rn = 1`,
+    )
+    .all(...rankingIds)) as unknown as {
+    ranking_id: string;
+    photo_url: string | null;
+    name: string;
+    avatar_color: string | null;
+  }[];
+  const topByRanking = new Map(tops.map((t) => [t.ranking_id, t]));
+  for (const row of rows) {
+    const top = topByRanking.get(row.ranking_id);
+    out.set(row.ranking_id, {
+      rankingId: row.ranking_id,
+      nomineeCount: row.nominee_count,
+      heat: row.heat,
+      organicLikes: row.organic_likes,
+      topPhotoUrl: top?.photo_url ?? "",
+      topNomineeName: top?.name ?? "",
+      topAvatarColor: top?.avatar_color ?? "",
+    });
+  }
+  return out;
 }
 
 export async function getCategoryNameForRanking(

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import HeroDiscovery from "@/components/homepage/HeroDiscovery";
+import GlobalDiscoveryHero from "@/components/GlobalDiscoveryHero";
 import TrendingSection, {
   type TrendingCard,
 } from "@/components/homepage/TrendingSection";
@@ -192,7 +192,8 @@ export default async function HomePage({
     // overflow-x: clip so the scrollbar width never causes sideways scroll.
     <div className="relative left-1/2 w-screen -translate-x-1/2">
       <div className="-mt-10">
-        <HeroDiscovery categories={categories} />
+        {/* Site-wide permanent hero, full variant on the homepage. */}
+        <GlobalDiscoveryHero variant="full" categories={categories} />
       </div>
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex flex-col gap-10 py-10 md:gap-12">

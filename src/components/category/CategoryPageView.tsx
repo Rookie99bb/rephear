@@ -1,8 +1,9 @@
 import Link from "next/link";
-import CategoryHero from "./CategoryHero";
+import FollowButton from "@/components/FollowButton";
 import CategoryFilterChips from "./CategoryFilterChips";
 import RankingCoverCard from "./RankingCoverCard";
 import {
+  formatCompact,
   pickTrending,
   type CategoryRankingStat,
   type SubcategoryWithCount,
@@ -67,20 +68,40 @@ export default function CategoryPageView({
   const viewAllHref = `/rankings?category=${encodeURIComponent(category.slug)}&sub=all`;
 
   return (
-    <div className="-mt-10">
-      <div className="mx-[calc((100%-min(1280px,calc(100vw-32px)))/2)] w-[min(1280px,calc(100vw-32px))]">
-        <CategoryHero
-          category={category}
-          stats={{
-            rankingCount: stats.length,
-            totalVotes,
-            totalNominees,
-            location,
-          }}
-          following={following}
-          loggedIn={loggedIn}
-        />
-
+    <div className="mx-[calc((100%-min(1280px,calc(100vw-32px)))/2)] w-[min(1280px,calc(100vw-32px))]">
+      {/* Slim category header. The site-wide GlobalDiscoveryHero (rendered
+          by the parent page) owns the visual hero slot now; everything the
+          old CategoryHero carried — breadcrumb, title, follow, description
+          and honest aggregate stats — lives on in this compact header. */}
+      <div className="pt-6">
+        <Link
+          href="/rankings"
+          className="text-sm font-medium text-ink hover:opacity-80"
+        >
+          ← All rankings
+        </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
+            {category.name}
+          </h1>
+          <FollowButton
+            targetType="category"
+            targetId={category.id}
+            targetName={category.name}
+            initialFollowing={following}
+            loggedIn={loggedIn}
+          />
+        </div>
+        {category.description ? (
+          <p className="mt-2 max-w-2xl text-sm text-subtle">
+            {category.description}
+          </p>
+        ) : null}
+        <p className="mt-2 text-[13px] text-subtle">
+          {stats.length} rankings · {formatCompact(totalVotes)} heat ·{" "}
+          {totalNominees} nominees · {location}
+        </p>
+      </div>
         {/* Search + Create Ranking on ONE row */}
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <form action="/rankings" method="GET" className="relative flex-1">
@@ -190,7 +211,6 @@ export default function CategoryPageView({
             )}
           </section>
         )}
-      </div>
     </div>
   );
 }

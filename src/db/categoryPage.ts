@@ -18,8 +18,10 @@ const PUBLIC_WHERE =
 
 export interface CategoryRankingStat {
   ranking: Ranking;
-  /** Displayed votes: seed + organic combined. */
+  /** Displayed votes: seed + organic combined. Shown as 🔥 heat. */
   totalLikes: number;
+  /** Real organic likes only. Shown as ❤️ likes when > 0. */
+  organicLikes: number;
   nomineeCount: number;
   /** Organic-only 7-day velocity (likes7d + credits7d); drives Trending. */
   velocity: number;
@@ -30,6 +32,7 @@ export interface CategoryRankingStat {
 
 interface StatRow extends RankingRow {
   total_likes: number;
+  organic_likes: number;
   nominee_count: number;
   likes7d: number;
   credits7d: number;
@@ -44,6 +47,7 @@ export async function listCategoryRankingsWithStats(
     .prepare(
       `SELECT r.*,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id) AS total_likes,
+         (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = r.id AND l.like_source = 'organic') AS organic_likes,
          (SELECT COUNT(*) FROM profiles p WHERE p.ranking_id = r.id AND p.deleted_at IS NULL) AS nominee_count,
          (SELECT COALESCE(SUM(l.count), 0) FROM likes l
             WHERE l.ranking_id = r.id AND l.created_at >= datetime('now', '-7 days')
@@ -107,6 +111,7 @@ export async function listCategoryRankingsWithStats(
     return {
       ranking: rowToRanking(r),
       totalLikes: r.total_likes,
+      organicLikes: r.organic_likes,
       nomineeCount: r.nominee_count,
       velocity: r.likes7d + r.credits7d,
       topNomineeName: top?.name ?? "",

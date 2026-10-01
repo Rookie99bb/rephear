@@ -7,6 +7,8 @@ import { shareCountsForUser } from "@/db/shares";
 import { getCurrentUser } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import RankingCoverHero from "@/components/RankingCoverHero";
+import GlobalDiscoveryHero from "@/components/GlobalDiscoveryHero";
+import { listCategories, findCategoryById } from "@/db/categories";
 import {
   getRankingLocationLabel,
   getRankingLocationPhrase,
@@ -104,8 +106,26 @@ getTop3Challengers(ranking.id),
 getCommunityStory(ranking.id),
 ]);
 
+// Site-wide discovery hero (compact). The active entry follows the
+// ranking's real category — never guessed from the URL.
+const [heroCategories, heroCategory] = await Promise.all([
+listCategories(),
+ranking.categoryId ? findCategoryById(ranking.categoryId) : null,
+]);
+const heroActiveSlug = heroCategory?.slug ?? undefined;
+
 return (
 <div>
+<div className="relative left-1/2 w-screen -translate-x-1/2">
+<div className="-mt-10">
+<GlobalDiscoveryHero
+variant="compact"
+categories={heroCategories}
+activeSlug={heroActiveSlug}
+/>
+</div>
+</div>
+<div className="pt-6">
 <Suspense fallback={null}>
 <CheckoutBanner />
 </Suspense>
@@ -180,6 +200,7 @@ totalBackers={community.totalBackers}
 milestones={community.milestones}
 challengers={challengers}
 />
+</div>
 </div>
 );
 }

@@ -4,15 +4,27 @@ import { listAllRankings, searchRankings } from "@/db/rankings";
 import { findCategoryBySlug, listCategories } from "@/db/categories";
 import { getCurrentUser } from "@/lib/session";
 import { isFollowing } from "@/db/follows";
-import RankingCard from "@/components/RankingCard";
-import DiscoverySections from "@/components/DiscoverySections";
 import NotificationBell from "@/components/NotificationBell";
 import CategoryPageView from "@/components/category/CategoryPageView";
+import GlobalDiscoveryHero from "@/components/GlobalDiscoveryHero";
+import RankingImageCard from "@/components/rankings/RankingImageCard";
+import FeaturedRankingCard from "@/components/rankings/FeaturedRankingCard";
+import CompactRankingRow from "@/components/rankings/CompactRankingRow";
 import {
   listCategoryRankingsWithStats,
   listSubcategoriesWithCounts,
 } from "@/db/categoryPage";
-import type { Ranking } from "@/lib/types";
+import {
+  getCategoryNameForRanking,
+  getRankingCardData,
+  getRankingsBrowseStats,
+  listExploreRankings,
+  listRisingNow,
+  type RankingBrowseStat,
+  type RankingCardData,
+} from "@/db/homepage";
+import { getNewRankings } from "@/db/discovery";
+import type { Category, Ranking } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Rankings",
@@ -21,12 +33,91 @@ export const metadata: Metadata = {
   alternates: { canonical: "/rankings" },
 };
 
-// London-only MVP: this page lists every ranking directly — no region
-// picker, no per-account city default, no directory views. A search
-// (?q=) filters by title/description and takes priority. A category
-// (?category=<slug>, linked from homepage category cards) renders the
-// redesigned visual category page (CategoryPageView); an optional
-// ?sub=<subcategory-slug|all> filters it further.
+// Full-bleed breakout: the layout's <main> is a centred max-w-5xl
+// container; the hero and the card sections need the full viewport width
+// (reference is 1280px). Standard centred-container breakout — spans
+// exactly the viewport, and body has overflow-x: clip so the scrollbar
+// width never causes sideways scroll.
+function FullBleed({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative left-1/2 w-screen -translate-x-1/2">
+      {children}
+    </div>
+  );
+}
+
+function toBrowseStat(
+  rankingId: string,
+  data: RankingCardData,
+): RankingBrowseStat {
+  const top = data.topNominees[0];
+  return {
+    rankingId,
+    nomineeCount: data.nomineeCount,
+    heat: data.totalLikes,
+    organicLikes: data.organicLikes,
+    topPhotoUrl: top?.photoUrl ?? "",
+    topNomineeName: top?.name ?? "",
+    topAvatarColor: top?.avatarColor ?? "",
+  };
+}
+
+function cardProps(
+  ranking: Ranking,
+  stat: RankingBrowseStat | undefined,
+  catById: Map<string, Category>,
+) {
+  const cat = ranking.categoryId ? catById.get(ranking.categoryId) : undefined;
+  return {
+    ranking,
+    categoryName: cat?.name ?? null,
+    categorySlug: cat?.slug ?? null,
+    nomineeCount: stat?.nomineeCount ?? 0,
+    heat: stat?.heat ?? 0,
+    organicLikes: stat?.organicLikes ?? 0,
+    topPhotoUrl: stat?.topPhotoUrl ?? "",
+    topNomineeName: stat?.topNomineeName ?? "",
+    topAvatarColor: stat?.topAvatarColor ?? "",
+  };
+}
+
+function SectionHeading({
+  icon,
+  title,
+  blurb,
+  href,
+}: {
+  icon: string;
+  title: string;
+  blurb?: string;
+  href?: string;
+}) {
+  return (
+    <div className="mb-4 flex items-end justify-between gap-4">
+      <div>
+        <h2 className="flex items-center gap-2 text-[22px] font-bold tracking-tight text-ink">
+          <span aria-hidden="true">{icon}</span> {title}
+        </h2>
+        {blurb ? <p className="mt-1 text-sm text-subtle">{blurb}</p> : null}
+      </div>
+      {href ? (
+        <Link
+          href={href}
+          className="shrink-0 text-sm font-medium text-ink hover:text-brand-ink"
+        >
+          View all <span aria-hidden="true">→</span>
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+// A search (?q=) filters by title/description and takes priority. A
+// category (?category=<slug>, linked from the hero category entries)
+// renders the visual category page (CategoryPageView); an optional
+// ?sub=<subcategory-slug|all> filters it further. The default view is
+// the merchandised browse page: hero -> title/search/filter -> Trending
+// -> Rising -> New -> by-category -> all.
 export default async function BrowseRankingsPage({
   searchParams,
 }: {
@@ -35,33 +126,22 @@ export default async function BrowseRankingsPage({
   const query = searchParams.q?.trim();
   const categorySlug = searchParams.category?.trim();
   const subParam = searchParams.sub?.trim() || null;
-  const rankings: Ranking[] = query
-    ? await searchRankings(query)
-    : await listAllRankings();
+  const categories = await listCategories();
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  const user = await getCurrentUser();
 
-  // Group the flat Ranking list by parent Category, if any of it has
-  // one. Most rankings are uncategorised, in which case categoryGroups
-  // is simply empty and rendering falls straight through to the flat
-  // grid, unchanged. Skipped for search results, where grouping by
-  // category isn't meaningful.
-  let categoryGroups: { id: string; name: string; rankings: Ranking[] }[] = [];
-  let uncategorizedRankings: Ranking[] = rankings;
-  // Homepage category cards link here with ?category=<slug>: render the
-  // redesigned visual category page. A search (?q=) narrows to matching
-  // rankings inside the category instead of dropping the category view.
+  // ---- Category view -------------------------------------------------
   const activeCategory = categorySlug
     ? await findCategoryBySlug(categorySlug)
     : null;
-  // Phase 3 (§19): category-follow state for the signed-in user.
-  const user = await getCurrentUser();
-  const followingCategory =
-    user && activeCategory
-      ? await isFollowing(user.id, "category", activeCategory.id)
-      : false;
-
   if (activeCategory) {
+    const rankings: Ranking[] = query
+      ? await searchRankings(query)
+      : await listAllRankings();
     const inCategoryIds = new Set(
-      rankings.filter((r) => r.categoryId === activeCategory.id).map((r) => r.id)
+      rankings
+        .filter((r) => r.categoryId === activeCategory.id)
+        .map((r) => r.id),
     );
     const allStats = await listCategoryRankingsWithStats(activeCategory.id);
     const stats = allStats.filter((s) => inCategoryIds.has(s.ranking.id));
@@ -70,137 +150,331 @@ export default async function BrowseRankingsPage({
       subParam && subParam !== "all"
         ? (subcategories.find((s) => s.slug === subParam)?.name ?? null)
         : null;
+    const followingCategory = user
+      ? await isFollowing(user.id, "category", activeCategory.id)
+      : false;
     return (
-      <CategoryPageView
-        category={activeCategory}
-        stats={stats}
-        subcategories={subcategories}
-        activeSub={subParam}
-        activeSubName={activeSubName}
-        query={query ?? null}
-        following={followingCategory}
-        loggedIn={!!user}
-      />
+      <>
+        <FullBleed>
+          <div className="-mt-10">
+            <GlobalDiscoveryHero
+              variant="compact"
+              categories={categories}
+              activeSlug={activeCategory.slug}
+            />
+          </div>
+        </FullBleed>
+        <CategoryPageView
+          category={activeCategory}
+          stats={stats}
+          subcategories={subcategories}
+          activeSub={subParam}
+          activeSubName={activeSubName}
+          query={query ?? null}
+          following={followingCategory}
+          loggedIn={!!user}
+        />
+      </>
     );
   }
-  if (!query && rankings.length > 0 && !activeCategory) {
-    const categories = await listCategories();
-    const rankingsByCategory = new Map<string, Ranking[]>();
-    const leftover: Ranking[] = [];
-    for (const r of rankings) {
-      if (r.categoryId) {
-        const arr = rankingsByCategory.get(r.categoryId) ?? [];
-        arr.push(r);
-        rankingsByCategory.set(r.categoryId, arr);
-      } else {
-        leftover.push(r);
-      }
-    }
-    categoryGroups = categories
-      .filter((c) => rankingsByCategory.has(c.id))
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        rankings: rankingsByCategory.get(c.id)!,
-      }));
-    uncategorizedRankings = leftover;
-  }
 
-  return (
-    <div>
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ink">
+  // ---- Search view ---------------------------------------------------
+  if (query) {
+    const rankings = await searchRankings(query);
+    const stats = await getRankingsBrowseStats(rankings.map((r) => r.id));
+    return (
+      <>
+        <FullBleed>
+          <div className="-mt-10">
+            <GlobalDiscoveryHero variant="compact" categories={categories} />
+          </div>
+        </FullBleed>
+        <div className="pt-8">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">
             Rankings
           </h1>
-          {query ? (
-            <p className="mt-1 text-sm text-subtle">
-              Search results for &ldquo;{query}&rdquo;
-              {" — "}
-              <Link href="/rankings" className="underline">
-                clear search
-              </Link>
-            </p>
-          ) : null}
-        </div>
-        <Link
-          href="/rankings/new"
-          className="shrink-0 rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          Create Ranking
-        </Link>
-        {/* Phase 3: notification bell (global header is owned by the
-            in-flight homepage redesign; mounted here + /u/[id] for now). */}
-        <NotificationBell />
-      </div>
-
-      <form action="/rankings" method="GET" className="mb-6">
-        <input
-          type="search"
-          name="q"
-          defaultValue={query ?? ""}
-          placeholder="Search Rankings by title or description…"
-          className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-ink"
-        />
-      </form>
-
-      {/* Phase 3 (§22): discovery surfaces on the default browse view
-          only (not search views). */}
-      {!query && <DiscoverySections />}
-
-      {rankings.length === 0 ? (
-        query ? (
-          <p className="text-sm text-subtle">
-            No Rankings match &ldquo;{query}&rdquo;.
-          </p>
-        ) : (
-          <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
-            <p className="text-sm text-subtle">
-              No rankings here yet. Be the first to start recognition in
-              your community.
-            </p>
-            <Link
-              href="/rankings/new"
-              className="mt-4 inline-block rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Create the first ranking
+          <p className="mt-1 text-sm text-subtle">
+            Search results for &ldquo;{query}&rdquo;
+            {" — "}
+            <Link href="/rankings" className="underline">
+              clear search
             </Link>
-          </div>
-        )
-      ) : categoryGroups.length > 0 ? (
-        <div className="flex flex-col gap-8">
-          {categoryGroups.map((group) => (
-            <div key={group.id}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
-                {group.name}
-              </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {group.rankings.map((r) => (
-                  <RankingCard key={r.id} ranking={r} />
-                ))}
-              </div>
-            </div>
-          ))}
-          {uncategorizedRankings.length > 0 && (
-            <div>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
-                All Rankings
-              </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {uncategorizedRankings.map((r) => (
-                  <RankingCard key={r.id} ranking={r} />
-                ))}
-              </div>
+          </p>
+          {rankings.length === 0 ? (
+            <p className="mt-6 text-sm text-subtle">
+              No Rankings match &ldquo;{query}&rdquo;.
+            </p>
+          ) : (
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {rankings.map((r, i) => (
+                <RankingImageCard
+                  key={r.id}
+                  {...cardProps(r, stats.get(r.id), catById)}
+                  eager={i < 3}
+                />
+              ))}
             </div>
           )}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {rankings.map((r) => (
-            <RankingCard key={r.id} ranking={r} />
-          ))}
+      </>
+    );
+  }
+
+  // ---- Default browse view -------------------------------------------
+  const rankings = await listAllRankings();
+  const [trending, risingRows, fresh] = await Promise.all([
+    listExploreRankings({ sort: "trending", limit: 3 }),
+    listRisingNow(6),
+    getNewRankings(6),
+  ]);
+  const [trendingCards, risingCards, freshCards] = await Promise.all([
+    Promise.all(
+      trending.map(async (t) => {
+        const data = await getRankingCardData(t.ranking.id);
+        return {
+          item: t,
+          stat: toBrowseStat(t.ranking.id, data),
+          topNominees: data.topNominees,
+        };
+      }),
+    ),
+    Promise.all(
+      risingRows.map(async (row) => ({
+        ranking: row.ranking,
+        categoryName: await getCategoryNameForRanking(row.ranking),
+        stat: toBrowseStat(
+          row.ranking.id,
+          await getRankingCardData(row.ranking.id),
+        ),
+      })),
+    ),
+    Promise.all(
+      fresh.map(async (r) => ({
+        ranking: r,
+        categoryName: await getCategoryNameForRanking(r),
+        stat: toBrowseStat(r.id, await getRankingCardData(r.id)),
+      })),
+    ),
+  ]);
+
+  // Group the flat ranking list by parent category for the
+  // "browse by category" section. The final "All rankings" grid always
+  // shows the complete public list (spec section 8: 全部榜单).
+  const byCategoryId = new Map<string, Ranking[]>();
+  for (const r of rankings) {
+    if (r.categoryId && catById.has(r.categoryId)) {
+      const arr = byCategoryId.get(r.categoryId) ?? [];
+      arr.push(r);
+      byCategoryId.set(r.categoryId, arr);
+    }
+  }
+  const categoryGroups = categories
+    .filter((c) => byCategoryId.has(c.id))
+    .map((c) => ({ category: c, rankings: byCategoryId.get(c.id)! }));
+  const bulkStats = await getRankingsBrowseStats(rankings.map((r) => r.id));
+
+  return (
+    <>
+      <FullBleed>
+        <div className="-mt-10">
+          {/* /rankings itself: the "More" entry is the active one. */}
+          <GlobalDiscoveryHero
+            variant="compact"
+            categories={categories}
+            activeSlug={null}
+          />
         </div>
-      )}
-    </div>
+      </FullBleed>
+      <FullBleed>
+        <div className="mx-auto max-w-[1280px] px-4 pt-8 sm:px-6">
+          <div className="flex flex-col gap-10 pb-4 md:gap-12">
+            <div>
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-ink">
+                    Rankings
+                  </h1>
+                  <p className="mt-1 text-sm text-subtle">
+                    Discover public reputation rankings — who&apos;s leading
+                    in London and beyond.
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <NotificationBell />
+                  <Link
+                    href="/rankings/new"
+                    className="rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                  >
+                    Create Ranking
+                  </Link>
+                </div>
+              </div>
+
+              <form action="/rankings" method="GET" className="mb-5">
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Search Rankings by title or description…"
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-ink"
+                  aria-label="Search rankings"
+                />
+              </form>
+
+              {/* Category filter: horizontal scroll on mobile, wrap on desktop. */}
+              <nav
+                aria-label="Filter by category"
+                className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap"
+              >
+                {categories.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/rankings?category=${encodeURIComponent(c.slug)}`}
+                    className="shrink-0 rounded-full border border-border bg-white px-3.5 py-1.5 text-[13px] font-medium text-ink shadow-sm transition hover:border-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+
+            {trendingCards.length > 0 && (
+              <section aria-label="Trending rankings">
+                <SectionHeading
+                  icon="🔥"
+                  title="Trending"
+                  blurb="The rankings everyone is talking about right now."
+                />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {trendingCards.map(({ item, stat, topNominees }, i) => (
+                    <FeaturedRankingCard
+                      key={item.ranking.id}
+                      ranking={item.ranking}
+                      categoryName={item.categoryName}
+                      nomineeCount={stat.nomineeCount}
+                      heat={stat.heat}
+                      organicLikes={stat.organicLikes}
+                      topNominees={topNominees}
+                      eager={i === 0}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {risingCards.length > 0 && (
+              <section aria-label="Rising this week">
+                <SectionHeading
+                  icon="🚀"
+                  title="Rising This Week"
+                  blurb="Rankings with the most likes and backing activity in the last 7 days."
+                />
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {risingCards.map(({ ranking, categoryName, stat }, i) => (
+                    <CompactRankingRow
+                      key={ranking.id}
+                      ranking={ranking}
+                      categoryName={categoryName}
+                      nomineeCount={stat.nomineeCount}
+                      heat={stat.heat}
+                      organicLikes={stat.organicLikes}
+                      topPhotoUrl={stat.topPhotoUrl}
+                      topNomineeName={stat.topNomineeName}
+                      topAvatarColor={stat.topAvatarColor}
+                      eager={i < 2}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {freshCards.length > 0 && (
+              <section aria-label="New to RepHear">
+                <SectionHeading
+                  icon="✨"
+                  title="New to RepHear"
+                  blurb="Rankings started in the last 30 days — get in early."
+                />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {freshCards.map(({ ranking, categoryName, stat }) => (
+                    <RankingImageCard
+                      key={ranking.id}
+                      {...cardProps(
+                        ranking,
+                        stat,
+                        catById,
+                      )}
+                      categoryName={categoryName}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {categoryGroups.length > 0 && (
+              <section aria-label="Browse by category">
+                <SectionHeading
+                  icon="🗂️"
+                  title="Browse by category"
+                />
+                <div className="flex flex-col gap-8">
+                  {categoryGroups.map(({ category, rankings: group }) => (
+                    <div key={category.id}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-base font-bold tracking-tight text-ink">
+                          {category.name}
+                        </h3>
+                        <Link
+                          href={`/rankings?category=${encodeURIComponent(category.slug)}`}
+                          className="shrink-0 text-sm font-medium text-ink hover:text-brand-ink"
+                        >
+                          View all <span aria-hidden="true">→</span>
+                        </Link>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {group.slice(0, 4).map((r) => (
+                          <RankingImageCard
+                            key={r.id}
+                            {...cardProps(r, bulkStats.get(r.id), catById)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {rankings.length > 0 && (
+              <section aria-label="All rankings">
+                <SectionHeading icon="📋" title="All rankings" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {rankings.map((r) => (
+                    <RankingImageCard
+                      key={r.id}
+                      {...cardProps(r, bulkStats.get(r.id), catById)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {rankings.length === 0 && (
+              <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
+                <p className="text-sm text-subtle">
+                  No rankings here yet. Be the first to start recognition in
+                  your community.
+                </p>
+                <Link
+                  href="/rankings/new"
+                  className="mt-4 inline-block rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                >
+                  Create the first ranking
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </FullBleed>
+    </>
   );
 }
