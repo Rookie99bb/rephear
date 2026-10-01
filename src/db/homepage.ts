@@ -7,6 +7,7 @@
 
 import { db } from "./client";
 import { authenticLikesClause } from "./visibility";
+import { getManualCuratedRankings } from "./curation";
 import { findCategoryById, findCategoryBySlug } from "./categories";
 import { getMostSupported } from "./leaderboards";
 import { toProfile, type ProfileRow } from "./profiles";
@@ -459,36 +460,21 @@ async function organicStats(ids: string[]): Promise<{
 }
 
 /**
- * Rising Now rows.
- *
- * Cold-start ON:  ~6 ACG-diverse public rankings, display value =
- * organic_weekly_likes + seed_weekly_likes (seed from config, stable,
- * never random). Organic data is untouched and stays distinguishable.
- *
- * Cold-start OFF: organic-only velocity, same as before.
+ * Build RisingNowRow values for an explicit, ordered list of rankings.
+ * Manual picks and automatic picks share the exact same stats pipeline,
+ * so a curated ranking is never displayed differently from an organic one
+ * (cold-start seed applies by slug exactly as it does for auto picks).
  */
-export async function listRisingNow(limit = 6): Promise<RisingNowRow[]> {
-  if (!isRisingColdStartEnabled()) {
-    const velocity = await listVelocityRankings(limit);
-    const ids = velocity.map((v) => v.ranking.id);
-    const { prev } = await organicStats(ids);
-    return velocity.map((v) => ({
-      ranking: v.ranking,
-      organicLikes7d: v.likes7d,
-      seedLikes7d: 0,
-      displayLikes7d: v.likes7d,
-      credits7d: v.credits7d,
-      likesPrev7d: prev.get(v.ranking.id) ?? 0,
-    }));
-  }
-
-  const candidates = await listColdStartCandidates();
-  const picked = pickDiverse(candidates as RankedWithCat[], limit);
-  const { cur, prev, credits } = await organicStats(picked.map((p) => p.id));
-  const rows: RisingNowRow[] = picked.map((p, i) => {
-    const seed =
-      (p.slug ? COLD_START_SEED_BY_SLUG[p.slug] : undefined) ??
-      COLD_START_SEED_VALUES[i % COLD_START_SEED_VALUES.length];
+async function toRisingRows(rankings: Ranking[]): Promise<RisingNowRow[]> {
+  if (rankings.length === 0) return [];
+  const coldStart = isRisingColdStartEnabled();
+  const ids = rankings.map((r) => r.id);
+  const { cur, prev, credits } = await organicStats(ids);
+  return rankings.map((p, i) => {
+    const seed = coldStart
+      ? ((p.slug ? COLD_START_SEED_BY_SLUG[p.slug] : undefined) ??
+        COLD_START_SEED_VALUES[i % COLD_START_SEED_VALUES.length])
+      : 0;
     const organic = cur.get(p.id) ?? 0;
     return {
       ranking: p,
@@ -499,8 +485,53 @@ export async function listRisingNow(limit = 6): Promise<RisingNowRow[]> {
       likesPrev7d: prev.get(p.id) ?? 0,
     };
   });
-  rows.sort((a, b) => b.displayLikes7d - a.displayLikes7d);
-  return rows;
+}
+
+/**
+ * Rising Now rows — manual-first.
+ *
+ * Admin-curated picks (see src/db/curation.ts) occupy the first slots in
+ * position order; the automatic logic fills whatever slots remain, never
+ * duplicating a curated ranking. With no manual picks the behaviour is
+ * exactly what it was before.
+ *
+ * Cold-start ON:  ~6 ACG-diverse public rankings, display value =
+ * organic_weekly_likes + seed_weekly_likes (seed from config, stable,
+ * never random). Organic data is untouched and stays distinguishable.
+ *
+ * Cold-start OFF: organic-only velocity, same as before.
+ */
+export async function listRisingNow(limit = 6): Promise<RisingNowRow[]> {
+  const manual = (await getManualCuratedRankings("rising")).slice(0, limit);
+  const remaining = limit - manual.length;
+  if (remaining <= 0) return toRisingRows(manual);
+  const manualIds = new Set(manual.map((r) => r.id));
+
+  let auto: Ranking[];
+  if (!isRisingColdStartEnabled()) {
+    const velocity = await listVelocityRankings(limit + manualIds.size);
+    auto = velocity
+      .filter((v) => !manualIds.has(v.ranking.id))
+      .slice(0, remaining)
+      .map((v) => v.ranking);
+  } else {
+    const candidates = (await listColdStartCandidates()).filter(
+      (c) => !manualIds.has(c.id),
+    );
+    auto = pickDiverse(candidates as RankedWithCat[], remaining);
+  }
+  const [manualRows, autoRows] = await Promise.all([
+    toRisingRows(manual),
+    toRisingRows(auto),
+  ]);
+  // Manual picks keep admin position order; auto picks keep their
+  // natural order behind them (velocity order when cold-start is off,
+  // display order when it is on — exactly as before, no behaviour change
+  // when nothing is curated).
+  if (isRisingColdStartEnabled()) {
+    autoRows.sort((a, b) => b.displayLikes7d - a.displayLikes7d);
+  }
+  return [...manualRows, ...autoRows];
 }
 
 /** Re-export for the homepage (keeps the old flag name working too). */

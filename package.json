@@ -19,6 +19,7 @@
     "test:phase2": "DATA_DIR=$(mktemp -d /tmp/rephear-phase2-test.XXXXXX) tsx scripts/smoke-phase2-identity.ts",
     "test:phase3": "DATA_DIR=$(mktemp -d /tmp/rephear-phase3-test.XXXXXX) tsx scripts/smoke-phase3-milestones.ts",
     "test:phase4": "DATA_DIR=$(mktemp -d /tmp/rephear-phase4-test.XXXXXX) tsx scripts/smoke-phase4-cards.ts",
+    "test:curation": "DATA_DIR=$(mktemp -d /tmp/rephear-curation-test.XXXXXX) tsx scripts/curation.test.ts",
     "test:phase5.5": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.5-test.XXXXXX) tsx scripts/smoke-phase5.5-thanks.ts",
     "test:phase5.6": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.6-test.XXXXXX) tsx scripts/smoke-phase5.6-cards.ts",
     "test:phase5.7": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.7-test.XXXXXX) tsx scripts/smoke-phase5.7-identity.ts"

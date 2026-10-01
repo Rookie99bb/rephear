@@ -20,6 +20,9 @@ import {
   listVelocityRankings,
 } from "@/db/homepage";
 import {
+  getManualCuratedRankings,
+} from "@/db/curation";
+import {
   prioritizeForHomepage,
 } from "@/lib/homepageMerchandising";
 
@@ -30,10 +33,21 @@ export default async function HomePage({
 }) {
   const categories = await listCategories();
 
+  // "🔥 Trending in London": manual-first (admin curation, see
+  // src/db/curation.ts). Curated picks occupy the first slots in admin
+  // position order; the automatic logic below fills whatever slots
+  // remain, never duplicating a curated ranking. With nothing curated
+  // the behaviour is exactly what it was before.
+  const manualTrending = (await getManualCuratedRankings("trending")).slice(0, 3);
+  const manualIds = new Set(manualTrending.map((r) => r.id));
+  const trendingSlotsLeft = 3 - manualTrending.length;
+
   // Weekly velocity (likes + support credits in the last 7 days) drives
-  // both "🔥 Trending in London" and "🚀 Rising Now". Every row carries its
-  // own public ranking, so no unfiltered lookup is ever needed.
-  const velocity = await listVelocityRankings(8);
+  // the automatic picks. Every row carries its own public ranking, so no
+  // unfiltered lookup is ever needed.
+  const velocity = (await listVelocityRankings(8)).filter(
+    (v) => !manualIds.has(v.ranking.id),
+  );
 
   // "🔥 Trending in London": ACG-first merchandising (see
   // homepageMerchandising.ts). The underlying velocity scores are never
@@ -53,26 +67,38 @@ export default async function HomePage({
   const picks = [
     ...(featuredPick ? [featuredPick] : []),
     ...merchandised.filter((v) => v !== featuredPick),
-  ].slice(0, 3);
-  // The section always renders 3 cards: real organic trending first,
-  // then Featured fallback (Anime > Gaming > Manga > Cosplay priority)
-  // for the remaining slots. Seed likes never trigger a trending slot —
-  // they only count toward the displayed like totals.
+  ].slice(0, trendingSlotsLeft);
+  // The section always renders 3 cards: manual curation first, then real
+  // organic trending, then Featured fallback (Anime > Gaming > Manga >
+  // Cosplay priority) for the remaining slots. Seed likes never trigger
+  // a trending slot — they only count toward the displayed like totals.
+  const excludeIds = [
+    ...manualIds,
+    ...picks.map((v) => v.ranking.id),
+  ];
   const featuredFills =
-    picks.length < 3
+    picks.length + manualTrending.length < 3
       ? await listFeaturedRankings(
-          picks.map((v) => v.ranking.id),
-          3 - picks.length
+          excludeIds,
+          3 - picks.length - manualTrending.length,
         )
       : [];
   const trendingCards: TrendingCard[] = [
+    ...(await Promise.all(
+      manualTrending.map(async (ranking) => ({
+        ranking,
+        categoryName: await getCategoryNameForRanking(ranking),
+        data: await getRankingCardData(ranking.id),
+        isFeaturedFill: false,
+      })),
+    )),
     ...(await Promise.all(
       picks.map(async (v) => ({
         ranking: v.ranking,
         categoryName: await getCategoryNameForRanking(v.ranking),
         data: await getRankingCardData(v.ranking.id),
         isFeaturedFill: false,
-      }))
+      })),
     )),
     ...(await Promise.all(
       featuredFills.map(async (ranking) => ({
@@ -80,12 +106,13 @@ export default async function HomePage({
         categoryName: await getCategoryNameForRanking(ranking),
         data: await getRankingCardData(ranking.id),
         isFeaturedFill: true,
-      }))
+      })),
     )),
   ];
-  // No real organic trending at all → the section is honestly labelled
-  // as Featured instead of Trending.
-  const trendingMode = picks.length === 0 ? "featured" : "trending";
+  // No manual curation and no real organic trending at all → the section
+  // is honestly labelled as Featured instead of Trending.
+  const trendingMode =
+    manualTrending.length === 0 && picks.length === 0 ? "featured" : "trending";
 
   // Close Battles: tightest real top-2 support-credit race across the
   // most active rankings. Null → the module hides itself (never faked).

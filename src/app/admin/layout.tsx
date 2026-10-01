@@ -45,6 +45,9 @@ export default async function AdminLayout({
           <Link href="/admin/rankings" className="hover:text-ink">
             Rankings
           </Link>
+          <Link href="/admin/curation" className="hover:text-ink">
+            Curation
+          </Link>
           <Link href="/admin/campaigns" className="hover:text-ink">
             Campaigns
           </Link>

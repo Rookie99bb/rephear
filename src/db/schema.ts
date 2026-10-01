@@ -16,6 +16,7 @@ import { attachFlagshipNominees } from "./seedFlagshipNominees";
 import { attachAnimeNominees } from "./seedAnimeNominees";
 import { attachMangaNominees } from "./seedMangaNominees";
 import { attachGamingNominees } from "./seedGamingNominees";
+import { ensureCurationTable } from "./curation";
 import { seedMangaRankings } from "./seedMangaRankings";
 import { seedAnimeRankings } from "./seedAnimeRankings";
 import { seedGamingRankings } from "./seedGamingRankings";
@@ -1707,6 +1708,9 @@ export async function ensureMigrated(): Promise<void> {
     await createEarlyBackerAwardsTableIfMissing();
     await createIdentityAwardsTableIfMissing();
     await createNotificationsTableIfMissing();
+    // Admin homepage curation (manual Trending/Rising picks). Empty by
+    // default — automatic logic fills every slot until an admin curates.
+    await ensureCurationTable();
     await addNotifyMilestonesColumnIfMissing();
     await createRankingSnapshotsTableIfMissing();
     await createFollowsTableIfMissing();
