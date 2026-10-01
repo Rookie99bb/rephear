@@ -76,7 +76,7 @@ export default async function DiscoverySections() {
                   {u.profile.name}
                 </Link>
                 <p className="mt-0.5 text-xs text-subtle">
-                  {u.likeCount.toLocaleString()} likes ·{" "}
+                  {u.likeCount > 0 ? `${u.likeCount.toLocaleString()} likes · ` : ""}
                   {u.reputationCredits.toLocaleString()} credits in{" "}
                   {u.rankingTitle}
                 </p>

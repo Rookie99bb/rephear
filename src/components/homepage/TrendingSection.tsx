@@ -127,7 +127,7 @@ function FeaturedRankingCard({
         <div className="mt-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-[13px] font-medium text-white/85">
             <span>👥 {data.nomineeCount} nominees</span>
-            <span>❤️ {compact(data.totalLikes)} likes</span>
+            {data.totalLikes > 0 && <span>❤️ {compact(data.totalLikes)} likes</span>}
           </div>
           <span
             className="rounded-full px-4 py-2 text-sm font-semibold text-white"
@@ -187,10 +187,12 @@ function VisualRankingCard({ card }: { card: TrendingCard }) {
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-[13px] font-medium text-white/85">
             <span>👥 {data.nomineeCount} nominees</span>
-            <span>
-              ❤️ <span className="text-[#e5486f]">{compact(data.totalLikes)}</span>{" "}
-              likes
-            </span>
+            {data.totalLikes > 0 && (
+              <span>
+                ❤️ <span className="text-[#e5486f]">{compact(data.totalLikes)}</span>{" "}
+                likes
+              </span>
+            )}
           </div>
           <span className="shrink-0 whitespace-nowrap rounded-full border border-brand/40 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-brand-ink">
             View ranking <span aria-hidden="true">→</span>

@@ -53,17 +53,21 @@ export default function NomineeStats({
 
   return (
     <div className="mt-2.5 flex items-center gap-3">
-      <span
-        className={`flex items-center gap-1.5 text-[15px] font-semibold ${
-          emphasis === "likes" ? "text-white" : "text-white/75"
-        }`}
-      >
-        <span className="text-base">👍</span>
-        {likeCount.toLocaleString()}
-        <span className="hidden text-xs font-medium text-white/70 sm:inline">Likes</span>
-      </span>
+      {likeCount > 0 && (
+        <>
+          <span
+            className={`flex items-center gap-1.5 text-[15px] font-semibold ${
+              emphasis === "likes" ? "text-white" : "text-white/75"
+            }`}
+          >
+            <span className="text-base">👍</span>
+            {likeCount.toLocaleString()}
+            <span className="hidden text-xs font-medium text-white/70 sm:inline">Likes</span>
+          </span>
 
-      <span aria-hidden="true" className="h-4 w-px bg-white/30" />
+          <span aria-hidden="true" className="h-4 w-px bg-white/30" />
+        </>
+      )}
 
       <motion.span
         animate={glow ? { scale: [1, 1.12, 1] } : {}}

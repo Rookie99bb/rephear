@@ -114,7 +114,7 @@ function CompactRankingCard({
         <div className="mt-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-[13px] font-medium text-white/90">
             <span>👥 {data.nomineeCount} nominees</span>
-            <span>❤️ {compact(data.totalLikes)} likes</span>
+            {data.totalLikes > 0 && <span>❤️ {compact(data.totalLikes)} likes</span>}
           </div>
           <span
             aria-hidden="true"
