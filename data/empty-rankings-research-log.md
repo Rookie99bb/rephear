@@ -100,3 +100,32 @@ Duplicate titles "Best Cosplay Photographer" and "Best Cosplay Video Creator" ex
 ## Deliverable
 - `data/empty-rankings-nominees.json` — `{"rankings": [{"title", "category", "nominees": [{name, bio, profile_url, platform, corroborating_url, region}], "shortfall", "shortfall_reason"}]}`, queue order. `category` distinguishes the two duplicate titles.
 - No database writes were made. No photos were attached.
+
+---
+
+## Wave 2 (2026-10-01) — shortfall fill
+
+**Result: +163 verified nominees (239 → 402 total). 21 of 29 shortfall rankings now full at 10/10. Remaining shortfall: 18 slots across 8 rankings.**
+
+### Per-group results
+- **Group 1 (London trio):** 27/27 filled. London's Best Cosplayer 2026, London Cosplay Creator of the Year 2026, Best MCM London Cosplay each 1→10. NOTE: the same 9 verified London/UK cosplayers (Sneaky Zebra, Alien Loves Predator UK, Madame Myriad, Linakkuma, Pixie Late, Helen Alice Cosplay, Cauldron of Mischief, GayPanic Cosplay, Sansanvi Cosplay) were used across all three rankings — permitted by the cross-ranking reuse rule, but the three lineups are identical. Recommend a diversification pass later if desired.
+- **Group 2 (individuals, retry after worker error):** 52/56. Best Male Cosplayer 4→10, Best Villain Cosplay 0→10 (first real fill), Cosplayer With the Most Aura 3→10, Best Convention Look 4→10. Partial: Transformation 1→9, Unexpected 1→9, Funniest 1→8. Dropped rather than padded: Madeyewlook (site HTTP 500), Funny Toheeb (primary timed out), Twisted Pennywise (single-source), WholeWheatPete (2024 reputational controversy — skipped), Nathan Barnatt (comedian, not cosplayer).
+- **Group 3 (duo/group/couple/genderbend):** 14 delivered. Duo 5→9, Group 2→6, Couple 3→8, Genderbend 4→5. Single-source exclusions (no corroboration opened): Tayla & Eric (Kinpatsu duo), Saber Guild, Spiral Cats, League of S.T.E.A.M., Klingon Assault Group, Shan Claw & Elfengame, Becka Noel & Dhareza Maramis, Yuegene Fay, LeeAnna Vamp, Shiv, Danica Rockwood, Michael Hamm.
+- **Group 4 (craft & making):** 38/40. Makeup 4→10, Handmade 6→10, Armour 3→10, Prop Maker 6→10, Accurate 4→10, Creative 3→10. Wig Styling 4→8 (2 honestly unfilled: wave-1 took the four best-known wig specialists; Jannet page gone 403, Dare Taylor is learning not styling, Ruka's Wigs single-source). Cosplay Chris dropped from Prop Maker (identity unverified — ausretrogamer interview may be a different Chris); Anna Moleva dropped from Accurate (no own-profile primary).
+- **Group 5 (photo/video/performance):** 24/24 filled. Photographer 5→10 (Jay Tablante, Jeff Jenkins, York In A Box, Martin Wong, Anna Fischer), Video Creator (cosplay) 5→10, Video Creator (digital-creators) 5→10, Performance 1→10 (WCS-linked stage acts). NOTE: two workers produced versions; the on-disk file (retry) was merged. The original worker's alternate lists (Photographer: Jeff Jenkins/Adam Jay/Thomas "Hexlord" Kuan/Shaun Simpson/Corey Hayes; Video-cosplay: The 86th Floor/Justin Pineda Media/REZATA/BeatDownBoogie/Cosplay Alliance; Video-digital: D Piddy/DinoBunny/CutiePieSensei/Taryn/Maul Cosplay; Performance: TWIN/Nadiask & Mogu/Yummy Gamorah & Alpacosplay/nek & Nichi/Shikon/Banana Cospboys/Spiral Cats/Ar Lu & Ronnie Kui/We Need Disguises) exist only in its handoff — no URLs recoverable, kept as alternates.
+- **Group 6 (digital creators):** 8/8 filled. All four rankings now 10/10.
+
+### Remaining shortfalls (18 slots, honest reasons in JSON shortfall_reason)
+- Best Cosplay Transformation: 1 (Madeyewlook site 500)
+- Most Unexpected Cosplay: 1 (Funny Toheeb primary timeout)
+- Funniest Cosplay Creator: 2 (Funny Toheeb + no 8th/9th verifiable)
+- Best Duo Cosplay: 1 (Tayla & Eric single-source)
+- Best Group Cosplay: 4 (corroboration not opened: Saber Guild, Spiral Cats, League of S.T.E.A.M., Klingon Assault Group)
+- Best Couple Cosplay: 2 (Shan Claw & Elfengame, Becka Noel & Dhareza Maramis single-source)
+- Best Genderbend Cosplay: 5 (five single-source exclusions)
+- Best Wig Styling: 2 (pool exhausted after wave-1's four)
+
+### Data notes
+- Wave-1 entries untouched (append-only merge; 0 name dups skipped, 0 unmatched, none over 10).
+- Correction flagged by Group 2 (NOT applied to wave-1 entry, needs editorial call): wave-1 "Maul Cosplay (Ben Bergmann)" — Eurogamer gives his real name as Ben Schamma.
+- No Instagram primary URLs used anywhere in wave 2. No database writes. No photos attached.
