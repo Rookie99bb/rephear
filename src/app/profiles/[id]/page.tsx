@@ -10,8 +10,6 @@ import Avatar from "@/components/Avatar";
 import ProfileVerificationStatus from "@/components/ProfileVerificationStatus";
 import SupporterList from "@/components/SupporterList";
 import JourneyTimeline from "@/components/JourneyTimeline";
-import GlobalDiscoveryHero from "@/components/GlobalDiscoveryHero";
-import { listCategories, findCategoryById } from "@/db/categories";
 import { getCurrentUser } from "@/lib/session";
 import { findActiveRequestForUser } from "@/db/claimRequests";
 import {
@@ -77,25 +75,8 @@ export default async function ProfilePage({ params }: { params: { id: string } }
     )
   ).filter((j): j is NonNullable<typeof j> => j !== null);
 
-  // Site-wide discovery hero (compact). Active entry follows the real
-  // category of the profile's first ranking; unknown -> no selection.
-  const [heroCategories, heroCategory] = await Promise.all([
-    listCategories(),
-    rankings[0]?.categoryId ? findCategoryById(rankings[0].categoryId) : null,
-  ]);
-
   return (
-    <>
-    <div className="relative left-1/2 w-screen -translate-x-1/2">
-      <div className="-mt-10">
-        <GlobalDiscoveryHero
-          variant="compact"
-          categories={heroCategories}
-          activeSlug={heroCategory?.slug}
-        />
-      </div>
-    </div>
-    <div className="mx-auto max-w-2xl pt-8">
+    <div className="mx-auto max-w-2xl">
       <div className="flex items-center gap-4">
         <Avatar name={profile.name} photoUrl={profile.photoUrl} size={64} />
         <div>
@@ -198,7 +179,6 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         )}
       </div>
     </div>
-    </>
   );
 }
 

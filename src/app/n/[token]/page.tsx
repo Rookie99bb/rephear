@@ -9,8 +9,6 @@ import { shareCountsForUser } from "@/db/shares";
 import { getCurrentUser } from "@/lib/session";
 import Avatar from "@/components/Avatar";
 import NomineeLandingActions from "@/components/NomineeLandingActions";
-import GlobalDiscoveryHero from "@/components/GlobalDiscoveryHero";
-import { listCategories, findCategoryById } from "@/db/categories";
 
 // Nominee share landing page: rephear.com/n/TOKEN
 // Every nominee's personal link + QR code points here. Focused layout:
@@ -64,24 +62,7 @@ export default async function NomineeSharePage({
   const myLikes = userLikeCounts.get(profile.id) ?? 0;
   const allowedLikes = 1 + (userShareCounts.get(profile.id) ?? 0);
 
-  // Site-wide discovery hero (compact). Active entry follows the real
-  // category of the nominee's ranking; unknown -> no selection.
-  const [heroCategories, heroCategory] = await Promise.all([
-    listCategories(),
-    ranking?.categoryId ? findCategoryById(ranking.categoryId) : null,
-  ]);
-
   return (
-    <>
-    <div className="relative left-1/2 w-screen -translate-x-1/2">
-      <div className="-mt-10">
-        <GlobalDiscoveryHero
-          variant="compact"
-          categories={heroCategories}
-          activeSlug={heroCategory?.slug}
-        />
-      </div>
-    </div>
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-12 text-center">
       <Avatar name={profile.name} photoUrl={profile.photoUrl} size={112} />
       <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink">
@@ -134,6 +115,5 @@ export default async function NomineeSharePage({
         Powered by <span className="font-semibold">RepHear</span>
       </p>
     </div>
-    </>
   );
 }

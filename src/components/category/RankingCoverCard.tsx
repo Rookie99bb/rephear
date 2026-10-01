@@ -1,8 +1,6 @@
 import Link from "next/link";
 import RankingCover from "@/components/homepage/RankingCover";
-import HeatMetric from "@/components/rankings/HeatMetric";
-import OrganicLikeMetric from "@/components/rankings/OrganicLikeMetric";
-import { type CategoryRankingStat } from "@/db/categoryPage";
+import { formatCompact, type CategoryRankingStat } from "@/db/categoryPage";
 
 const RANK_BADGE: Record<number, string> = {
   1: "bg-[#FFC531] text-ink",
@@ -36,9 +34,6 @@ export default function RankingCoverCard({
           rankingTitle={ranking.title}
           variant="fill"
         />
-        <div className="absolute right-2.5 top-2.5">
-          <HeatMetric value={stat.totalLikes} badge />
-        </div>
         {rank != null ? (
           <span
             className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-xs font-bold ${RANK_BADGE[rank] ?? "bg-white/90 text-ink"}`}
@@ -56,13 +51,9 @@ export default function RankingCoverCard({
             {ranking.description}
           </p>
         ) : null}
-        <p className="mt-2 flex flex-wrap items-center gap-3 text-[13px] text-subtle">
-          {stat.nomineeCount === 0 ? (
-            <span>✨ Nominees coming soon</span>
-          ) : (
-            <span>👥 {stat.nomineeCount} nominees</span>
-          )}
-          <OrganicLikeMetric value={stat.organicLikes} />
+        <p className="mt-2 flex items-center gap-3 text-[13px] text-subtle">
+          <span>👥 {stat.nomineeCount} nominees</span>
+          {stat.totalLikes > 0 && <span>❤️ {formatCompact(stat.totalLikes)} likes</span>}
         </p>
       </div>
     </Link>
