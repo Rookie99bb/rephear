@@ -28,15 +28,35 @@ export default function HeroDiscovery({
     open: card.slug === null || knownSlugs.has(card.slug),
   }));
 
-  const headline = (
-    <>
-      <h1 className="text-[44px] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-[56px]">
-        Find your <span className="text-brand">people.</span>
-      </h1>
-      <p className="mt-3 text-[17px] font-medium text-ink/70">
-        Rank what you love. Recognise the people behind it.
-      </p>
-    </>
+  const headlineH1 = (
+    <h1 className="text-[44px] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-[56px]">
+      Find your <span className="text-brand">people.</span>
+    </h1>
+  );
+
+  const subline = (
+    <p className="mt-3 text-[17px] font-medium text-ink/70">
+      Rank what you love. Recognise the people behind it.
+    </p>
+  );
+
+  // Handwritten brand sign-off. Lives in the left content column flow,
+  // directly below the headline and above the subtitle — NOT absolutely
+  // positioned. Exactly two lines on desktop; script font + brand purple
+  // preserved, secondary to the headline.
+  const brandMessage = (
+    <p
+      aria-hidden="true"
+      className="mt-3 select-none text-[19px] font-bold leading-[1.35] text-brand"
+      style={{
+        fontFamily:
+          '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
+      }}
+    >
+      Creativity · Fandom · Community
+      <br />
+      Recognition for Everyone. ♡
+    </p>
   );
 
   const chipRow = (scrollable: boolean) => (
@@ -92,7 +112,7 @@ export default function HeroDiscovery({
     <>
       {/* Mobile: hero text first, scrollable chips, banner below. */}
       <section className="md:hidden">
-        <div className="px-4 pb-2 pt-8">{headline}{chipRow(true)}</div>
+        <div className="px-4 pb-2 pt-8">{headlineH1}{brandMessage}{subline}{chipRow(true)}</div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/hero-banner.png"
@@ -114,33 +134,11 @@ export default function HeroDiscovery({
           loading="eager"
           fetchPriority="high"
         />
-        {/* Handwritten brand sign-off baked into the design mockup, kept as
-            real text (not in the image asset). Sits in the sky area right of
-            the headline column and left of Big Ben / the character
-            (user-marked spot).
-            Shown only on xl screens and up: below 1280px the headline
-            column is too wide and the gap disappears. */}
-        <p
-          aria-hidden="true"
-          className="pointer-events-none absolute left-[57%] top-[27%] hidden rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand xl:block"
-          style={{
-            fontFamily:
-              '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
-          }}
-        >
-          Creativity
-          <br />
-          Fandom
-          <br />
-          Community
-          <br />
-          Recognition
-          <br />
-          For Everyone. ♡
-        </p>
         <div className="relative mx-auto max-w-[1280px] px-6">
           <div className="flex min-h-[32vw] max-w-[640px] flex-col justify-center py-10">
-            {headline}
+            {headlineH1}
+            {brandMessage}
+            {subline}
             {chipRow(false)}
           </div>
         </div>
