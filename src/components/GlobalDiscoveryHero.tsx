@@ -139,7 +139,7 @@ function CompactHero({
         src="/images/hero-banner.png"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover object-[100%_10%]"
         loading="lazy"
       />
       {/* Light wash keeps the sky artwork visible while the headline and
