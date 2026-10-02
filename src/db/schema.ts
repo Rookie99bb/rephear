@@ -1741,6 +1741,44 @@ async function createEventSocialSpaceTablesIfMissing() {
     // Existing deployments already have the column.
   }
 
+  // Recover safely if a remote SQLite-compatible database stopped midway
+  // through the V2 table rebuild. libSQL executeMultiple is not guaranteed to
+  // roll every DDL statement back, so the old rows may still be present in the
+  // explicitly named backup tables while the new tables are empty.
+  const interruptedPeople = (await rawClient.execute({
+    sql: "SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='event_people_single_card'",
+    args: [],
+  })).rows.length > 0;
+  if (interruptedPeople) {
+    await rawClient.executeMultiple(`
+      INSERT OR IGNORE INTO event_people (
+        id, event_id, user_id, display_name, photo_url, identities,
+        fandom_tags, say_hi, instagram_url, tiktok_url, source,
+        nominated_by_user_id, is_hidden, created_at, updated_at
+      )
+      SELECT
+        id, event_id, user_id, display_name, photo_url, identities,
+        fandom_tags, say_hi, instagram_url, tiktok_url, source,
+        nominated_by_user_id, is_hidden, created_at, updated_at
+      FROM event_people_single_card;
+      DROP TABLE event_people_single_card;
+    `);
+  }
+
+  const interruptedRecognitions = (await rawClient.execute({
+    sql: "SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='event_recognitions_v2_backup'",
+    args: [],
+  })).rows.length > 0;
+  if (interruptedRecognitions) {
+    await rawClient.executeMultiple(`
+      INSERT OR IGNORE INTO event_recognitions
+        (id, event_id, recognizer_user_id, recognized_person_id, created_at)
+      SELECT id, event_id, recognizer_user_id, recognized_person_id, created_at
+      FROM event_recognitions_v2_backup;
+      DROP TABLE event_recognitions_v2_backup;
+    `);
+  }
+
   // V2: an attendee may create multiple cards for different event looks or
   // personas. SQLite cannot drop an inline UNIQUE constraint, so rebuild the
   // two related tables once while preserving cards and recognition edges.
