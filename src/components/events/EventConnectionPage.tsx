@@ -1,0 +1,8 @@
+import Link from "next/link";
+import EventAnalyticsTracker, { type EventAnalyticsName } from "./EventAnalyticsTracker";
+import EventPersonCard from "./EventPersonCard";
+import type { EventPerson } from "@/db/events";
+
+export default function EventConnectionPage({ slug, person, people, title, empty, loggedIn, viewerId, analyticsName }: { slug: string; person: EventPerson; people: EventPerson[]; title: string; empty: string; loggedIn: boolean; viewerId?: string; analyticsName: EventAnalyticsName }) {
+  return <main className="mx-auto max-w-6xl px-5 py-8"><EventAnalyticsTracker slug={slug} name={analyticsName} metadata={{ personId: person.id }} /><Link href={`/events/${slug}/people/${person.id}`} className="text-sm font-semibold text-violet-700">← Back to {person.displayName}</Link><p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Recognition discovery</p><h1 className="mt-2 text-3xl font-black tracking-tight text-ink sm:text-4xl">{title}</h1><p className="mt-3 max-w-2xl text-subtle">Explore real event connections. Recognition is public and separate from rankings, likes and support.</p>{people.length ? <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{people.map((candidate) => <EventPersonCard key={candidate.id} person={candidate} slug={slug} loggedIn={loggedIn} own={candidate.userId === viewerId} recognitionSource="discovery" />)}</div> : <div className="mt-8 rounded-3xl border border-dashed border-violet-200 bg-violet-50 p-10 text-center text-subtle">{empty}</div>}<div className="mt-8 text-center"><Link href={`/events/${slug}#people`} className="rounded-full bg-ink px-6 py-3 text-sm font-bold text-white">Continue discovering people</Link></div></main>;
+}

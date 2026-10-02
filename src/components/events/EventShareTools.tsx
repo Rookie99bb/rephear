@@ -7,10 +7,15 @@ export default function EventShareTools({ path, name }: { path: string; name: st
   async function copyLink() {
     await navigator.clipboard.writeText(`${window.location.origin}${path}`);
     setCopied(true);
+    trackShare();
+  }
+  function trackShare() {
+    const slug = path.split("/")[2];
+    if (slug) fetch(`/api/events/${slug}/analytics`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "event_profile_shared", metadata: { path } }), keepalive: true }).catch(() => undefined);
   }
   async function share() {
     const url = `${window.location.origin}${path}`;
-    if (navigator.share) await navigator.share({ title: `${name} at AnimeCon London ’26`, text: "Find me at AnimeCon London ’26 on RepHear ✦", url });
+    if (navigator.share) { await navigator.share({ title: `${name} at AnimeCon London ’26`, text: "Find me at AnimeCon London ’26 on RepHear ✦", url }); trackShare(); }
     else await copyLink();
   }
   return <div className="mt-5 flex flex-wrap gap-3">

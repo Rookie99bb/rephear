@@ -10,6 +10,7 @@ export interface SocialEvent {
 export interface EventPerson {
   id: string; eventId: string; userId: string | null; displayName: string;
   photoUrl: string; identities: EventIdentity[]; sayHi: string;
+  fandomTags: string[];
   instagramUrl: string; tiktokUrl: string; source: "self" | "community";
   createdAt: string; recognizedBy: number; recognized: boolean; mutual: boolean;
 }
@@ -17,7 +18,7 @@ export interface EventPerson {
 type EventRow = { id: string; slug: string; title: string; venue: string; starts_at: string; ends_at: string; description: string };
 type PersonRow = {
   id: string; event_id: string; user_id: string | null; display_name: string;
-  photo_url: string; identities: string; say_hi: string; instagram_url: string;
+  photo_url: string; identities: string; fandom_tags: string; say_hi: string; instagram_url: string;
   tiktok_url: string; source: "self" | "community"; created_at: string;
   recognized_by: number; recognized: number; mutual: number;
 };
@@ -29,9 +30,11 @@ function toEvent(row: EventRow): SocialEvent {
 
 function toPerson(row: PersonRow): EventPerson {
   let identities: EventIdentity[] = [];
+  let fandomTags: string[] = [];
   try { identities = JSON.parse(row.identities) as EventIdentity[]; } catch { identities = []; }
+  try { fandomTags = JSON.parse(row.fandom_tags) as string[]; } catch { fandomTags = []; }
   return { id: row.id, eventId: row.event_id, userId: row.user_id,
-    displayName: row.display_name, photoUrl: row.photo_url, identities,
+    displayName: row.display_name, photoUrl: row.photo_url, identities, fandomTags,
     sayHi: row.say_hi, instagramUrl: row.instagram_url, tiktokUrl: row.tiktok_url,
     source: row.source, createdAt: row.created_at,
     recognizedBy: Number(row.recognized_by), recognized: !!row.recognized, mutual: !!row.mutual };
@@ -40,6 +43,11 @@ function toPerson(row: PersonRow): EventPerson {
 export async function findSocialEvent(slug: string): Promise<SocialEvent | null> {
   const row = await db.prepare("SELECT id, slug, title, venue, starts_at, ends_at, description FROM social_events WHERE slug = ? AND is_published = 1").get(slug) as EventRow | undefined;
   return row ? toEvent(row) : null;
+}
+
+export async function findSocialEventForAdmin(slug: string): Promise<(SocialEvent & { isPublished: boolean }) | null> {
+  const row = await db.prepare("SELECT id, slug, title, venue, starts_at, ends_at, description, is_published FROM social_events WHERE slug = ?").get(slug) as (EventRow & { is_published: number }) | undefined;
+  return row ? { ...toEvent(row), isPublished: !!row.is_published } : null;
 }
 
 // Counts are aggregated once for the entire event. There is deliberately no
@@ -78,6 +86,11 @@ export async function findEventPerson(id: string, viewerId?: string | null): Pro
   return rows[0] ?? null;
 }
 
+export async function findEventPersonByUser(eventId: string, userId: string, viewerId?: string | null): Promise<EventPerson | null> {
+  const row = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=? AND is_hidden=0 LIMIT 1").get(eventId, userId) as { id: string } | undefined;
+  return row ? findEventPerson(row.id, viewerId) : null;
+}
+
 async function listEventPeopleByIds(ids: string[], viewerId?: string | null): Promise<EventPerson[]> {
   if (!ids.length) return [];
   const marks = ids.map(() => "?").join(",");
@@ -103,29 +116,43 @@ export async function getEventPersonConnections(person: EventPerson, viewerId?: 
   return { recognizedBy, recognizedPeople };
 }
 
-export async function upsertSelfAtEvent(params: { eventId: string; userId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
+export async function upsertSelfAtEvent(params: { eventId: string; userId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; fandomTags?: string[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
   const existing = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=?").get(params.eventId, params.userId) as { id: string } | undefined;
   const id = existing?.id ?? newId();
   if (existing) {
-    await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
+    await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, fandom_tags=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
   } else {
-    await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl);
+    await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl);
   }
   return id;
 }
 
-export async function nominateEventPerson(params: { eventId: string; nominatorId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
+export async function nominateEventPerson(params: { eventId: string; nominatorId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; fandomTags?: string[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
   const id = newId();
-  await db.prepare(`INSERT INTO event_people (id,event_id,display_name,photo_url,identities,say_hi,instagram_url,tiktok_url,source,nominated_by_user_id) VALUES (?,?,?,?,?,?,?,?, 'community',?)`).run(id, params.eventId, params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl, params.nominatorId);
+  await db.prepare(`INSERT INTO event_people (id,event_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source,nominated_by_user_id) VALUES (?,?,?,?,?,?,?,?,?, 'community',?)`).run(id, params.eventId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, params.nominatorId);
   return id;
 }
 
-export async function recognizePerson(eventId: string, recognizerId: string, personId: string): Promise<"created" | "exists" | "self"> {
+export async function recognizePerson(eventId: string, recognizerId: string, personId: string): Promise<"created" | "exists" | "self" | "mutual"> {
   const person = await db.prepare("SELECT user_id FROM event_people WHERE id=? AND event_id=? AND is_hidden=0").get(personId, eventId) as { user_id: string | null } | undefined;
   if (!person) throw new Error("Person not found");
   if (person.user_id === recognizerId) return "self";
   const result = await db.prepare("INSERT OR IGNORE INTO event_recognitions (id,event_id,recognizer_user_id,recognized_person_id) VALUES (?,?,?,?)").run(newId(), eventId, recognizerId, personId);
-  return result.changes ? "created" : "exists";
+  if (!result.changes) return "exists";
+  if (!person.user_id) return "created";
+  const recognizerPerson = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=? AND is_hidden=0").get(eventId, recognizerId) as { id: string } | undefined;
+  if (!recognizerPerson) return "created";
+  const reverse = await db.prepare("SELECT 1 ok FROM event_recognitions WHERE event_id=? AND recognizer_user_id=? AND recognized_person_id=?").get(eventId, person.user_id, recognizerPerson.id);
+  return reverse ? "mutual" : "created";
+}
+
+export async function listRecentlyRecognized(eventId: string, viewerId?: string | null, limit = 6): Promise<EventPerson[]> {
+  const ids = await db.prepare(`SELECT recognized_person_id AS id, MAX(created_at) AS latest FROM event_recognitions WHERE event_id=? GROUP BY recognized_person_id ORDER BY latest DESC LIMIT ?`).all(eventId, limit) as Array<{ id: string }>;
+  return listEventPeopleByIds(ids.map((row) => row.id), viewerId);
+}
+
+export async function setSocialEventPublished(eventId: string, published: boolean): Promise<void> {
+  await db.prepare("UPDATE social_events SET is_published=? WHERE id=?").run(published ? 1 : 0, eventId);
 }
 
 export async function setEventPersonHidden(id: string, hidden: boolean): Promise<void> {

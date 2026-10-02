@@ -2,7 +2,9 @@
 
 import { useEffect } from "react";
 
-export default function EventAnalyticsTracker({ slug, name, metadata }: { slug: string; name: "page_view" | "profile_view"; metadata?: Record<string, string> }) {
+export type EventAnalyticsName = "event_page_viewed" | "event_profile_viewed" | "event_join_started" | "recognized_by_opened" | "people_recognized_opened" | "recognition_discovery_profile_opened" | "event_profile_shared" | "nominate_click";
+
+export default function EventAnalyticsTracker({ slug, name, metadata }: { slug: string; name: EventAnalyticsName; metadata?: Record<string, string> }) {
   const metadataJson = JSON.stringify(metadata ?? {});
   useEffect(() => {
     const keyName = "rephear_event_session";

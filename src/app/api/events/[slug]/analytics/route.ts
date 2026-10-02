@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { findSocialEvent, recordEventAnalytics } from "@/db/events";
 import { getCurrentUser } from "@/lib/session";
 
-const ALLOWED = new Set(["page_view", "profile_view", "join_click", "nominate_click", "share_click"]);
+const ALLOWED = new Set(["event_page_viewed", "event_profile_viewed", "event_join_started", "recognized_by_opened", "people_recognized_opened", "recognition_discovery_profile_opened", "event_profile_shared", "nominate_click"]);
 
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
   const event = await findSocialEvent(params.slug);

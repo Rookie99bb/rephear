@@ -1691,6 +1691,7 @@ async function createEventSocialSpaceTablesIfMissing() {
       display_name TEXT NOT NULL,
       photo_url TEXT NOT NULL,
       identities TEXT NOT NULL DEFAULT '[]',
+      fandom_tags TEXT NOT NULL DEFAULT '[]',
       say_hi TEXT NOT NULL DEFAULT '',
       instagram_url TEXT NOT NULL DEFAULT '',
       tiktok_url TEXT NOT NULL DEFAULT '',
@@ -1734,6 +1735,12 @@ async function createEventSocialSpaceTablesIfMissing() {
     CREATE INDEX IF NOT EXISTS idx_event_analytics_event_name
       ON event_analytics(event_id, event_name, created_at);
   `);
+
+  try {
+    await rawClient.execute("ALTER TABLE event_people ADD COLUMN fandom_tags TEXT NOT NULL DEFAULT '[]'");
+  } catch {
+    // Existing deployments already have the column.
+  }
 
   await rawClient.execute({
     sql: `INSERT OR IGNORE INTO social_events
