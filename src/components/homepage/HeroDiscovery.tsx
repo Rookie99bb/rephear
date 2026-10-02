@@ -115,10 +115,11 @@ export default function HeroDiscovery({
           fetchPriority="high"
         />
         {/* Handwritten brand sign-off baked into the design mockup, kept as
-            real text over the banner's right half (not in the image asset). */}
+            real text (not in the image asset). Positioned clear of the
+            character (right ~27%) and the headline column: mid sky area. */}
         <p
           aria-hidden="true"
-          className="pointer-events-none absolute right-[5%] top-[9%] rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand"
+          className="pointer-events-none absolute left-[62%] top-[60%] rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand"
           style={{
             fontFamily:
               '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
