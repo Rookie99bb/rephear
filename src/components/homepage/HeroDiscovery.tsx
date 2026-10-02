@@ -115,11 +115,13 @@ export default function HeroDiscovery({
           fetchPriority="high"
         />
         {/* Handwritten brand sign-off baked into the design mockup, kept as
-            real text (not in the image asset). Positioned clear of the
-            character (right ~27%) and the headline column: mid sky area. */}
+            real text (not in the image asset). Sits in the upper sky band
+            between the headline column and Big Ben / the character.
+            Shown only on xl screens and up: below 1280px the headline
+            column is too wide and the gap disappears. */}
         <p
           aria-hidden="true"
-          className="pointer-events-none absolute left-[62%] top-[60%] rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand"
+          className="pointer-events-none absolute left-[60%] top-[14%] hidden rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand xl:block"
           style={{
             fontFamily:
               '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
