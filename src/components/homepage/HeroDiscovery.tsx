@@ -35,19 +35,19 @@ export default function HeroDiscovery({
   );
 
   const subline = (
-    <p className="mt-3 text-[17px] font-medium text-ink/70">
+    <p className="text-[17px] font-medium text-ink/70">
       Rank what you love. Recognise the people behind it.
     </p>
   );
 
-  // Handwritten brand sign-off. Lives in the left content column flow,
-  // directly below the headline and above the subtitle — NOT absolutely
-  // positioned. Exactly two lines on desktop; script font + brand purple
-  // preserved, secondary to the headline. Heart in warm coral accent.
+  // Handwritten brand sign-off — pixel-locked spec.
+  // In-flow left column: 12px below headline / 10px above subtitle (desktop).
+  // 19px/24px/500, #6C4CFF with #FF6B9E heart; 17px/22px on tablet
+  // (768–1199px), 15px/20px on mobile. Left edge aligns with headline.
   const brandMessage = (
     <p
       aria-hidden="true"
-      className="mt-3 select-none text-[24px] font-bold leading-[1.35] text-brand"
+      className="mb-2 mt-2 max-w-full select-none text-left text-[15px] font-medium leading-[20px] text-[#6C4CFF] md:mt-[10px] md:max-w-[390px] md:text-[17px] md:leading-[22px] min-[1200px]:mb-[10px] min-[1200px]:mt-3 min-[1200px]:max-w-[430px] min-[1200px]:text-[19px] min-[1200px]:leading-[24px]"
       style={{
         fontFamily:
           '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
@@ -56,7 +56,7 @@ export default function HeroDiscovery({
       Creativity · Fandom · Community
       <br />
       Recognition for Everyone.{" "}
-      <span className="text-[#FB7185]">♡</span>
+      <span className="text-[#FF6B9E]">♡</span>
     </p>
   );
 
