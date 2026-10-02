@@ -25,6 +25,7 @@ import {
 import {
   prioritizeForHomepage,
 } from "@/lib/homepageMerchandising";
+import AnimeConHomeCard from "@/components/events/AnimeConHomeCard";
 
 export default async function HomePage({
   searchParams,
@@ -197,6 +198,7 @@ export default async function HomePage({
       </div>
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex flex-col gap-10 py-10 md:gap-12">
+          <AnimeConHomeCard />
           <TrendingSection cards={trendingCards} mode={trendingMode} />
           <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
           <ExploreRankings

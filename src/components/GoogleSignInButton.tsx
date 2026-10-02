@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 // "Continue with Google" button for the login/signup pages. Hides itself
 // when the Google provider isn't configured (GOOGLE_CLIENT_ID/SECRET not
 // set), so local dev without credentials just shows the email form.
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({ callbackUrl = "/" }: { callbackUrl?: string }) {
   const [googleReady, setGoogleReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
@@ -32,7 +32,7 @@ export default function GoogleSignInButton() {
         disabled={connecting}
         onClick={() => {
           setConnecting(true);
-          signIn("google", { callbackUrl: "/" });
+          signIn("google", { callbackUrl });
         }}
         className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-gray-50 disabled:opacity-50"
       >

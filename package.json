@@ -23,7 +23,8 @@
     "test:global-hero": "DATA_DIR=$(mktemp -d /tmp/rephear-hero-test.XXXXXX) tsx scripts/global-hero.test.ts",
     "test:phase5.5": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.5-test.XXXXXX) tsx scripts/smoke-phase5.5-thanks.ts",
     "test:phase5.6": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.6-test.XXXXXX) tsx scripts/smoke-phase5.6-cards.ts",
-    "test:phase5.7": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.7-test.XXXXXX) tsx scripts/smoke-phase5.7-identity.ts"
+    "test:phase5.7": "DATA_DIR=$(mktemp -d /tmp/rephear-phase5.7-test.XXXXXX) tsx scripts/smoke-phase5.7-identity.ts",
+    "test:event-space": "DATA_DIR=$(mktemp -d /tmp/rephear-event-test.XXXXXX) tsx scripts/event-social-space.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

@@ -1,14 +1,17 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { signupAction } from "@/lib/actions/auth";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
+import { safeNextPath } from "@/lib/safeNextPath";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [bonusLikesEarned, setBonusLikesEarned] = useState<number | null>(null);
@@ -33,13 +36,13 @@ export default function SignupPage() {
       // spec asks for ("Credits should appear immediately").
       setBonusLikesEarned(result.bonusLikesEarned);
       setTimeout(() => {
-        router.push("/");
+        router.push(nextPath);
         router.refresh();
       }, 1800);
       return;
     }
 
-    router.push("/");
+    router.push(nextPath);
     router.refresh();
   }
 
@@ -71,7 +74,7 @@ export default function SignupPage() {
       <h1 className="mb-6 text-sm font-medium text-subtle">
         Create your account
       </h1>
-      <GoogleSignInButton />
+      <GoogleSignInButton callbackUrl={nextPath} />
       <form action={handleSubmit} className="flex flex-col gap-4">
         <Field label="Name" name="name" type="text" autoComplete="name" />
         <Field label="Email" name="email" type="email" autoComplete="email" />
@@ -92,7 +95,7 @@ export default function SignupPage() {
       </form>
       <p className="mt-6 text-sm text-subtle">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-ink hover:underline">
+        <Link href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-medium text-ink hover:underline">
           Log in
         </Link>
       </p>

@@ -1666,6 +1666,90 @@ async function addUserIsHiddenColumnIfMissing() {
     // Column already exists, nothing to do.
   }
 }
+
+// Event Social Spaces are deliberately separate from Rankings: there are no
+// positions, Likes, Support, or scoring columns here. A participant can be a
+// signed-in attendee or a community nomination awaiting a later claim.
+async function createEventSocialSpaceTablesIfMissing() {
+  await rawClient.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS social_events (
+      id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      venue TEXT NOT NULL,
+      starts_at TEXT NOT NULL,
+      ends_at TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      is_published INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS event_people (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL REFERENCES social_events(id),
+      user_id TEXT REFERENCES users(id),
+      display_name TEXT NOT NULL,
+      photo_url TEXT NOT NULL,
+      identities TEXT NOT NULL DEFAULT '[]',
+      say_hi TEXT NOT NULL DEFAULT '',
+      instagram_url TEXT NOT NULL DEFAULT '',
+      tiktok_url TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'self',
+      nominated_by_user_id TEXT REFERENCES users(id),
+      is_hidden INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (event_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS event_recognitions (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL REFERENCES social_events(id),
+      recognizer_user_id TEXT NOT NULL REFERENCES users(id),
+      recognized_person_id TEXT NOT NULL REFERENCES event_people(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (event_id, recognizer_user_id, recognized_person_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS event_analytics (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL REFERENCES social_events(id),
+      event_name TEXT NOT NULL,
+      user_id TEXT REFERENCES users(id),
+      session_key TEXT NOT NULL DEFAULT '',
+      metadata TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_event_people_event_created
+      ON event_people(event_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_event_people_event_visible
+      ON event_people(event_id, is_hidden, created_at);
+    CREATE INDEX IF NOT EXISTS idx_event_recognitions_event_created
+      ON event_recognitions(event_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_event_recognitions_person
+      ON event_recognitions(recognized_person_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_event_recognitions_user
+      ON event_recognitions(recognizer_user_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_event_analytics_event_name
+      ON event_analytics(event_id, event_name, created_at);
+  `);
+
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO social_events
+      (id, slug, title, venue, starts_at, ends_at, description, is_published)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+    args: [
+      "event-animecon-london-2026",
+      "animecon-london-2026",
+      "AnimeCon London '26",
+      "Olympia London",
+      "2026-10-03T09:00:00+01:00",
+      "2026-10-04T18:00:00+01:00",
+      "See who's here. Discover people. Get recognised.",
+    ],
+  });
+}
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
 // import time, since the underlying Turso client is async and there's
@@ -1716,6 +1800,7 @@ export async function ensureMigrated(): Promise<void> {
     await createFollowsTableIfMissing();
     await createUserReportsAndBlocksIfMissing();
     await addUserIsHiddenColumnIfMissing();
+    await createEventSocialSpaceTablesIfMissing();
     await addProfileShareTokenColumnIfMissing();
     await backfillProfileShareTokens();
     await seedReferralCommissionRuleV1();
