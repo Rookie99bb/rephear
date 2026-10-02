@@ -263,7 +263,7 @@ const UPCOMING_EVENTS: {
   },
 ];
 
-function UpcomingEvents({ eventHrefs }: { eventHrefs: Record<string, string> }) {
+export function UpcomingEvents({ eventHrefs }: { eventHrefs: Record<string, string> }) {
   const withHrefs = UPCOMING_EVENTS.map((event) => ({
     ...event,
     href: event.hrefSlug ? eventHrefs[event.hrefSlug] ?? null : null,

@@ -15,6 +15,7 @@ import {
   listSubcategoriesWithCounts,
 } from "@/db/categoryPage";
 import {
+  findPublicRankingIdsBySlugs,
   getCategoryNameForRanking,
   getRankingCardData,
   getRankingsBrowseStats,
@@ -23,6 +24,7 @@ import {
   type RankingBrowseStat,
   type RankingCardData,
 } from "@/db/homepage";
+import { UpcomingEvents } from "@/components/homepage/ActivityGrid";
 import { getNewRankings } from "@/db/discovery";
 import type { Category, Ranking } from "@/lib/types";
 
@@ -273,6 +275,18 @@ export default async function BrowseRankingsPage({
     .map((c) => ({ category: c, rankings: byCategoryId.get(c.id)! }));
   const bulkStats = await getRankingsBrowseStats(rankings.map((r) => r.id));
 
+  // Upcoming Events deep-links: same two event-adjacent rankings as the
+  // homepage (resolved by slug, public-only). Static event list itself
+  // costs zero DB reads; this is two indexed point lookups.
+  const eventRankingIds = await findPublicRankingIdsBySlugs([
+    "cosplayers-to-watch-at-animecon-london-2026",
+    "tcg-traders-to-meet-at-noli-tcg-card-show",
+  ]);
+  const eventHrefs: Record<string, string> = {};
+  for (const [slug, id] of eventRankingIds) {
+    eventHrefs[slug] = `/rankings/${id}`;
+  }
+
   return (
     <>
       <FullBleed>
@@ -386,6 +400,9 @@ export default async function BrowseRankingsPage({
                 </div>
               </section>
             )}
+
+            {/* Same 🗓️ Upcoming Events module as the homepage. */}
+            <UpcomingEvents eventHrefs={eventHrefs} />
 
             {freshCards.length > 0 && (
               <section aria-label="New to RepHear">
