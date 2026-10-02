@@ -1,9 +1,17 @@
 import Link from "next/link";
+import { Caveat } from "next/font/google";
 import type { Category } from "@/lib/types";
 import {
   HOMEPAGE_CATEGORY_CARDS,
   homepageCategoryHref,
 } from "@/config/homepageCategories";
+
+// Handwritten brand font — pixel-locked spec: ONLY Caveat is permitted.
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["500"],
+  display: "swap",
+});
 
 // Hero: "Find your people." discovery banner.
 // The banner artwork (public/images/hero-banner.png) is right-dominant
@@ -41,22 +49,19 @@ export default function HeroDiscovery({
   );
 
   // Handwritten brand sign-off — pixel-locked spec.
-  // In-flow left column: 12px below headline / 10px above subtitle (desktop).
-  // 19px/24px/500, #6C4CFF with #FF6B9E heart; 17px/22px on tablet
-  // (768–1199px), 15px/20px on mobile. Left edge aligns with headline.
+  // In-flow left column. Desktop (>=1200px): 21px/22px/500, 8px above,
+  // 10px below, w 430px, #6C4CFF with #FF7DAE heart. Tablet (768–1199px):
+  // 19px/20px, 8px/8px, w 390px. Mobile: 17px/18px, 6px/8px, w 100%.
+  // Font MUST be Caveat via next/font (verified at build).
   const brandMessage = (
     <p
       aria-hidden="true"
-      className="mb-2 mt-2 max-w-full select-none text-left text-[15px] font-medium leading-[20px] text-[#6C4CFF] md:mt-[10px] md:max-w-[390px] md:text-[17px] md:leading-[22px] min-[1200px]:mb-[10px] min-[1200px]:mt-3 min-[1200px]:max-w-[430px] min-[1200px]:text-[19px] min-[1200px]:leading-[24px]"
-      style={{
-        fontFamily:
-          '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
-      }}
+      className={`${caveat.className} mb-2 mt-[6px] w-full max-w-full select-none text-left text-[17px] font-medium leading-[18px] text-[#6C4CFF] md:mt-2 md:w-[390px] md:max-w-[390px] md:text-[19px] md:leading-[20px] min-[1200px]:mb-[10px] min-[1200px]:w-[430px] min-[1200px]:max-w-[430px] min-[1200px]:text-[21px] min-[1200px]:leading-[22px]`}
     >
       Creativity · Fandom · Community
       <br />
       Recognition for Everyone.{" "}
-      <span className="text-[#FF6B9E]">♡</span>
+      <span className="text-[#FF7DAE]">♡</span>
     </p>
   );
 
