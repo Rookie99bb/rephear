@@ -59,6 +59,7 @@ async function run() {
   assert(eventCreatedModal.includes("Find my people"), "confirmation gives the user a discovery next step");
   const eventPage = readFileSync("src/app/events/[slug]/page.tsx", "utf8");
   assert(eventPage.includes("card.id === searchParams.created"), "confirmation only opens for a card owned by the current account");
+  assert(eventPage.indexOf("<EventCardCreatedModal") < eventPage.indexOf('className="relative left-1/2'), "mobile modal is outside the transformed full-width page container");
   console.log("event-social-space: all checks passed");
 }
 

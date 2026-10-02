@@ -17,8 +17,9 @@ export default async function EventPage({ params, searchParams }: { params: { sl
   const visible = identity ? people.filter((p) => p.identities.includes(identity as never)) : people;
   const loginNext = `/login?next=${encodeURIComponent(`/events/${event.slug}?action=join`)}`;
 
-  return <div className="relative left-1/2 -mt-10 w-screen -translate-x-1/2 bg-[#fbf9ff]">
+  return <>
     {createdCard && <EventCardCreatedModal slug={event.slug} personId={createdCard.id} />}
+    <div className="relative left-1/2 -mt-10 w-screen -translate-x-1/2 bg-[#fbf9ff]">
     <EventAnalyticsTracker slug={event.slug} name="event_page_viewed" />
     {searchParams.action === "join" && <EventAnalyticsTracker slug={event.slug} name="event_join_started" />}
     {searchParams.action === "nominate" && <EventAnalyticsTracker slug={event.slug} name="nominate_click" />}
@@ -33,5 +34,6 @@ export default async function EventPage({ params, searchParams }: { params: { sl
         <div className="mt-10 flex justify-center"><Link href={user ? `?action=nominate#join` : `/login?next=${encodeURIComponent(`/events/${event.slug}?action=nominate`)}`} className="text-sm font-semibold text-violet-700 underline">Know someone who should be here? Nominate them →</Link></div>
       </section>
     </main>
-  </div>;
+    </div>
+  </>;
 }
