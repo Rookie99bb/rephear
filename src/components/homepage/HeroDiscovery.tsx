@@ -43,11 +43,11 @@ export default function HeroDiscovery({
   // Handwritten brand sign-off. Lives in the left content column flow,
   // directly below the headline and above the subtitle — NOT absolutely
   // positioned. Exactly two lines on desktop; script font + brand purple
-  // preserved, secondary to the headline.
+  // preserved, secondary to the headline. Heart in warm coral accent.
   const brandMessage = (
     <p
       aria-hidden="true"
-      className="mt-3 select-none text-[19px] font-bold leading-[1.35] text-brand"
+      className="mt-3 select-none text-[24px] font-bold leading-[1.35] text-brand"
       style={{
         fontFamily:
           '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
@@ -55,7 +55,8 @@ export default function HeroDiscovery({
     >
       Creativity · Fandom · Community
       <br />
-      Recognition for Everyone. ♡
+      Recognition for Everyone.{" "}
+      <span className="text-[#FB7185]">♡</span>
     </p>
   );
 
