@@ -1,16 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import EventShareTools from "@/components/events/EventShareTools";
 
 export default function EventCardCreatedModal({ slug, personId }: { slug: string; personId: string }) {
   const [open, setOpen] = useState(true);
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [open]);
+
+  if (!mounted || !open) return null;
 
   const cardPath = `/events/${slug}/people/${personId}`;
-  return <div className="fixed inset-0 z-[100] flex items-end bg-black/50 p-0 sm:items-center sm:justify-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="event-card-created-title">
-    <div className="relative w-full rounded-t-[30px] bg-white p-6 shadow-2xl sm:max-w-lg sm:rounded-[30px] sm:p-8">
+  return createPortal(<div className="fixed inset-0 z-[9999] flex min-h-dvh items-center justify-center overflow-y-auto bg-black/50 p-4 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="event-card-created-title">
+    <div className="relative my-auto w-full max-w-lg rounded-[30px] bg-white p-6 shadow-2xl sm:p-8" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
       <button type="button" onClick={() => setOpen(false)} className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-slate-100 text-xl text-slate-600" aria-label="Close success message">×</button>
       <div aria-hidden className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-2xl text-white">✓</div>
       <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-violet-600">Card created successfully</p>
@@ -22,5 +34,5 @@ export default function EventCardCreatedModal({ slug, personId }: { slug: string
       </div>
       <div className="mt-1"><EventShareTools path={cardPath} name="My AnimeCon card" /></div>
     </div>
-  </div>;
+  </div>, document.body);
 }

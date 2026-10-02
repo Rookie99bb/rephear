@@ -55,6 +55,8 @@ async function run() {
   assert(eventActions.includes("[event-recognition-save]"), "recognition action returns a recoverable error");
   const eventCreatedModal = readFileSync("src/components/events/EventCardCreatedModal.tsx", "utf8");
   assert(eventCreatedModal.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
+  assert(eventCreatedModal.includes("createPortal"), "mobile confirmation escapes transformed page and layout containers");
+  assert(eventCreatedModal.includes("document.body"), "mobile confirmation is anchored to the browser viewport");
   assert(eventCreatedModal.includes("Your AnimeCon card is live"), "confirmation clearly says the card was created");
   assert(eventCreatedModal.includes("Find my people"), "confirmation gives the user a discovery next step");
   const eventPage = readFileSync("src/app/events/[slug]/page.tsx", "utf8");
