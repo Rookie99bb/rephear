@@ -31,10 +31,15 @@ export async function joinEventAction(slug: string, _prev: EventActionState, for
   const value = fields(formData);
   if (!value.displayName || !value.photoUrl || value.identities.length === 0) return { error: "Add a photo, display name, and at least one identity." };
   if (!checkRateLimit(`eventJoin:${ctx.user.id}`, RATE_LIMITS.nominate)) return { error: "Please slow down and try again shortly." };
-  const personId = await upsertSelfAtEvent({ eventId: ctx.event.id, userId: ctx.user.id, ...value });
-  await recordEventAnalytics({ eventId: ctx.event.id, eventName: "join_completed", userId: ctx.user.id });
-  revalidatePath(`/events/${slug}`); revalidatePath(`/events/${slug}/people/${personId}`);
-  return { success: "You're here ✦ Now discover your people.", personId };
+  try {
+    const personId = await upsertSelfAtEvent({ eventId: ctx.event.id, userId: ctx.user.id, ...value });
+    await recordEventAnalytics({ eventId: ctx.event.id, eventName: "join_completed", userId: ctx.user.id }).catch((error) => console.error("[event-join-analytics]", error));
+    revalidatePath(`/events/${slug}`); revalidatePath(`/events/${slug}/people/${personId}`);
+    return { success: "You're here ✦ Now discover your people.", personId };
+  } catch (error) {
+    console.error("[event-join-save]", error);
+    return { error: "We couldn't save your event card. Your entries are still here — please try again." };
+  }
 }
 
 export async function nominateAtEventAction(slug: string, _prev: EventActionState, formData: FormData): Promise<EventActionState> {
@@ -42,10 +47,15 @@ export async function nominateAtEventAction(slug: string, _prev: EventActionStat
   const value = fields(formData);
   if (!value.displayName || !value.photoUrl || value.identities.length === 0) return { error: "Add their photo, name, and at least one identity." };
   if (!checkRateLimit(`eventNominate:${ctx.user.id}`, RATE_LIMITS.nominate)) return { error: "Please slow down and try again shortly." };
-  const personId = await nominateEventPerson({ eventId: ctx.event.id, nominatorId: ctx.user.id, ...value });
-  await recordEventAnalytics({ eventId: ctx.event.id, eventName: "nomination_completed", userId: ctx.user.id });
-  revalidatePath(`/events/${slug}`);
-  return { success: "Community nomination added.", personId };
+  try {
+    const personId = await nominateEventPerson({ eventId: ctx.event.id, nominatorId: ctx.user.id, ...value });
+    await recordEventAnalytics({ eventId: ctx.event.id, eventName: "nomination_completed", userId: ctx.user.id }).catch((error) => console.error("[event-nomination-analytics]", error));
+    revalidatePath(`/events/${slug}`);
+    return { success: "Community nomination added.", personId };
+  } catch (error) {
+    console.error("[event-nomination-save]", error);
+    return { error: "We couldn't save this nomination. Your entries are still here — please try again." };
+  }
 }
 
 export async function recognizeAtEventAction(slug: string, personId: string, source = "direct"): Promise<EventActionState> {

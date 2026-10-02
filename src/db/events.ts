@@ -119,17 +119,34 @@ export async function getEventPersonConnections(person: EventPerson, viewerId?: 
 export async function upsertSelfAtEvent(params: { eventId: string; userId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; fandomTags?: string[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
   const existing = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=?").get(params.eventId, params.userId) as { id: string } | undefined;
   const id = existing?.id ?? newId();
-  if (existing) {
-    await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, fandom_tags=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
-  } else {
-    await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl);
+  try {
+    if (existing) {
+      await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, fandom_tags=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
+    } else {
+      await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl);
+    }
+  } catch (error) {
+    // A rolling deployment can briefly serve against an older event_people
+    // schema. Keep the core event-card flow available while the idempotent
+    // migration adds fandom_tags on the next process start.
+    if (!String(error).toLowerCase().includes("fandom_tags")) throw error;
+    if (existing) {
+      await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
+    } else {
+      await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl);
+    }
   }
   return id;
 }
 
 export async function nominateEventPerson(params: { eventId: string; nominatorId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; fandomTags?: string[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
   const id = newId();
-  await db.prepare(`INSERT INTO event_people (id,event_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source,nominated_by_user_id) VALUES (?,?,?,?,?,?,?,?,?, 'community',?)`).run(id, params.eventId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, params.nominatorId);
+  try {
+    await db.prepare(`INSERT INTO event_people (id,event_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source,nominated_by_user_id) VALUES (?,?,?,?,?,?,?,?,?, 'community',?)`).run(id, params.eventId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, params.nominatorId);
+  } catch (error) {
+    if (!String(error).toLowerCase().includes("fandom_tags")) throw error;
+    await db.prepare(`INSERT INTO event_people (id,event_id,display_name,photo_url,identities,say_hi,instagram_url,tiktok_url,source,nominated_by_user_id) VALUES (?,?,?,?,?,?,?,?,'community',?)`).run(id, params.eventId, params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl, params.nominatorId);
+  }
   return id;
 }
 
