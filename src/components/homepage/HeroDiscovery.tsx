@@ -121,7 +121,7 @@ export default function HeroDiscovery({
             column is too wide and the gap disappears. */}
         <p
           aria-hidden="true"
-          className="pointer-events-none absolute left-[60%] top-[14%] hidden rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand xl:block"
+          className="pointer-events-none absolute left-[55%] top-[14%] hidden rotate-[4deg] select-none text-[21px] font-bold leading-[1.4] text-brand xl:block"
           style={{
             fontFamily:
               '"Segoe Script", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive',
