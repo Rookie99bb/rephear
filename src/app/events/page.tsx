@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import EventPageShareButton from "@/components/events/EventPageShareButton";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -39,7 +40,7 @@ export default function EventsPage() {
           <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-6xl">AnimeCon London ’26</h1>
           <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold sm:text-base"><span>▣ &nbsp;3–4 October 2026</span><span>⌖ &nbsp;Olympia London</span></div>
           <p className="mt-4 text-lg text-white/90 sm:text-xl">Meet your AnimeCon people</p>
-          <div className="mt-7 flex flex-wrap gap-3"><Link href={`${eventPath}?action=join#join`} className="rounded-xl bg-white px-6 py-3 text-sm font-black text-violet-950 shadow-lg">Create My Event Card</Link><Link href={`${eventPath}#people`} className="rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur">Discover People</Link></div>
+          <div className="mt-7 flex flex-wrap gap-3"><Link href={`${eventPath}?action=join#join`} className="rounded-xl bg-white px-6 py-3 text-sm font-black text-violet-950 shadow-lg">Create My Event Card</Link><Link href={`${eventPath}#people`} className="rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur">Discover People</Link><EventPageShareButton className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20" /></div>
         </div>
       </section>
 
