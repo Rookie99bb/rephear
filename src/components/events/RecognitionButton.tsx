@@ -2,23 +2,42 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { recognizeAtEventAction, type EventActionState } from "@/lib/actions/events";
+
+const RECOGNITION_TIMEOUT_MS = 12_000;
 
 export default function RecognitionButton({ slug, personId, personName, initialRecognized, mutual = false, source = "direct" }: { slug: string; personId: string; personName: string; initialRecognized: boolean; mutual?: boolean; source?: "direct" | "discovery" }) {
   const router = useRouter();
   const [recognized, setRecognized] = useState(initialRecognized);
   const [result, setResult] = useState<EventActionState | null>(null);
-  const [pending, startTransition] = useTransition();
-  function recognize() {
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (initialRecognized) setRecognized(true);
+  }, [initialRecognized]);
+
+  async function recognize() {
     if (recognized || pending) return;
     setRecognized(true);
-    startTransition(async () => {
-      const next = await recognizeAtEventAction(slug, personId, source);
+    setPending(true);
+
+    const safeAction = recognizeAtEventAction(slug, personId, source).catch((error) => {
+      console.error("[event-recognition-client]", error);
+      return { error: "We couldn't save this recognition. Please try again." } satisfies EventActionState;
+    });
+    const timeout = new Promise<EventActionState>((resolve) => {
+      window.setTimeout(() => resolve({ error: "This is taking longer than expected. Please try again." }), RECOGNITION_TIMEOUT_MS);
+    });
+
+    try {
+      const next = await Promise.race([safeAction, timeout]);
       if (next.error) setRecognized(false);
       setResult(next);
-      router.refresh();
-    });
+      if (!next.error) router.refresh();
+    } finally {
+      setPending(false);
+    }
   }
   return <>
     <button type="button" onClick={recognize} disabled={recognized || pending} className="min-h-11 w-full rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:bg-violet-100 disabled:text-violet-800">{pending ? "Recognizing…" : mutual ? "✦ Mutual" : recognized ? "✓ Recognized" : "◎ Recognize"}</button>

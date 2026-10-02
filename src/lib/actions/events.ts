@@ -3,12 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/session";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
-import { findEventPerson, findEventPersonByUser, findSocialEvent, nominateEventPerson, recognizePerson, recordEventAnalytics, upsertSelfAtEvent } from "@/db/events";
+import { findEventPerson, findSocialEvent, nominateEventPerson, recognizePerson, recordEventAnalytics, upsertSelfAtEvent } from "@/db/events";
 import { EVENT_IDENTITIES, type EventIdentity } from "@/config/eventIdentities";
 import { normalizeSocialProfileUrl } from "@/lib/socialProfileUrl";
 import { createNotification } from "@/db/notifications";
 
 export type EventActionState = { error?: string; success?: string; personId?: string; personName?: string; mutual?: boolean; discoveryHref?: string };
+
+const OPTIONAL_EVENT_WORK_TIMEOUT_MS = 1_500;
+
+async function settleOptionalEventWork(label: string, work: Promise<unknown>[]): Promise<void> {
+  const settled = Promise.allSettled(work).then((results) => {
+    for (const result of results) {
+      if (result.status === "rejected") console.error(`[${label}]`, result.reason);
+    }
+  });
+  await Promise.race([
+    settled,
+    new Promise<void>((resolve) => setTimeout(resolve, OPTIONAL_EVENT_WORK_TIMEOUT_MS)),
+  ]);
+}
 
 function fields(formData: FormData) {
   const displayName = String(formData.get("displayName") ?? "").trim().slice(0, 80);
@@ -59,21 +73,28 @@ export async function nominateAtEventAction(slug: string, _prev: EventActionStat
 }
 
 export async function recognizeAtEventAction(slug: string, personId: string, source = "direct"): Promise<EventActionState> {
-  const ctx = await context(slug); if ("error" in ctx) return ctx;
-  if (!checkRateLimit(`eventRecognize:${ctx.user.id}`, RATE_LIMITS.like)) return { error: "Please slow down and try again shortly." };
-  const target = await findEventPerson(personId, ctx.user.id);
-  if (!target || target.eventId !== ctx.event.id) return { error: "Person not found." };
-  const result = await recognizePerson(ctx.event.id, ctx.user.id, personId);
-  if (result === "self") return { error: "You can't recognise yourself." };
-  revalidatePath(`/events/${slug}`); revalidatePath(`/events/${slug}/people/${personId}`);
-  if (result === "created" || result === "mutual") {
-    await recordEventAnalytics({ eventId: ctx.event.id, eventName: source === "discovery" ? "recognition_discovery_recognized" : result === "mutual" ? "recognition_mutual_created" : "recognition_created", userId: ctx.user.id, metadata: { personId, source } });
-    if (target.userId) {
-      const recognizer = await findEventPersonByUser(ctx.event.id, ctx.user.id, ctx.user.id);
-      await createNotification({ userId: target.userId, type: "event_recognition", title: "Someone recognized you ✦", body: `${ctx.event.title} · View their event profile.`, link: recognizer ? `/events/${slug}/people/${recognizer.id}` : `/events/${slug}` });
+  try {
+    const ctx = await context(slug); if ("error" in ctx) return ctx;
+    if (!checkRateLimit(`eventRecognize:${ctx.user.id}`, RATE_LIMITS.like)) return { error: "Please slow down and try again shortly." };
+    const target = await findEventPerson(personId, ctx.user.id);
+    if (!target || target.eventId !== ctx.event.id) return { error: "Person not found." };
+    const result = await recognizePerson(ctx.event.id, ctx.user.id, personId);
+    if (result === "self") return { error: "You can't recognise yourself." };
+    revalidatePath(`/events/${slug}`); revalidatePath(`/events/${slug}/people/${personId}`);
+    if (result === "created" || result === "mutual") {
+      const optionalWork: Promise<unknown>[] = [
+        recordEventAnalytics({ eventId: ctx.event.id, eventName: source === "discovery" ? "recognition_discovery_recognized" : result === "mutual" ? "recognition_mutual_created" : "recognition_created", userId: ctx.user.id, metadata: { personId, source } }),
+      ];
+      if (target.userId) {
+        optionalWork.push(createNotification({ userId: target.userId, type: "event_recognition", title: "Someone recognized you ✦", body: `${ctx.event.title} · View their event profile.`, link: `/events/${slug}` }));
+      }
+      await settleOptionalEventWork("event-recognition-optional-work", optionalWork);
     }
+    return { success: result === "exists" ? "Already recognised." : result === "mutual" ? `You and ${target.displayName} recognize each other ✦` : `You recognized ${target.displayName} ✦`, personId, personName: target.displayName, mutual: result === "mutual", discoveryHref: `/events/${slug}/people/${personId}/recognized` };
+  } catch (error) {
+    console.error("[event-recognition-save]", error);
+    return { error: "We couldn't save this recognition. Please try again." };
   }
-  return { success: result === "exists" ? "Already recognised." : result === "mutual" ? `You and ${target.displayName} recognize each other ✦` : `You recognized ${target.displayName} ✦`, personId, personName: target.displayName, mutual: result === "mutual", discoveryHref: `/events/${slug}/people/${personId}/recognized` };
 }
 
 export async function recognizeAtEventFormAction(slug: string, personId: string): Promise<void> {

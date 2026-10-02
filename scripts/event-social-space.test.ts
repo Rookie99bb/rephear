@@ -43,6 +43,13 @@ async function run() {
   assert(hero.includes("export default function GlobalDiscoveryHero"));
   const eventsDb = readFileSync("src/db/events.ts", "utf8");
   assert(eventsDb.includes("GROUP BY recognized_person_id"));
+  const recognitionButton = readFileSync("src/components/events/RecognitionButton.tsx", "utf8");
+  assert(recognitionButton.includes("RECOGNITION_TIMEOUT_MS"), "recognition UI has a bounded pending state");
+  assert(recognitionButton.includes("finally"), "recognition UI always clears its pending state");
+  assert(recognitionButton.includes("if (initialRecognized) setRecognized(true)"), "duplicate cards sync after refresh");
+  const eventActions = readFileSync("src/lib/actions/events.ts", "utf8");
+  assert(eventActions.includes("settleOptionalEventWork"), "analytics and notifications cannot block recognition indefinitely");
+  assert(eventActions.includes("[event-recognition-save]"), "recognition action returns a recoverable error");
   console.log("event-social-space: all checks passed");
 }
 
