@@ -5,17 +5,20 @@ import EventPersonCard from "@/components/events/EventPersonCard";
 import { findSocialEvent, listEventPeople, listRecentlyRecognized } from "@/db/events";
 import { getCurrentUser } from "@/lib/session";
 import EventAnalyticsTracker from "@/components/events/EventAnalyticsTracker";
+import EventCardCreatedModal from "@/components/events/EventCardCreatedModal";
 
-export default async function EventPage({ params, searchParams }: { params: { slug: string }; searchParams: { action?: string; identity?: string } }) {
+export default async function EventPage({ params, searchParams }: { params: { slug: string }; searchParams: { action?: string; identity?: string; created?: string } }) {
   const [event, user] = await Promise.all([findSocialEvent(params.slug), getCurrentUser()]);
   if (!event) notFound();
   const [people, recentlyRecognized] = await Promise.all([listEventPeople(event.id, user?.id), listRecentlyRecognized(event.id, user?.id)]);
   const ownCards = people.filter((p) => p.userId === user?.id);
+  const createdCard = searchParams.created ? ownCards.find((card) => card.id === searchParams.created) : undefined;
   const identity = searchParams.identity?.trim();
   const visible = identity ? people.filter((p) => p.identities.includes(identity as never)) : people;
   const loginNext = `/login?next=${encodeURIComponent(`/events/${event.slug}?action=join`)}`;
 
   return <div className="relative left-1/2 -mt-10 w-screen -translate-x-1/2 bg-[#fbf9ff]">
+    {createdCard && <EventCardCreatedModal slug={event.slug} personId={createdCard.id} />}
     <EventAnalyticsTracker slug={event.slug} name="event_page_viewed" />
     {searchParams.action === "join" && <EventAnalyticsTracker slug={event.slug} name="event_join_started" />}
     {searchParams.action === "nominate" && <EventAnalyticsTracker slug={event.slug} name="nominate_click" />}

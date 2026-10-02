@@ -53,10 +53,12 @@ async function run() {
   const eventActions = readFileSync("src/lib/actions/events.ts", "utf8");
   assert(eventActions.includes("settleOptionalEventWork"), "analytics and notifications cannot block recognition indefinitely");
   assert(eventActions.includes("[event-recognition-save]"), "recognition action returns a recoverable error");
-  const eventProfileForm = readFileSync("src/components/events/EventProfileForm.tsx", "utf8");
-  assert(eventProfileForm.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
-  assert(eventProfileForm.includes("Your AnimeCon card is live"), "confirmation clearly says the card was created");
-  assert(eventProfileForm.includes("Find my people"), "confirmation gives the user a discovery next step");
+  const eventCreatedModal = readFileSync("src/components/events/EventCardCreatedModal.tsx", "utf8");
+  assert(eventCreatedModal.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
+  assert(eventCreatedModal.includes("Your AnimeCon card is live"), "confirmation clearly says the card was created");
+  assert(eventCreatedModal.includes("Find my people"), "confirmation gives the user a discovery next step");
+  const eventPage = readFileSync("src/app/events/[slug]/page.tsx", "utf8");
+  assert(eventPage.includes("card.id === searchParams.created"), "confirmation only opens for a card owned by the current account");
   console.log("event-social-space: all checks passed");
 }
 

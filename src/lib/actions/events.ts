@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { findEventPerson, findSocialEvent, nominateEventPerson, recognizePerson, recordEventAnalytics, upsertSelfAtEvent } from "@/db/events";
@@ -47,15 +48,16 @@ export async function joinEventAction(slug: string, _prev: EventActionState, for
   if (!value.displayName) return { error: "Please add a display name." };
   if (value.identities.length === 0) return { error: "Please choose at least one identity." };
   if (!checkRateLimit(`eventJoin:${ctx.user.id}`, RATE_LIMITS.nominate)) return { error: "Please slow down and try again shortly." };
+  let personId: string;
   try {
-    const personId = await upsertSelfAtEvent({ eventId: ctx.event.id, userId: ctx.user.id, ...value });
+    personId = await upsertSelfAtEvent({ eventId: ctx.event.id, userId: ctx.user.id, ...value });
     await recordEventAnalytics({ eventId: ctx.event.id, eventName: "join_completed", userId: ctx.user.id }).catch((error) => console.error("[event-join-analytics]", error));
-    revalidatePath(`/events/${slug}`); revalidatePath(`/events/${slug}/people/${personId}`);
-    return { success: "You're here ✦ Now discover your people.", personId };
   } catch (error) {
     console.error("[event-join-save]", error);
     return { error: "We couldn't save your event card. Your entries are still here — please try again." };
   }
+  revalidatePath(`/events/${slug}`); revalidatePath(`/events/${slug}/people/${personId}`);
+  redirect(`/events/${slug}?created=${encodeURIComponent(personId)}`);
 }
 
 export async function nominateAtEventAction(slug: string, _prev: EventActionState, formData: FormData): Promise<EventActionState> {
