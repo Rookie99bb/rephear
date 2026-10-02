@@ -43,7 +43,9 @@ async function context(slug: string) {
 export async function joinEventAction(slug: string, _prev: EventActionState, formData: FormData): Promise<EventActionState> {
   const ctx = await context(slug); if ("error" in ctx) return ctx;
   const value = fields(formData);
-  if (!value.displayName || !value.photoUrl || value.identities.length === 0) return { error: "Add a photo, display name, and at least one identity." };
+  if (!value.photoUrl) return { error: "Please add a photo." };
+  if (!value.displayName) return { error: "Please add a display name." };
+  if (value.identities.length === 0) return { error: "Please choose at least one identity." };
   if (!checkRateLimit(`eventJoin:${ctx.user.id}`, RATE_LIMITS.nominate)) return { error: "Please slow down and try again shortly." };
   try {
     const personId = await upsertSelfAtEvent({ eventId: ctx.event.id, userId: ctx.user.id, ...value });
@@ -59,7 +61,9 @@ export async function joinEventAction(slug: string, _prev: EventActionState, for
 export async function nominateAtEventAction(slug: string, _prev: EventActionState, formData: FormData): Promise<EventActionState> {
   const ctx = await context(slug); if ("error" in ctx) return ctx;
   const value = fields(formData);
-  if (!value.displayName || !value.photoUrl || value.identities.length === 0) return { error: "Add their photo, name, and at least one identity." };
+  if (!value.photoUrl) return { error: "Please add their photo." };
+  if (!value.displayName) return { error: "Please add their name." };
+  if (value.identities.length === 0) return { error: "Please choose at least one identity." };
   if (!checkRateLimit(`eventNominate:${ctx.user.id}`, RATE_LIMITS.nominate)) return { error: "Please slow down and try again shortly." };
   try {
     const personId = await nominateEventPerson({ eventId: ctx.event.id, nominatorId: ctx.user.id, ...value });
