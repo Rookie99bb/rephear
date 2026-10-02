@@ -110,7 +110,7 @@ export default function HeroDiscovery({
           src="/images/hero-banner.png"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover object-[50%_15%]"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_20%]"
           loading="eager"
           fetchPriority="high"
         />
@@ -135,7 +135,7 @@ export default function HeroDiscovery({
           For Everyone. ♡
         </p>
         <div className="relative mx-auto max-w-[1280px] px-6">
-          <div className="flex min-h-[330px] max-w-[640px] flex-col justify-center py-10">
+          <div className="flex min-h-[32vw] max-w-[640px] flex-col justify-center py-10">
             {headline}
             {chipRow(false)}
           </div>
