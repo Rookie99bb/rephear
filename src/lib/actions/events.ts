@@ -5,16 +5,9 @@ import { getCurrentUser } from "@/lib/session";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { findSocialEvent, nominateEventPerson, recognizePerson, recordEventAnalytics, upsertSelfAtEvent } from "@/db/events";
 import { EVENT_IDENTITIES, type EventIdentity } from "@/config/eventIdentities";
+import { normalizeSocialProfileUrl } from "@/lib/socialProfileUrl";
 
 export type EventActionState = { error?: string; success?: string; personId?: string };
-
-export function normalizeSocialProfileUrl(value: FormDataEntryValue | null, platform: "instagram" | "tiktok"): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  const username = raw.replace(/^@/, "").replace(/^https?:\/\/(www\.)?(instagram\.com|tiktok\.com)\/@?/, "").split(/[/?#]/)[0];
-  if (!/^[A-Za-z0-9._]{1,30}$/.test(username)) return "";
-  return platform === "instagram" ? `https://instagram.com/${username}` : `https://tiktok.com/@${username}`;
-}
 
 function fields(formData: FormData) {
   const displayName = String(formData.get("displayName") ?? "").trim().slice(0, 80);

@@ -4,7 +4,7 @@ import { createUser } from "../src/db/users";
 import { ensureMigrated } from "../src/db/schema";
 import { findSocialEvent, listEventPeople, recognizePerson, upsertSelfAtEvent } from "../src/db/events";
 import { safeNextPath } from "../src/lib/safeNextPath";
-import { normalizeSocialProfileUrl } from "../src/lib/actions/events";
+import { normalizeSocialProfileUrl } from "../src/lib/socialProfileUrl";
 
 async function run() {
   await ensureMigrated();
