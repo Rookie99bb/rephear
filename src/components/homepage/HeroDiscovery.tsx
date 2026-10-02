@@ -97,7 +97,7 @@ export default function HeroDiscovery({
         <img
           src="/images/hero-banner.png"
           alt="RepHear community illustration over the London skyline"
-          className="mt-4 aspect-[16/10] w-full object-cover"
+          className="mt-4 aspect-[16/10] w-full object-cover object-right"
           loading="eager"
           fetchPriority="high"
         />
@@ -110,7 +110,7 @@ export default function HeroDiscovery({
           src="/images/hero-banner.png"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_15%]"
           loading="eager"
           fetchPriority="high"
         />
