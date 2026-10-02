@@ -8,10 +8,12 @@ import { EVENT_IDENTITIES, type EventIdentity } from "@/config/eventIdentities";
 
 export type EventActionState = { error?: string; success?: string; personId?: string };
 
-function cleanUrl(value: FormDataEntryValue | null): string {
+export function normalizeSocialProfileUrl(value: FormDataEntryValue | null, platform: "instagram" | "tiktok"): string {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
-  try { const url = new URL(raw); return url.protocol === "https:" ? url.toString() : ""; } catch { return ""; }
+  const username = raw.replace(/^@/, "").replace(/^https?:\/\/(www\.)?(instagram\.com|tiktok\.com)\/@?/, "").split(/[/?#]/)[0];
+  if (!/^[A-Za-z0-9._]{1,30}$/.test(username)) return "";
+  return platform === "instagram" ? `https://instagram.com/${username}` : `https://tiktok.com/@${username}`;
 }
 
 function fields(formData: FormData) {
@@ -19,7 +21,7 @@ function fields(formData: FormData) {
   const photoUrl = String(formData.get("photoUrl") ?? "").trim();
   const sayHi = String(formData.get("sayHi") ?? "").trim().slice(0, 120);
   const identities = formData.getAll("identities").map(String).filter((x): x is EventIdentity => EVENT_IDENTITIES.includes(x as EventIdentity));
-  return { displayName, photoUrl, sayHi, identities, instagramUrl: cleanUrl(formData.get("instagramUrl")), tiktokUrl: cleanUrl(formData.get("tiktokUrl")) };
+  return { displayName, photoUrl, sayHi, identities, instagramUrl: normalizeSocialProfileUrl(formData.get("instagramUrl"), "instagram"), tiktokUrl: normalizeSocialProfileUrl(formData.get("tiktokUrl"), "tiktok") };
 }
 
 async function context(slug: string) {

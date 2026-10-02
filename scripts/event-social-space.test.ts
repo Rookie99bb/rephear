@@ -4,6 +4,7 @@ import { createUser } from "../src/db/users";
 import { ensureMigrated } from "../src/db/schema";
 import { findSocialEvent, listEventPeople, recognizePerson, upsertSelfAtEvent } from "../src/db/events";
 import { safeNextPath } from "../src/lib/safeNextPath";
+import { normalizeSocialProfileUrl } from "../src/lib/actions/events";
 
 async function run() {
   await ensureMigrated();
@@ -26,6 +27,9 @@ async function run() {
   assert.equal(safeNextPath("/events/animecon-london-2026?action=join"), "/events/animecon-london-2026?action=join");
   assert.equal(safeNextPath("https://evil.example/steal"), "/");
   assert.equal(safeNextPath("//evil.example/steal"), "/");
+  assert.equal(normalizeSocialProfileUrl("@anime.fan", "instagram"), "https://instagram.com/anime.fan");
+  assert.equal(normalizeSocialProfileUrl("https://tiktok.com/@cosplay_creator", "tiktok"), "https://tiktok.com/@cosplay_creator");
+  assert.equal(normalizeSocialProfileUrl("https://evil.example/user", "instagram"), "");
   const hero = readFileSync("src/components/GlobalDiscoveryHero.tsx", "utf8");
   assert(hero.includes("export default function GlobalDiscoveryHero"));
   const eventsDb = readFileSync("src/db/events.ts", "utf8");
