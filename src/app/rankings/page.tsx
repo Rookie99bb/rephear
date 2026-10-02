@@ -159,11 +159,7 @@ export default async function BrowseRankingsPage({
       <>
         <FullBleed>
           <div className="-mt-10">
-            <GlobalDiscoveryHero
-              variant="compact"
-              categories={categories}
-              activeSlug={activeCategory.slug}
-            />
+            <GlobalDiscoveryHero variant="full" categories={categories} />
           </div>
         </FullBleed>
         <CategoryPageView
@@ -188,7 +184,7 @@ export default async function BrowseRankingsPage({
       <>
         <FullBleed>
           <div className="-mt-10">
-            <GlobalDiscoveryHero variant="compact" categories={categories} />
+            <GlobalDiscoveryHero variant="full" categories={categories} />
           </div>
         </FullBleed>
         <div className="pt-8">
@@ -291,12 +287,8 @@ export default async function BrowseRankingsPage({
     <>
       <FullBleed>
         <div className="-mt-10">
-          {/* /rankings itself: the "More" entry is the active one. */}
-          <GlobalDiscoveryHero
-            variant="compact"
-            categories={categories}
-            activeSlug={null}
-          />
+          {/* Same full hero as the homepage. */}
+          <GlobalDiscoveryHero variant="full" categories={categories} />
         </div>
       </FullBleed>
       <FullBleed>
