@@ -1772,7 +1772,16 @@ async function createEventSocialSpaceTablesIfMissing() {
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
-      INSERT INTO event_people SELECT * FROM event_people_single_card;
+      INSERT INTO event_people (
+        id, event_id, user_id, display_name, photo_url, identities,
+        fandom_tags, say_hi, instagram_url, tiktok_url, source,
+        nominated_by_user_id, is_hidden, created_at, updated_at
+      )
+      SELECT
+        id, event_id, user_id, display_name, photo_url, identities,
+        fandom_tags, say_hi, instagram_url, tiktok_url, source,
+        nominated_by_user_id, is_hidden, created_at, updated_at
+      FROM event_people_single_card;
       DROP TABLE event_people_single_card;
 
       CREATE TABLE event_recognitions (
