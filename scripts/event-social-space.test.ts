@@ -15,6 +15,8 @@ async function run() {
   const b = await createUser({ email: "event-b@example.test", passwordHash: "x", name: "Bob" });
   const c = await createUser({ email: "event-c@example.test", passwordHash: "x", name: "Cara" });
   const alice = await upsertSelfAtEvent({ eventId: event.id, userId: a.id, displayName: "Alice", photoUrl: "https://example.test/a.jpg", identities: ["Artist"], fandomTags: ["Frieren"], sayHi: "Hello", instagramUrl: "", tiktokUrl: "" });
+  const aliceSecondCard = await upsertSelfAtEvent({ eventId: event.id, userId: a.id, displayName: "Alice Cosplay", photoUrl: "https://example.test/a2.jpg", identities: ["Cosplayer"], fandomTags: ["Frieren"], sayHi: "Second look", instagramUrl: "", tiktokUrl: "" });
+  assert.notEqual(aliceSecondCard, alice, "one account can create multiple independent cards");
   const bob = await upsertSelfAtEvent({ eventId: event.id, userId: b.id, displayName: "Bob", photoUrl: "https://example.test/b.jpg", identities: ["Cosplayer"], fandomTags: ["One Piece"], sayHi: "Hi", instagramUrl: "", tiktokUrl: "" });
   const cara = await upsertSelfAtEvent({ eventId: event.id, userId: c.id, displayName: "Cara", photoUrl: "https://example.test/c.jpg", identities: ["Creator"], fandomTags: ["Manga"], sayHi: "Hey", instagramUrl: "", tiktokUrl: "" });
   assert.equal(await recognizePerson(event.id, a.id, alice), "self");
@@ -23,6 +25,7 @@ async function run() {
   assert.equal(await recognizePerson(event.id, b.id, alice), "mutual");
   assert.equal(await recognizePerson(event.id, b.id, cara), "created");
   const people = await listEventPeople(event.id, a.id);
+  assert.equal(people.filter((person) => person.userId === a.id).length, 2, "both cards remain visible");
   const bobForAlice = people.find((p) => p.id === bob);
   assert.equal(bobForAlice?.recognizedBy, 1);
   assert.equal(bobForAlice?.recognized, true);
@@ -50,6 +53,10 @@ async function run() {
   const eventActions = readFileSync("src/lib/actions/events.ts", "utf8");
   assert(eventActions.includes("settleOptionalEventWork"), "analytics and notifications cannot block recognition indefinitely");
   assert(eventActions.includes("[event-recognition-save]"), "recognition action returns a recoverable error");
+  const eventProfileForm = readFileSync("src/components/events/EventProfileForm.tsx", "utf8");
+  assert(eventProfileForm.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
+  assert(eventProfileForm.includes("Your AnimeCon card is live"), "confirmation clearly says the card was created");
+  assert(eventProfileForm.includes("Find my people"), "confirmation gives the user a discovery next step");
   console.log("event-social-space: all checks passed");
 }
 

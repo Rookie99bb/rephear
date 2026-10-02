@@ -61,9 +61,9 @@ export async function listEventPeople(eventId: string, viewerId?: string | null)
       SELECT recognized_person_id FROM event_recognitions
       WHERE event_id = ? AND recognizer_user_id = ?
     ), viewer_person AS (
-      SELECT id FROM event_people WHERE event_id = ? AND user_id = ? LIMIT 1
+      SELECT id FROM event_people WHERE event_id = ? AND user_id = ? AND is_hidden = 0
     ), reverse_edges AS (
-      SELECT recognizer_user_id FROM event_recognitions er
+      SELECT DISTINCT recognizer_user_id FROM event_recognitions er
       JOIN viewer_person vp ON er.recognized_person_id = vp.id
       WHERE er.event_id = ?
     )
@@ -87,7 +87,7 @@ export async function findEventPerson(id: string, viewerId?: string | null): Pro
 }
 
 export async function findEventPersonByUser(eventId: string, userId: string, viewerId?: string | null): Promise<EventPerson | null> {
-  const row = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=? AND is_hidden=0 LIMIT 1").get(eventId, userId) as { id: string } | undefined;
+  const row = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=? AND is_hidden=0 ORDER BY created_at DESC LIMIT 1").get(eventId, userId) as { id: string } | undefined;
   return row ? findEventPerson(row.id, viewerId) : null;
 }
 
@@ -117,24 +117,17 @@ export async function getEventPersonConnections(person: EventPerson, viewerId?: 
 }
 
 export async function upsertSelfAtEvent(params: { eventId: string; userId: string; displayName: string; photoUrl: string; identities: EventIdentity[]; fandomTags?: string[]; sayHi: string; instagramUrl: string; tiktokUrl: string }): Promise<string> {
-  const existing = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=?").get(params.eventId, params.userId) as { id: string } | undefined;
-  const id = existing?.id ?? newId();
+  // Despite the legacy function name, every submission creates a new card.
+  // One account may represent several looks/personas at the same event.
+  const id = newId();
   try {
-    if (existing) {
-      await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, fandom_tags=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
-    } else {
-      await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl);
-    }
+    await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,fandom_tags,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), JSON.stringify(params.fandomTags ?? []), params.sayHi, params.instagramUrl, params.tiktokUrl);
   } catch (error) {
     // A rolling deployment can briefly serve against an older event_people
     // schema. Keep the core event-card flow available while the idempotent
     // migration adds fandom_tags on the next process start.
     if (!String(error).toLowerCase().includes("fandom_tags")) throw error;
-    if (existing) {
-      await db.prepare(`UPDATE event_people SET display_name=?, photo_url=?, identities=?, say_hi=?, instagram_url=?, tiktok_url=?, is_hidden=0, updated_at=datetime('now') WHERE id=?`).run(params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl, id);
-    } else {
-      await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl);
-    }
+    await db.prepare(`INSERT INTO event_people (id,event_id,user_id,display_name,photo_url,identities,say_hi,instagram_url,tiktok_url,source) VALUES (?,?,?,?,?,?,?,?,?,'self')`).run(id, params.eventId, params.userId, params.displayName, params.photoUrl, JSON.stringify(params.identities), params.sayHi, params.instagramUrl, params.tiktokUrl);
   }
   return id;
 }
@@ -157,9 +150,11 @@ export async function recognizePerson(eventId: string, recognizerId: string, per
   const result = await db.prepare("INSERT OR IGNORE INTO event_recognitions (id,event_id,recognizer_user_id,recognized_person_id) VALUES (?,?,?,?)").run(newId(), eventId, recognizerId, personId);
   if (!result.changes) return "exists";
   if (!person.user_id) return "created";
-  const recognizerPerson = await db.prepare("SELECT id FROM event_people WHERE event_id=? AND user_id=? AND is_hidden=0").get(eventId, recognizerId) as { id: string } | undefined;
-  if (!recognizerPerson) return "created";
-  const reverse = await db.prepare("SELECT 1 ok FROM event_recognitions WHERE event_id=? AND recognizer_user_id=? AND recognized_person_id=?").get(eventId, person.user_id, recognizerPerson.id);
+  const reverse = await db.prepare(`SELECT 1 ok FROM event_recognitions er
+    JOIN event_people ep ON ep.id = er.recognized_person_id
+    WHERE er.event_id=? AND er.recognizer_user_id=?
+      AND ep.event_id=? AND ep.user_id=? AND ep.is_hidden=0 LIMIT 1`
+  ).get(eventId, person.user_id, eventId, recognizerId);
   return reverse ? "mutual" : "created";
 }
 
