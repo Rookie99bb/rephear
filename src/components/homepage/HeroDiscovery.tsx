@@ -60,8 +60,21 @@ export default function HeroDiscovery({
     >
       Creativity · Fandom · Community
       <br />
-      Recognition for Everyone.{" "}
-      <span className="text-[#FF7DAE]">♡</span>
+      Recognition for Everyone.
+      <span
+        style={{
+          fontFamily: "Arial, sans-serif",
+          fontSize: "15px",
+          fontWeight: 400,
+          lineHeight: 1,
+          color: "#FF6F9F",
+          marginLeft: "4px",
+          verticalAlign: "1px",
+          display: "inline-block",
+        }}
+      >
+        ♥
+      </span>
     </p>
   );
 
