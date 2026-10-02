@@ -110,7 +110,7 @@ export async function getRankingsBrowseStats(
                 p.name AS name, p.avatar_color AS avatar_color,
                 ROW_NUMBER() OVER (
                   PARTITION BY p.ranking_id
-                  ORDER BY (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.profile_id = p.id) DESC,
+                  ORDER BY (SELECT COALESCE(SUM(l.count), 0) FROM likes l WHERE l.ranking_id = p.ranking_id AND l.profile_id = p.id) DESC,
                            p.created_at ASC
                 ) AS rn
          FROM profiles p
