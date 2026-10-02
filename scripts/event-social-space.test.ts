@@ -5,6 +5,7 @@ import { ensureMigrated } from "../src/db/schema";
 import { findEventPerson, findSocialEvent, getEventPersonConnections, listEventPeople, recognizePerson, upsertSelfAtEvent } from "../src/db/events";
 import { safeNextPath } from "../src/lib/safeNextPath";
 import { normalizeSocialProfileUrl } from "../src/lib/socialProfileUrl";
+import { eventRecognitionEmail } from "../src/emails/eventRecognition";
 
 async function run() {
   await ensureMigrated();
@@ -52,7 +53,16 @@ async function run() {
   assert(recognitionButton.includes("if (initialRecognized) setRecognized(true)"), "duplicate cards sync after refresh");
   const eventActions = readFileSync("src/lib/actions/events.ts", "utf8");
   assert(eventActions.includes("settleOptionalEventWork"), "analytics and notifications cannot block recognition indefinitely");
+  assert(eventActions.includes("eventRecognitionEmail"), "new event recognitions trigger an email alert");
+  assert(eventActions.includes("findUserById(target.userId!)"), "recognition email is sent only to the card owner's account email");
+  assert(eventActions.includes('if (result === "created" || result === "mutual")'), "duplicate recognition does not enter the notification and email branch");
   assert(eventActions.includes("[event-recognition-save]"), "recognition action returns a recoverable error");
+  const recognitionEmail = eventRecognitionEmail({ eventTitle: "AnimeCon <London>", personId: "person id", personName: "A&B", slug: "animecon-london-2026", mutual: false });
+  assert.equal(recognitionEmail.subject, "Someone recognised you at AnimeCon <London> ✦");
+  assert(recognitionEmail.html.includes("Someone recognised you ✦"));
+  assert(recognitionEmail.html.includes("AnimeCon &lt;London&gt;"), "event email escapes database content");
+  assert(recognitionEmail.html.includes("Hi A&amp;B"), "event email escapes the card name");
+  assert(recognitionEmail.html.includes("/events/animecon-london-2026/people/person%20id"), "event email links to the recognised card");
   const eventCreatedModal = readFileSync("src/components/events/EventCardCreatedModal.tsx", "utf8");
   assert(eventCreatedModal.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
   assert(eventCreatedModal.includes("createPortal"), "mobile confirmation escapes transformed page and layout containers");

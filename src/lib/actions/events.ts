@@ -8,6 +8,9 @@ import { findEventPerson, findSocialEvent, nominateEventPerson, recognizePerson,
 import { EVENT_IDENTITIES, type EventIdentity } from "@/config/eventIdentities";
 import { normalizeSocialProfileUrl } from "@/lib/socialProfileUrl";
 import { createNotification } from "@/db/notifications";
+import { findUserById } from "@/db/users";
+import { sendEmail } from "@/lib/email";
+import { eventRecognitionEmail } from "@/emails/eventRecognition";
 
 export type EventActionState = { error?: string; success?: string; personId?: string; personName?: string; mutual?: boolean; discoveryHref?: string };
 
@@ -93,6 +96,18 @@ export async function recognizeAtEventAction(slug: string, personId: string, sou
       ];
       if (target.userId) {
         optionalWork.push(createNotification({ userId: target.userId, type: "event_recognition", title: "Someone recognized you ✦", body: `${ctx.event.title} · View their event profile.`, link: `/events/${slug}` }));
+        optionalWork.push((async () => {
+          const recipient = await findUserById(target.userId!);
+          if (!recipient?.email) return;
+          const message = eventRecognitionEmail({
+            eventTitle: ctx.event.title,
+            personId,
+            personName: target.displayName,
+            slug,
+            mutual: result === "mutual",
+          });
+          await sendEmail({ to: recipient.email, ...message });
+        })());
       }
       await settleOptionalEventWork("event-recognition-optional-work", optionalWork);
     }
