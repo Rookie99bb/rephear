@@ -22,7 +22,7 @@ async function safeImage(url: string) {
     const contentType = response.headers.get("content-type") ?? "";
     const isWebp = contentType.includes("image/webp") || /\.webp(?:$|[?#])/i.test(url);
     const bytes = isWebp
-      ? await (await import("next/dist/server/lib/squoosh/main")).processBuffer(source, [], "png", 100)
+      ? await (await import("next/dist/server/lib/squoosh/main")).processBuffer(source, [], "jpeg", 92)
       : source;
     return await Promise.race([
       loadImage(bytes),
