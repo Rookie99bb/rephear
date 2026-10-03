@@ -3,8 +3,7 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { createUser, findUserByEmail, grantInviteBonusLikes } from "@/db/users";
-import { sendEmail } from "@/lib/email";
-import { welcomeEmail } from "@/emails/welcome";
+import { sendWelcomeEmail } from "@/lib/sendWelcomeEmail";
 import { getOrCreateInvitationForUser, findInvitationByCode, incrementSuccessfulInvites } from "@/db/invitations";
 import { createReferral } from "@/db/referrals";
 import { listActiveSitewideRaffles, addRaffleEntry } from "@/db/raffles";
@@ -145,10 +144,7 @@ export async function signupAction(
 
   // Fire-and-forget: a slow/failed email must never block signup. If
   // RESEND_API_KEY isn't configured yet, sendEmail() just logs and no-ops.
-  const { subject, html } = welcomeEmail(name);
-  sendEmail({ to: email, subject, html }).catch((err) =>
-    console.error("[signup] Failed to send welcome email:", err)
-  );
+  sendWelcomeEmail(user);
 
   return bonusLikesEarned > 0 ? { bonusLikesEarned } : {};
 }

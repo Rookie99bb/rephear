@@ -1721,6 +1721,25 @@ async function createEventSocialSpaceTablesIfMissing() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS event_conversations (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL REFERENCES social_events(id),
+      user_a_id TEXT NOT NULL REFERENCES users(id),
+      user_b_id TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (event_id, user_a_id, user_b_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS event_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES event_conversations(id),
+      sender_user_id TEXT NOT NULL REFERENCES users(id),
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      read_at TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_event_people_event_created
       ON event_people(event_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_event_people_event_visible
@@ -1733,6 +1752,12 @@ async function createEventSocialSpaceTablesIfMissing() {
       ON event_recognitions(recognizer_user_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_event_analytics_event_name
       ON event_analytics(event_id, event_name, created_at);
+    CREATE INDEX IF NOT EXISTS idx_event_conversations_user_a
+      ON event_conversations(user_a_id, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_event_conversations_user_b
+      ON event_conversations(user_b_id, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_event_messages_conversation_created
+      ON event_messages(conversation_id, created_at);
   `);
 
   try {

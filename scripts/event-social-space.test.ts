@@ -6,6 +6,7 @@ import { findEventPerson, findSocialEvent, getEventPersonConnections, listEventP
 import { safeNextPath } from "../src/lib/safeNextPath";
 import { normalizeSocialProfileUrl } from "../src/lib/socialProfileUrl";
 import { eventRecognitionEmail } from "../src/emails/eventRecognition";
+import { getEventConversation, getOrCreateEventConversation, listEventConversations, sendEventMessage } from "../src/db/eventMessages";
 
 async function run() {
   await ensureMigrated();
@@ -24,6 +25,13 @@ async function run() {
   assert.equal(await recognizePerson(event.id, a.id, bob), "created");
   assert.equal(await recognizePerson(event.id, a.id, bob), "exists");
   assert.equal(await recognizePerson(event.id, b.id, alice), "mutual");
+  const conversationId = await getOrCreateEventConversation(event.id, a.id, b.id);
+  assert.equal(await getOrCreateEventConversation(event.id, b.id, a.id), conversationId, "a mutual pair shares one conversation");
+  await sendEventMessage(conversationId, event.id, a.id, "Hello Bob ✦");
+  const conversation = await getEventConversation(conversationId, event.id, b.id);
+  assert.equal(conversation?.messages[0]?.body, "Hello Bob ✦", "mutual users can exchange messages");
+  assert.equal((await listEventConversations(event.id, b.id))[0]?.id, conversationId, "conversation appears in the event inbox");
+  await assert.rejects(() => getOrCreateEventConversation(event.id, a.id, c.id), /mutual recognition/, "one-way recognition cannot open chat");
   assert.equal(await recognizePerson(event.id, b.id, cara), "created");
   const people = await listEventPeople(event.id, a.id);
   assert.equal(people.filter((person) => person.userId === a.id).length, 2, "both cards remain visible");

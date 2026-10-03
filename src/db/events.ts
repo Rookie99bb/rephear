@@ -101,11 +101,17 @@ async function listEventPeopleByIds(ids: string[], viewerId?: string | null): Pr
     )
     SELECT ep.*, COALESCE(rc.recognized_by, 0) AS recognized_by,
       EXISTS(SELECT 1 FROM event_recognitions er WHERE er.event_id=ep.event_id AND er.recognizer_user_id=? AND er.recognized_person_id=ep.id) AS recognized,
-      0 AS mutual
+      CASE WHEN ep.user_id IS NOT NULL
+        AND EXISTS(SELECT 1 FROM event_recognitions outgoing WHERE outgoing.event_id=ep.event_id AND outgoing.recognizer_user_id=? AND outgoing.recognized_person_id=ep.id)
+        AND EXISTS(SELECT 1 FROM event_recognitions reverse_edge
+          JOIN event_people viewer_card ON viewer_card.id=reverse_edge.recognized_person_id
+          WHERE reverse_edge.event_id=ep.event_id AND reverse_edge.recognizer_user_id=ep.user_id
+            AND viewer_card.user_id=? AND viewer_card.is_hidden=0)
+        THEN 1 ELSE 0 END AS mutual
     FROM event_people ep LEFT JOIN recognition_counts rc ON rc.recognized_person_id=ep.id
     LEFT JOIN users u ON ep.user_id=u.id
     WHERE ep.id IN (${marks}) AND ep.is_hidden=0 AND (ep.user_id IS NULL OR u.is_hidden=0)`
-  ).all(...ids, viewerId ?? "", ...ids) as PersonRow[];
+  ).all(...ids, viewerId ?? "", viewerId ?? "", viewerId ?? "", ...ids) as PersonRow[];
   return rows.map(toPerson);
 }
 

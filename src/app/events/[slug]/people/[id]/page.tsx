@@ -45,6 +45,7 @@ export default async function EventPersonPage({ params, searchParams }: { params
         <Link href={`${path}/recognized`} className="rounded-2xl bg-white p-4 shadow-sm"><b className="block text-2xl text-ink">{connections.recognizedPeople.length}</b><span className="text-xs text-subtle">People I recognized</span></Link>
       </div>
       {person.mutual && <p className="mt-4 rounded-xl bg-violet-100 p-3 text-sm font-bold text-violet-800">✦ Mutual Recognition</p>}
+      {person.mutual && person.userId && !own && <Link href={`/events/${event.slug}/messages/new?user=${encodeURIComponent(person.userId)}`} className="mx-auto mt-4 inline-flex rounded-full bg-violet-700 px-8 py-3 font-bold text-white">Message {person.displayName} →</Link>}
       {!own && (user ? <div className="mx-auto mt-4 max-w-xs"><RecognitionButton slug={event.slug} personId={person.id} personName={person.displayName} initialRecognized={person.recognized} mutual={person.mutual} /></div> : <Link href={`/login?next=${encodeURIComponent(`${path}?intent=recognize`)}`} className="mt-4 inline-block rounded-full bg-ink px-8 py-3 font-bold text-white">◎ Recognize</Link>)}
       <div className="mt-7 flex justify-center gap-4 text-sm">
         {person.instagramUrl && <a target="_blank" rel="noopener noreferrer" href={person.instagramUrl} className="font-semibold text-violet-700 underline">Instagram ↗</a>}

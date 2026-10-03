@@ -8,8 +8,7 @@ import { getOrCreateInvitationForUser } from "@/db/invitations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { attributeCampaignSignup, CAMPAIGN_COOKIE } from "@/db/campaignLinks";
 import { applyReferral } from "@/lib/actions/auth";
-import { sendEmail } from "@/lib/email";
-import { welcomeEmail } from "@/emails/welcome";
+import { sendWelcomeEmail } from "@/lib/sendWelcomeEmail";
 import { getRequestContext } from "@/lib/requestContext";
 import type { User } from "@/lib/types";
 
@@ -150,13 +149,19 @@ export const authOptions: AuthOptions = {
 // signup form: their own invite link, referral-cookie credit, campaign
 // (/s/<slug>) attribution, and the welcome email. Every step is
 // best-effort — none may block the login.
-async function findOrCreateGoogleUser({
+export async function findOrCreateGoogleUser({
   email,
   name,
 }: {
   email: string;
   name?: string | null;
-}): Promise<User> {
+}, deliverWelcome: (recipient: Pick<User, "email" | "name">) => void = (
+  recipient
+) =>
+  sendWelcomeEmail(
+    recipient,
+    "[auth] google signup: welcome email failed (non-blocking):"
+  )): Promise<User> {
   const normalized = email.toLowerCase().trim();
   const existing = await findUserByEmail(normalized);
   if (existing) return existing;
@@ -206,10 +211,7 @@ async function findOrCreateGoogleUser({
   }
 
   // Fire-and-forget: a slow/failed email must never block login.
-  const { subject, html } = welcomeEmail(user.name);
-  sendEmail({ to: user.email, subject, html }).catch((err) =>
-    console.error("[auth] google signup: welcome email failed (non-blocking):", err)
-  );
+  deliverWelcome(user);
 
   return user;
 }
