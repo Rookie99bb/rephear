@@ -18,7 +18,11 @@ async function safeImage(url: string) {
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) throw new Error(`image request failed: ${response.status}`);
-    const bytes = Buffer.from(await response.arrayBuffer());
+    const source = Buffer.from(await response.arrayBuffer());
+    const contentType = response.headers.get("content-type") ?? "";
+    const bytes = contentType.includes("image/webp")
+      ? await (await import("next/dist/server/lib/squoosh/main")).processBuffer(source, [], "png", 100)
+      : source;
     return await Promise.race([
       loadImage(bytes),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("image timeout")), 8000)),
