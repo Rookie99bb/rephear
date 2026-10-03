@@ -32,7 +32,7 @@ export default function EventCardCreatedModal({ slug, personId }: { slug: string
         <Link href={`/events/${slug}#people`} className="rounded-xl bg-ink px-5 py-3.5 text-center text-sm font-bold text-white">Find my people →</Link>
         <Link href={cardPath} className="rounded-xl border border-violet-200 bg-violet-50 px-5 py-3.5 text-center text-sm font-bold text-violet-800">View my card</Link>
       </div>
-      <div className="mt-1"><EventShareTools path={cardPath} name="My AnimeCon card" /></div>
+      <div className="mt-1"><EventShareTools path={cardPath} name="My AnimeCon card" generateOnMount /></div>
     </div>
   </div>, document.body);
 }

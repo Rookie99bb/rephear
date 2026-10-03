@@ -50,11 +50,11 @@ export async function renderEventShareCard(params: {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 44px sans-serif";
-  ctx.fillText("RepHear", width / 2, params.format === "story" ? 130 : 82);
-  ctx.font = "700 34px sans-serif";
+  ctx.font = `900 ${params.format === "story" ? 64 : 48}px sans-serif`;
+  ctx.fillText("I’M HERE ✦", width / 2, params.format === "story" ? 125 : 68);
+  ctx.font = `700 ${params.format === "story" ? 34 : 28}px sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.82)";
-  ctx.fillText(params.event.title, width / 2, params.format === "story" ? 205 : 142);
+  ctx.fillText(params.event.title.toUpperCase(), width / 2, params.format === "story" ? 190 : 118);
 
   const photoSize = params.format === "story" ? 560 : 390;
   const photoX = (width - photoSize) / 2;
@@ -93,6 +93,10 @@ export async function renderEventShareCard(params: {
   ctx.fillStyle = "#fff";
   ctx.fillText("Find me at AnimeCon London ’26", width / 2, nameY + (params.format === "story" ? 170 : 135));
 
+  ctx.font = `700 ${params.format === "story" ? 34 : 27}px sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.86)";
+  ctx.fillText(`Recognised by ${params.person.recognizedBy}`, width / 2, nameY + (params.format === "story" ? 225 : 178));
+
   const qrData = await QRCode.toDataURL(params.url, { width: 420, margin: 1, color: { dark: "#171119", light: "#ffffff" } });
   const qr = await loadImage(qrData);
   const qrSize = params.format === "story" ? 330 : 190;
@@ -106,6 +110,13 @@ export async function renderEventShareCard(params: {
     ctx.font = "600 32px sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.fillText("Scan to view my card", width / 2, height - 125);
+    ctx.font = "700 28px sans-serif";
+    ctx.fillText("rephear.com", width / 2, height - 72);
+  } else {
+    ctx.textAlign = "left";
+    ctx.font = "700 24px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.fillText("rephear.com", 42, height - 28);
   }
   return canvas.toBuffer("image/png");
 }

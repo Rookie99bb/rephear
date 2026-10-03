@@ -83,12 +83,17 @@ async function run() {
   assert(eventPersonPage.includes("`/u/${person.userId}`"), "event card links to the owner's main RepHear profile");
   assert(eventPersonPage.includes("’s RepHear profile →"), "main-profile button explains its destination");
   const eventShareTools = readFileSync("src/components/events/EventShareTools.tsx", "utf8");
-  assert(eventShareTools.includes("Download image"), "AnimeCon Share Kit offers a downloadable visual card");
-  assert(eventShareTools.includes("Copy tracked link"), "AnimeCon Share Kit offers a copyable tracked destination");
+  assert(eventShareTools.includes("Share my I’M HERE ✦ Card"), "AnimeCon Share Kit presents the card as an I’M HERE identity card");
+  assert(eventShareTools.includes("generateOnMount"), "newly created AnimeCon cards preload both share images automatically");
+  assert(eventShareTools.includes("Download Square") && eventShareTools.includes("Download Story"), "AnimeCon Share Kit offers downloadable square and story cards");
+  assert(eventShareTools.includes("Copy my card link"), "AnimeCon Share Kit offers a copyable tracked destination");
   assert(eventShareTools.includes("WhatsApp") && eventShareTools.includes("Telegram"), "AnimeCon Share Kit exposes explicit channels");
   assert(eventShareTools.includes('"square" | "story"'), "AnimeCon Share Kit provides square and story formats");
   const eventShareRoute = readFileSync("src/app/api/events/[slug]/people/[id]/share-card/route.ts", "utf8");
   assert(eventShareRoute.includes("renderEventShareCard"), "AnimeCon visual cards are server-rendered");
+  const eventShareRenderer = readFileSync("src/lib/eventShareCardRenderer.ts", "utf8");
+  assert(eventShareRenderer.includes("I’M HERE ✦"), "generated AnimeCon cards carry the I’M HERE identity title");
+  assert(eventShareRenderer.includes("Recognised by"), "generated AnimeCon cards show recognition count");
   console.log("event-social-space: all checks passed");
 }
 
