@@ -13,8 +13,14 @@ function cover(ctx: ReturnType<ReturnType<typeof createCanvas>["getContext"]>, i
 
 async function safeImage(url: string) {
   try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "RepHear Event Card Renderer/1.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error(`image request failed: ${response.status}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
     return await Promise.race([
-      loadImage(url),
+      loadImage(bytes),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("image timeout")), 8000)),
     ]);
   } catch {
@@ -56,9 +62,9 @@ export async function renderEventShareCard(params: {
   ctx.fillStyle = "rgba(255,255,255,0.82)";
   ctx.fillText(params.event.title.toUpperCase(), width / 2, params.format === "story" ? 190 : 118);
 
-  const photoSize = params.format === "story" ? 560 : 390;
+  const photoSize = params.format === "story" ? 560 : 350;
   const photoX = (width - photoSize) / 2;
-  const photoY = params.format === "story" ? 300 : 205;
+  const photoY = params.format === "story" ? 300 : 165;
   ctx.save();
   ctx.beginPath();
   ctx.arc(width / 2, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
@@ -79,7 +85,7 @@ export async function renderEventShareCard(params: {
   ctx.arc(width / 2, photoY + photoSize / 2, photoSize / 2 + 6, 0, Math.PI * 2);
   ctx.stroke();
 
-  const nameY = photoY + photoSize + (params.format === "story" ? 115 : 82);
+  const nameY = photoY + photoSize + (params.format === "story" ? 115 : 78);
   ctx.fillStyle = "#fff";
   ctx.font = `900 ${params.format === "story" ? 86 : 70}px sans-serif`;
   ctx.fillText(params.person.displayName, width / 2, nameY, width - 100);
@@ -99,8 +105,8 @@ export async function renderEventShareCard(params: {
 
   const qrData = await QRCode.toDataURL(params.url, { width: 420, margin: 1, color: { dark: "#171119", light: "#ffffff" } });
   const qr = await loadImage(qrData);
-  const qrSize = params.format === "story" ? 330 : 190;
-  const qrY = height - qrSize - (params.format === "story" ? 220 : 58);
+  const qrSize = params.format === "story" ? 330 : 170;
+  const qrY = height - qrSize - (params.format === "story" ? 220 : 40);
   ctx.fillStyle = "#fff";
   ctx.roundRect(width / 2 - qrSize / 2 - 18, qrY - 18, qrSize + 36, qrSize + 36, 24);
   ctx.fill();
