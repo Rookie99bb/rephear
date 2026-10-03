@@ -23,7 +23,10 @@ export function emailLayout(bodyHtml: string): string {
             </tr>
             <tr>
               <td style="padding:16px 32px;border-top:1px solid #e5e5e8;color:#6b6b70;font-size:12px;">
-                RepHear · <a href="${SITE_URL}" style="color:#6b6b70;">${SITE_URL.replace(/^https?:\/\//, "")}</a>
+                <a href="${SITE_URL}" style="color:#6b6b70;text-decoration:none;">
+                  Recognition belongs to everyone. Find your people. Recognise and be recognised.<br>
+                  rephear.com
+                </a>
               </td>
             </tr>
           </table>
