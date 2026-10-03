@@ -55,7 +55,7 @@ export default async function EventPersonPage({ params, searchParams }: { params
         {person.instagramUrl && <a target="_blank" rel="noopener noreferrer" href={person.instagramUrl} className="font-semibold text-violet-700 underline">Instagram ↗</a>}
         {person.tiktokUrl && <a target="_blank" rel="noopener noreferrer" href={person.tiktokUrl} className="font-semibold text-violet-700 underline">TikTok ↗</a>}
       </div>
-      {person.userId && <Link href={`/u/${person.userId}`} className="mx-auto mt-6 inline-flex rounded-full border border-violet-200 bg-white px-6 py-3 text-sm font-bold text-violet-800 shadow-sm hover:border-violet-500">View {person.displayName}’s RepHear profile →</Link>}
+      {person.userId && <Link href={`/u/${person.userId}?eventPerson=${encodeURIComponent(person.id)}`} className="mx-auto mt-6 inline-flex rounded-full border border-violet-200 bg-white px-6 py-3 text-sm font-bold text-violet-800 shadow-sm hover:border-violet-500">View {person.displayName}’s RepHear profile →</Link>}
       {viewerCardPath && <div className="flex justify-center"><EventShareTools path={viewerCardPath} name={viewerCard!.displayName} shareUrl={`${getSiteUrl()}${viewerCardPath}?ref=event-card&from=${viewerCard!.id}`} /></div>}
     </article>
   </main>;

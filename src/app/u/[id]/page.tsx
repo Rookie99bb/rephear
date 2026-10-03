@@ -30,6 +30,7 @@ import IdentityBadges from "@/components/IdentityBadges";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
 import { listUserEventConversations } from "@/db/eventMessages";
+import { findEventPerson } from "@/db/events";
 
 // Phase 2 (public identity): public profile at /u/[id] using the opaque
 // users.id (non-enumerable — no handle system in Phase 2).
@@ -49,14 +50,22 @@ import { listUserEventConversations } from "@/db/eventMessages";
 // without a legal call).
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { eventPerson?: string };
 }): Promise<Metadata> {
   const target = await findUserById(params.id);
   if (!target || target.isHidden) {
     return { title: "Profile unavailable" };
   }
-  return { title: `${target.name} on RepHear` };
+  const eventIdentity = searchParams.eventPerson
+    ? await findEventPerson(searchParams.eventPerson)
+    : null;
+  const publicName = eventIdentity?.userId === target.id
+    ? eventIdentity.displayName
+    : target.name;
+  return { title: `${publicName} on RepHear` };
 }
 
 function Unavailable() {
@@ -69,8 +78,10 @@ function Unavailable() {
 
 export default async function UserProfilePage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { eventPerson?: string };
 }) {
   const target = await findUserById(params.id);
   if (!target) notFound();
@@ -82,6 +93,20 @@ export default async function UserProfilePage({
   if (viewerId && (await isBlockedEither(viewerId, target.id))) {
     return <Unavailable />;
   }
+
+  // Event cards are public personas owned by an account. When someone
+  // follows an event-card link into the wider RepHear profile, preserve
+  // that public identity instead of unexpectedly exposing the account name
+  // imported from Google. The ownership check prevents one user's card from
+  // being injected into another user's profile URL.
+  const requestedEventIdentity = searchParams.eventPerson
+    ? await findEventPerson(searchParams.eventPerson, viewerId)
+    : null;
+  const eventIdentity = requestedEventIdentity?.userId === target.id
+    ? requestedEventIdentity
+    : null;
+  const publicName = eventIdentity?.displayName ?? target.name;
+  const publicPhotoUrl = eventIdentity?.photoUrl || undefined;
 
   const includePrivate = isOwner;
   const [tags, stats, likes, peopleIBack, publicActivity, backingStories, identityAwards, conversations] =
@@ -163,12 +188,16 @@ export default async function UserProfilePage({
     <div className="mx-auto max-w-2xl">
       {/* Identity header */}
       <div className="flex items-center gap-4">
-        <Avatar name={target.name} size={64} />
+        <Avatar name={publicName} photoUrl={publicPhotoUrl} size={64} />
         <div className="flex-1">
           <h1 className="text-xl font-semibold tracking-tight text-ink">
-            {target.name}
+            {publicName}
           </h1>
-          {target.location && (
+          {eventIdentity ? (
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-ink">
+              AnimeCon London ’26 identity
+            </p>
+          ) : target.location && (
             <p className="text-xs uppercase tracking-wide text-subtle">
               {target.location}
             </p>
@@ -195,7 +224,7 @@ export default async function UserProfilePage({
       {viewerId && !isOwner && (
         <ProfileReportBlock
           targetUserId={target.id}
-          targetName={target.name}
+          targetName={publicName}
           initialBlocked={viewerBlocked}
         />
       )}
