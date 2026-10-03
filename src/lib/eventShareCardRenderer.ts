@@ -20,7 +20,8 @@ async function safeImage(url: string) {
     if (!response.ok) throw new Error(`image request failed: ${response.status}`);
     const source = Buffer.from(await response.arrayBuffer());
     const contentType = response.headers.get("content-type") ?? "";
-    const bytes = contentType.includes("image/webp")
+    const isWebp = contentType.includes("image/webp") || /\.webp(?:$|[?#])/i.test(url);
+    const bytes = isWebp
       ? await (await import("next/dist/server/lib/squoosh/main")).processBuffer(source, [], "png", 100)
       : source;
     return await Promise.race([
