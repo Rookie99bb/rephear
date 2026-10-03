@@ -99,7 +99,9 @@ export async function sendEventMessage(conversationId: string, eventId: string, 
   if (!conversation) throw new Error("Conversation not found.");
   const value = body.trim().slice(0, 1000);
   if (!value) throw new Error("Write a message first.");
+  const messageId = newId();
   await db.prepare("INSERT INTO event_messages (id,conversation_id,sender_user_id,body) VALUES (?,?,?,?)")
-    .run(newId(), conversationId, senderUserId, value);
+    .run(messageId, conversationId, senderUserId, value);
   await db.prepare("UPDATE event_conversations SET updated_at=datetime('now') WHERE id=?").run(conversationId);
+  return { messageId, recipientUserId: conversation.otherUserId };
 }

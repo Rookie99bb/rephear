@@ -6,6 +6,7 @@ import { findEventPerson, findSocialEvent, getEventPersonConnections, listEventP
 import { safeNextPath } from "../src/lib/safeNextPath";
 import { normalizeSocialProfileUrl } from "../src/lib/socialProfileUrl";
 import { eventRecognitionEmail } from "../src/emails/eventRecognition";
+import { eventMessageEmail } from "../src/emails/eventMessage";
 import { getEventConversation, getOrCreateEventConversation, listEventConversations, sendEventMessage } from "../src/db/eventMessages";
 
 async function run() {
@@ -77,6 +78,19 @@ async function run() {
   assert(anonymousRecognitionEmail.html.includes("/login?next=%2Fevents%2Fanimecon-london-2026%2Fpeople%2Frecognizer-card"), "email requires login before opening the recognizer's card");
   assert(!anonymousRecognitionEmail.html.includes("<img"), "email keeps the recognizer anonymous until click-through");
   assert(anonymousRecognitionEmail.html.includes("Recognition belongs to everyone. Find your people. Recognise and be recognised."), "event brand message stays inside the email body");
+  const messageEmail = eventMessageEmail({ eventTitle: "AnimeCon <London>", slug: "animecon-london-2026", conversationId: "chat id", recipientName: "B&b", senderName: "A<lice", senderPhotoUrl: "https://example.test/a.jpg", senderIdentities: ["Artist", "Creator"], commonInterests: ["Frieren"] });
+  assert.equal(messageEmail.subject, "A<lice sent you a message at AnimeCon <London> ✦");
+  assert(messageEmail.html.includes("A&lt;lice"), "message email escapes the sender name");
+  assert(messageEmail.html.includes("https://example.test/a.jpg"), "message email includes the sender avatar");
+  assert(messageEmail.html.includes("Artist · Creator"), "message email includes sender identities");
+  assert(messageEmail.html.includes("You both like:</strong> Frieren"), "message email highlights common interests");
+  assert(messageEmail.html.includes("/login?next=%2Fevents%2Fanimecon-london-2026%2Fmessages%2Fchat%2520id"), "message button requires login and returns to the conversation");
+  assert(!messageEmail.html.includes("Hello Bob"), "private message text is not copied into email");
+  const messageAction = readFileSync("src/lib/actions/eventMessages.ts", "utf8");
+  assert(messageAction.includes("eventMessageEmail"), "each saved event message prepares an email notification");
+  assert(messageAction.includes("senderCard?.photoUrl"), "message notification includes the sender avatar");
+  assert(messageAction.includes("await sendEmail"), "message notification is sent after the database write");
+  assert(messageAction.indexOf("sendEventMessage(") < messageAction.indexOf("await sendEmail"), "email failure cannot prevent the message from being stored");
   const eventCreatedModal = readFileSync("src/components/events/EventCardCreatedModal.tsx", "utf8");
   assert(eventCreatedModal.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
   assert(eventCreatedModal.includes("createPortal"), "mobile confirmation escapes transformed page and layout containers");
