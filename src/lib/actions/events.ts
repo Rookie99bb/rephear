@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
-import { findEventPerson, findSocialEvent, nominateEventPerson, recognizePerson, recordEventAnalytics, upsertSelfAtEvent } from "@/db/events";
+import { findEventPerson, findEventPersonByUser, findSocialEvent, nominateEventPerson, recognizePerson, recordEventAnalytics, upsertSelfAtEvent } from "@/db/events";
 import { EVENT_IDENTITIES, type EventIdentity } from "@/config/eventIdentities";
 import { normalizeSocialProfileUrl } from "@/lib/socialProfileUrl";
 import { createNotification } from "@/db/notifications";
@@ -97,7 +97,10 @@ export async function recognizeAtEventAction(slug: string, personId: string, sou
       if (target.userId) {
         optionalWork.push(createNotification({ userId: target.userId, type: "event_recognition", title: "Someone recognized you ✦", body: `${ctx.event.title} · View their event profile.`, link: `/events/${slug}` }));
         optionalWork.push((async () => {
-          const recipient = await findUserById(target.userId!);
+          const [recipient, recognizer] = await Promise.all([
+            findUserById(target.userId!),
+            findEventPersonByUser(ctx.event.id, ctx.user.id, target.userId),
+          ]);
           if (!recipient?.email) return;
           const message = eventRecognitionEmail({
             eventTitle: ctx.event.title,
@@ -105,6 +108,7 @@ export async function recognizeAtEventAction(slug: string, personId: string, sou
             personName: target.displayName,
             slug,
             mutual: result === "mutual",
+            recognizerId: recognizer?.id ?? null,
           });
           await sendEmail({ to: recipient.email, ...message });
         })());
