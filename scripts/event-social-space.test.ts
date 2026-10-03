@@ -62,12 +62,13 @@ async function run() {
   assert(recognitionEmail.html.includes("You’ve been recognised ✦"));
   assert(recognitionEmail.html.includes("AnimeCon &lt;London&gt;"), "event email escapes database content");
   assert(recognitionEmail.html.includes("Hi A&amp;B"), "event email escapes the card name");
-  assert(recognitionEmail.html.includes("/events/animecon-london-2026/people/person%20id"), "event email links to the recognised card");
+  assert(recognitionEmail.html.includes("/login?next=%2Fevents%2Fanimecon-london-2026%2Fpeople%2Fperson%2520id%2Frecognized-by"), "event email requires login before opening the recognition page");
   const anonymousRecognitionEmail = eventRecognitionEmail({ eventTitle: "AnimeCon London ’26", personId: "recipient-card", personName: "Recipient", slug: "animecon-london-2026", mutual: false, recognizerId: "recognizer-card" });
   assert(anonymousRecognitionEmail.html.includes("You’ve been recognised ✦"));
   assert(anonymousRecognitionEmail.html.includes("See who recognised you →"));
-  assert(anonymousRecognitionEmail.html.includes("/people/recognizer-card"), "email opens the recognizer's card when one exists");
+  assert(anonymousRecognitionEmail.html.includes("/login?next=%2Fevents%2Fanimecon-london-2026%2Fpeople%2Frecognizer-card"), "email requires login before opening the recognizer's card");
   assert(!anonymousRecognitionEmail.html.includes("<img"), "email keeps the recognizer anonymous until click-through");
+  assert(anonymousRecognitionEmail.html.includes("Recognition belongs to everyone. Find your people. Recognise and be recognised."), "event brand message stays inside the email body");
   const eventCreatedModal = readFileSync("src/components/events/EventCardCreatedModal.tsx", "utf8");
   assert(eventCreatedModal.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
   assert(eventCreatedModal.includes("createPortal"), "mobile confirmation escapes transformed page and layout containers");

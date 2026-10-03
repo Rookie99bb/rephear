@@ -3,7 +3,10 @@
 // (tailwind.config.ts) with plain inline styles instead.
 const SITE_URL = process.env.NEXTAUTH_URL || "https://public-reputation.onrender.com";
 
-export function emailLayout(bodyHtml: string): string {
+export function emailLayout(
+  bodyHtml: string,
+  options: { hideFooter?: boolean } = {},
+): string {
   return `<!DOCTYPE html>
 <html>
   <body style="margin:0;padding:0;background-color:#f7f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
@@ -21,14 +24,11 @@ export function emailLayout(bodyHtml: string): string {
                 ${bodyHtml}
               </td>
             </tr>
-            <tr>
+            ${options.hideFooter ? "" : `<tr>
               <td style="padding:16px 32px;border-top:1px solid #e5e5e8;color:#6b6b70;font-size:12px;">
-                <a href="${SITE_URL}" style="color:#6b6b70;text-decoration:none;">
-                  Recognition belongs to everyone. Find your people. Recognise and be recognised.<br>
-                  rephear.com
-                </a>
+                RepHear · <a href="${SITE_URL}" style="color:#6b6b70;">${SITE_URL.replace(/^https?:\/\//, "")}</a>
               </td>
-            </tr>
+            </tr>`}
           </table>
         </td>
       </tr>

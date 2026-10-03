@@ -16,10 +16,12 @@ export function eventRecognitionEmail(params: EventRecognitionEmailParams): {
 } {
   const eventTitle = escapeHtml(params.eventTitle);
   const personName = escapeHtml(params.personName);
-  const baseUrl = `${getSiteUrl().replace(/\/$/, "")}/events/${encodeURIComponent(params.slug)}/people`;
-  const profileUrl = params.recognizerId
-    ? `${baseUrl}/${encodeURIComponent(params.recognizerId)}`
-    : `${baseUrl}/${encodeURIComponent(params.personId)}/recognized-by`;
+  const siteUrl = getSiteUrl().replace(/\/$/, "");
+  const peoplePath = `/events/${encodeURIComponent(params.slug)}/people`;
+  const profilePath = params.recognizerId
+    ? `${peoplePath}/${encodeURIComponent(params.recognizerId)}`
+    : `${peoplePath}/${encodeURIComponent(params.personId)}/recognized-by`;
+  const profileUrl = `${siteUrl}/login?next=${encodeURIComponent(profilePath)}`;
   const headline = params.mutual
     ? "You recognised each other ✦"
     : "You’ve been recognised ✦";
@@ -46,13 +48,19 @@ export function eventRecognitionEmail(params: EventRecognitionEmailParams): {
       ${buttonLabel}
     </a>
     <p style="margin:24px 0 0 0;color:#6b6b70;font-size:13px;">${signoff}</p>
+    <p style="margin:24px 0 0 0;color:#6b6b70;font-size:12px;line-height:1.6;">
+      <a href="${siteUrl}" style="color:#6b6b70;text-decoration:none;">
+        Recognition belongs to everyone. Find your people. Recognise and be recognised.<br>
+        rephear.com
+      </a>
+    </p>
   `;
 
   return {
     subject: params.mutual
       ? `You made a mutual connection at ${params.eventTitle} ✦`
       : `Someone recognised you at ${params.eventTitle} ✦`,
-    html: emailLayout(body),
+    html: emailLayout(body, { hideFooter: true }),
   };
 }
 
