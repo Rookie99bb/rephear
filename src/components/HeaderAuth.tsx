@@ -26,7 +26,7 @@ export default function HeaderAuth({
 
   return (
     <div className="flex items-center gap-4">
-      <span className="text-ink">{userName}</span>
+      <span className="max-w-24 truncate text-ink" title={userName}>{userName}</span>
       <button
         onClick={() => signOut({ callbackUrl: "/" })}
         className="hover:text-ink"

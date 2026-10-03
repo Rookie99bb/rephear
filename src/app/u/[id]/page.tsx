@@ -29,6 +29,7 @@ import StoryCardsPanel from "@/components/StoryCardsPanel";
 import IdentityBadges from "@/components/IdentityBadges";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
+import { listUserEventConversations } from "@/db/eventMessages";
 
 // Phase 2 (public identity): public profile at /u/[id] using the opaque
 // users.id (non-enumerable — no handle system in Phase 2).
@@ -83,7 +84,7 @@ export default async function UserProfilePage({
   }
 
   const includePrivate = isOwner;
-  const [tags, stats, likes, peopleIBack, publicActivity, backingStories, identityAwards] =
+  const [tags, stats, likes, peopleIBack, publicActivity, backingStories, identityAwards, conversations] =
     await Promise.all([
       getInterestTags(target.id, includePrivate),
       getIdentityStats(target.id, includePrivate),
@@ -99,6 +100,7 @@ export default async function UserProfilePage({
       // Phase 5.7: evidence-based identities — viewer-gated below
       // (owner + public viewers; fully-private profiles: owner only).
       getIdentityAwards(target.id),
+      isOwner ? listUserEventConversations(target.id) : Promise.resolve([]),
     ]);
 
   // Phase 5.7: identity badges render for the owner always and for
@@ -220,6 +222,74 @@ export default async function UserProfilePage({
         </>
       ) : (
         <>
+          {isOwner && (
+            <section className="mt-8 rounded-2xl border border-border bg-white p-5">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-ink">
+                    Your homepage
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold text-ink">Everything about you</h2>
+                </div>
+                <p className="text-xs text-subtle">Private to your account</p>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                <ProfileSummary label="Supported" value={peopleIBack.length} />
+                <ProfileSummary label="Liked" value={likes.length} />
+                <ProfileSummary label="Messages" value={conversations.length} />
+              </div>
+            </section>
+          )}
+
+          {isOwner && (
+            <section className="mt-8">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">
+                    Messages
+                  </h2>
+                  <p className="mt-1 text-xs text-subtle">Messages from your mutual event connections.</p>
+                </div>
+              </div>
+              {conversations.length > 0 ? (
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {conversations.map((conversation) => (
+                    <li key={conversation.id}>
+                      <Link
+                        href={`/events/${conversation.eventSlug}/messages/${conversation.id}`}
+                        className="flex h-full items-center gap-3 rounded-xl border border-border bg-white p-3 transition hover:border-brand-ink"
+                      >
+                        <Avatar
+                          name={conversation.otherName}
+                          photoUrl={conversation.otherPhotoUrl || undefined}
+                          size={44}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate text-sm font-semibold text-ink">{conversation.otherName}</p>
+                            {conversation.lastSenderUserId !== target.id && conversation.lastMessage && (
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-brand-ink" aria-label="Latest message received" />
+                            )}
+                          </div>
+                          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-brand-ink">
+                            {conversation.eventTitle}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-subtle">
+                            {conversation.lastMessage || "Open this connection"}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border px-4 py-5 text-sm text-subtle">
+                  No messages yet. Mutual event connections can start a private chat with you.
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Identity stats — any chip with a 0 count is hidden */}
           {(stats.backedCreators > 0 ||
             stats.earlyBacker > 0 ||
@@ -339,5 +409,14 @@ function StatChip({ label }: { label: string }) {
     <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-ink">
       {label}
     </span>
+  );
+}
+
+function ProfileSummary({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl bg-surface px-2 py-3">
+      <p className="text-xl font-bold text-ink">{value}</p>
+      <p className="mt-0.5 text-[11px] font-medium text-subtle">{label}</p>
+    </div>
   );
 }

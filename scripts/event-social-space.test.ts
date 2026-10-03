@@ -7,7 +7,7 @@ import { safeNextPath } from "../src/lib/safeNextPath";
 import { normalizeSocialProfileUrl } from "../src/lib/socialProfileUrl";
 import { eventRecognitionEmail } from "../src/emails/eventRecognition";
 import { eventMessageEmail } from "../src/emails/eventMessage";
-import { getEventConversation, getOrCreateEventConversation, listEventConversations, sendEventMessage } from "../src/db/eventMessages";
+import { getEventConversation, getOrCreateEventConversation, listEventConversations, listUserEventConversations, sendEventMessage } from "../src/db/eventMessages";
 
 async function run() {
   await ensureMigrated();
@@ -32,6 +32,9 @@ async function run() {
   const conversation = await getEventConversation(conversationId, event.id, b.id);
   assert.equal(conversation?.messages[0]?.body, "Hello Bob ✦", "mutual users can exchange messages");
   assert.equal((await listEventConversations(event.id, b.id))[0]?.id, conversationId, "conversation appears in the event inbox");
+  const profileInbox = await listUserEventConversations(b.id);
+  assert.equal(profileInbox[0]?.id, conversationId, "conversation appears on the account owner's main profile");
+  assert.equal(profileInbox[0]?.eventSlug, "animecon-london-2026", "profile conversation retains its event destination");
   await assert.rejects(() => getOrCreateEventConversation(event.id, a.id, c.id), /mutual recognition/, "one-way recognition cannot open chat");
   assert.equal(await recognizePerson(event.id, b.id, cara), "created");
   const people = await listEventPeople(event.id, a.id);
@@ -116,6 +119,12 @@ async function run() {
   const eventShareRenderer = readFileSync("src/lib/eventShareCardRenderer.ts", "utf8");
   assert(eventShareRenderer.includes("I’M HERE ✦"), "generated AnimeCon cards carry the I’M HERE identity title");
   assert(eventShareRenderer.includes("Recognised by"), "generated AnimeCon cards show recognition count");
+  const siteHeader = readFileSync("src/components/homepage/SiteHeader.tsx", "utf8");
+  assert(siteHeader.includes("My Profile"), "signed-in navigation exposes the owner's profile");
+  assert(siteHeader.includes("`/u/${userId}`"), "the profile navigation uses the current account id");
+  const userProfile = readFileSync("src/app/u/[id]/page.tsx", "utf8");
+  assert(userProfile.includes("Everything about you"), "the owner profile introduces the combined personal dashboard");
+  assert(userProfile.includes("listUserEventConversations"), "the owner profile includes event messages");
   console.log("event-social-space: all checks passed");
 }
 

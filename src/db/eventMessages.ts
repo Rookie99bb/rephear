@@ -11,6 +11,12 @@ export type EventConversation = {
   updatedAt: string;
 };
 
+export type UserEventConversation = EventConversation & {
+  eventSlug: string;
+  eventTitle: string;
+  lastSenderUserId: string;
+};
+
 export type EventMessage = {
   id: string;
   senderUserId: string;
@@ -70,6 +76,64 @@ export async function listEventConversations(eventId: string, userId: string): P
   `).all(userId, userId, eventId, userId, userId) as Array<Record<string, string>>;
   return rows.map((r) => ({ id: r.id, eventId: r.event_id, otherUserId: r.other_user_id,
     otherName: r.other_name, otherPhotoUrl: r.other_photo_url, lastMessage: r.last_message, updatedAt: r.updated_at }));
+}
+
+// One indexed, set-based query powers the owner's main profile inbox across
+// every event. Window functions select the newest public card and newest
+// message without an N+1 query per conversation.
+export async function listUserEventConversations(userId: string): Promise<UserEventConversation[]> {
+  const rows = await db.prepare(`
+    WITH participant_conversations AS (
+      SELECT c.id, c.event_id, c.updated_at,
+        CASE WHEN c.user_a_id=? THEN c.user_b_id ELSE c.user_a_id END AS other_user_id
+      FROM event_conversations c
+      WHERE c.user_a_id=? OR c.user_b_id=?
+    ),
+    ranked_people AS (
+      SELECT p.event_id, p.user_id, p.display_name, p.photo_url,
+        ROW_NUMBER() OVER (
+          PARTITION BY p.event_id, p.user_id
+          ORDER BY p.created_at DESC, p.id DESC
+        ) AS row_number
+      FROM event_people p
+      WHERE p.is_hidden=0
+    ),
+    ranked_messages AS (
+      SELECT m.conversation_id, m.sender_user_id, m.body,
+        ROW_NUMBER() OVER (
+          PARTITION BY m.conversation_id
+          ORDER BY m.created_at DESC, m.id DESC
+        ) AS row_number
+      FROM event_messages m
+    )
+    SELECT c.id, c.event_id, c.other_user_id,
+      e.slug AS event_slug, e.title AS event_title,
+      COALESCE(p.display_name, u.name) AS other_name,
+      COALESCE(p.photo_url, '') AS other_photo_url,
+      COALESCE(m.body, '') AS last_message,
+      COALESCE(m.sender_user_id, '') AS last_sender_user_id,
+      c.updated_at
+    FROM participant_conversations c
+    JOIN social_events e ON e.id=c.event_id AND e.is_published=1
+    JOIN users u ON u.id=c.other_user_id AND u.is_hidden=0
+    LEFT JOIN ranked_people p
+      ON p.event_id=c.event_id AND p.user_id=c.other_user_id AND p.row_number=1
+    LEFT JOIN ranked_messages m ON m.conversation_id=c.id AND m.row_number=1
+    ORDER BY c.updated_at DESC, c.id DESC
+  `).all(userId, userId, userId) as Array<Record<string, string>>;
+
+  return rows.map((r) => ({
+    id: r.id,
+    eventId: r.event_id,
+    eventSlug: r.event_slug,
+    eventTitle: r.event_title,
+    otherUserId: r.other_user_id,
+    otherName: r.other_name,
+    otherPhotoUrl: r.other_photo_url,
+    lastMessage: r.last_message,
+    lastSenderUserId: r.last_sender_user_id,
+    updatedAt: r.updated_at,
+  }));
 }
 
 export async function getEventConversation(conversationId: string, eventId: string, userId: string) {

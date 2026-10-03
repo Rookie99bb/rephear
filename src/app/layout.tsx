@@ -60,6 +60,7 @@ export default async function RootLayout({
         <SupportCelebrationProvider>
           <SiteHeader
             userName={user?.name ?? null}
+            userId={user?.id ?? null}
             isAdmin={isAdmin}
             isLoggedIn={!!user}
           />

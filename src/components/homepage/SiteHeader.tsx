@@ -12,10 +12,12 @@ import SearchBox from "./SearchBox";
 // The active pill follows the current pathname (this header is site-wide).
 export default function SiteHeader({
   userName,
+  userId,
   isAdmin,
   isLoggedIn,
 }: {
   userName: string | null;
+  userId: string | null;
   isAdmin: boolean;
   isLoggedIn: boolean;
 }) {
@@ -71,6 +73,15 @@ export default function SiteHeader({
           >
             Rankings
           </Link>
+          {isLoggedIn && (
+            <Link
+              href={`/u/${userId}`}
+              aria-current={pathname === `/u/${userId}` ? "page" : undefined}
+              className={pathname === `/u/${userId}` ? activeCls : navLink}
+            >
+              My Profile
+            </Link>
+          )}
           {isLoggedIn && (
             <Link
               href="/rankings/new"
