@@ -5,7 +5,7 @@ import Avatar from "@/components/Avatar";
 import EventAnalyticsTracker from "@/components/events/EventAnalyticsTracker";
 import EventShareTools from "@/components/events/EventShareTools";
 import RecognitionButton from "@/components/events/RecognitionButton";
-import { findEventPerson, findSocialEvent, getEventPersonConnections } from "@/db/events";
+import { findEventPerson, findEventPersonByUser, findSocialEvent, getEventPersonConnections } from "@/db/events";
 import { getCurrentUser } from "@/lib/session";
 import { getSiteUrl } from "@/lib/siteUrl";
 
@@ -24,8 +24,12 @@ export default async function EventPersonPage({ params, searchParams }: { params
   const person = await findEventPerson(params.id, user?.id);
   if (!person || person.eventId !== event.id) notFound();
   const own = person.userId === user?.id;
-  const connections = await getEventPersonConnections(person, user?.id);
+  const [connections, viewerCard] = await Promise.all([
+    getEventPersonConnections(person, user?.id),
+    user ? findEventPersonByUser(event.id, user.id, user.id) : Promise.resolve(null),
+  ]);
   const path = `/events/${event.slug}/people/${person.id}`;
+  const viewerCardPath = viewerCard ? `/events/${event.slug}/people/${viewerCard.id}` : null;
 
   return <main className="mx-auto max-w-2xl">
     <EventAnalyticsTracker slug={event.slug} name="event_profile_viewed" metadata={{ personId: person.id, ...(searchParams.ref ? { ref: searchParams.ref } : {}), ...(searchParams.from ? { from: searchParams.from } : {}) }} />
@@ -52,7 +56,7 @@ export default async function EventPersonPage({ params, searchParams }: { params
         {person.tiktokUrl && <a target="_blank" rel="noopener noreferrer" href={person.tiktokUrl} className="font-semibold text-violet-700 underline">TikTok ↗</a>}
       </div>
       {person.userId && <Link href={`/u/${person.userId}`} className="mx-auto mt-6 inline-flex rounded-full border border-violet-200 bg-white px-6 py-3 text-sm font-bold text-violet-800 shadow-sm hover:border-violet-500">View {person.displayName}’s RepHear profile →</Link>}
-      <div className="flex justify-center"><EventShareTools path={path} name={person.displayName} shareUrl={`${getSiteUrl()}${path}?ref=event-card&from=${person.id}`} /></div>
+      {viewerCardPath && <div className="flex justify-center"><EventShareTools path={viewerCardPath} name={viewerCard!.displayName} shareUrl={`${getSiteUrl()}${viewerCardPath}?ref=event-card&from=${viewerCard!.id}`} /></div>}
     </article>
   </main>;
 }
