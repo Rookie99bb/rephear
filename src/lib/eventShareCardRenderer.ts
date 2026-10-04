@@ -4,7 +4,7 @@ import type { EventPerson, SocialEvent } from "@/db/events";
 
 type Format = "square" | "story";
 
-function cover(ctx: ReturnType<ReturnType<typeof createCanvas>["getContext"]>, image: Awaited<ReturnType<typeof loadImage>>, x: number, y: number, width: number, height: number) {
+function cover(ctx: ReturnType<ReturnType<typeof createCanvas>["getContext"]>, image: Awaited<ReturnType<typeof loadImage>> | ReturnType<typeof createCanvas>, x: number, y: number, width: number, height: number) {
   const scale = Math.max(width / image.width, height / image.height);
   const drawWidth = image.width * scale;
   const drawHeight = image.height * scale;
@@ -21,11 +21,17 @@ async function safeImage(url: string) {
     const source = Buffer.from(await response.arrayBuffer());
     const contentType = response.headers.get("content-type") ?? "";
     const isWebp = contentType.includes("image/webp") || /\.webp(?:$|[?#])/i.test(url);
-    const bytes = isWebp
-      ? await (await import("next/dist/server/lib/squoosh/main")).processBuffer(source, [], "jpeg", 92)
-      : source;
+    if (isWebp) {
+      const decoded = await (await import("next/dist/server/lib/squoosh/main")).decodeBuffer(source);
+      const decodedCanvas = createCanvas(decoded.width, decoded.height);
+      const decodedContext = decodedCanvas.getContext("2d");
+      const imageData = decodedContext.createImageData(decoded.width, decoded.height);
+      imageData.data.set(decoded.data);
+      decodedContext.putImageData(imageData, 0, 0);
+      return decodedCanvas;
+    }
     return await Promise.race([
-      loadImage(bytes),
+      loadImage(source),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("image timeout")), 8000)),
     ]);
   } catch {
