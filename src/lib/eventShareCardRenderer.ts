@@ -26,7 +26,8 @@ async function safeImage(url: string) {
       const decodedCanvas = createCanvas(decoded.width, decoded.height);
       const decodedContext = decodedCanvas.getContext("2d");
       const imageData = decodedContext.createImageData(decoded.width, decoded.height);
-      imageData.data.set(decoded.data);
+      const pixels = (decoded as unknown as { _data: Uint8ClampedArray })._data;
+      imageData.data.set(pixels);
       decodedContext.putImageData(imageData, 0, 0);
       return decodedCanvas;
     }
