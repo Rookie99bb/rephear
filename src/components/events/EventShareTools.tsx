@@ -11,14 +11,14 @@ export default function EventShareTools({ path, name, shareUrl, generateOnMount 
   useEffect(() => setOrigin(window.location.origin), []);
   const slug = path.split("/")[2];
   const resolvedShareUrl = shareUrl ?? `${origin}${path}`;
-  const imageUrl = `${path}/share-card?format=${format}`.replace("/events/", "/api/events/");
+  const imageUrl = `${path}/share-card-v2?format=${format}`.replace("/events/", "/api/events/");
   const text = `I’m going to AnimeCon London ’26 ✦ Find me, see what we have in common, and recognise me on RepHear.`;
 
   useEffect(() => {
     if (!generateOnMount) return;
     (["square", "story"] as const).forEach((cardFormat) => {
       const image = new Image();
-      image.src = `${path}/share-card?format=${cardFormat}`.replace("/events/", "/api/events/");
+      image.src = `${path}/share-card-v2?format=${cardFormat}`.replace("/events/", "/api/events/");
     });
   }, [generateOnMount, path]);
 
