@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: { slug: string; id:
   if (!event || !person || person.eventId !== event.id) return { title: "AnimeCon card" };
   const title = `${person.displayName} at ${event.title}`;
   const description = `Find ${person.displayName} at ${event.title}. Recognise and be recognised.`;
-  const image = `${getSiteUrl()}/api/events/${event.slug}/people/${person.id}/share-card?format=square`;
+  const image = `${getSiteUrl()}/api/events/${event.slug}/people/${person.id}/share-card-v2?format=square`;
   return { title, description, openGraph: { title, description, images: [{ url: image, width: 1080, height: 1080 }] }, twitter: { card: "summary_large_image", title, description, images: [image] } };
 }
 
