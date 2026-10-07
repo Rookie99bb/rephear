@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
   return new NextResponse(new Uint8Array(png), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=900",
+      "Cache-Control": "private, no-store, max-age=0",
       "Content-Disposition": `inline; filename="${person.displayName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-animecon-${format}.png"`,
     },
   });
