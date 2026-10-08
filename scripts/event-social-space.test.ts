@@ -98,8 +98,12 @@ async function run() {
   assert(eventCreatedModal.includes('role="dialog"'), "successful event-card creation opens a confirmation dialog");
   assert(eventCreatedModal.includes("createPortal"), "mobile confirmation escapes transformed page and layout containers");
   assert(eventCreatedModal.includes("document.body"), "mobile confirmation is anchored to the browser viewport");
-  assert(eventCreatedModal.includes("Your AnimeCon card is live"), "confirmation clearly says the card was created");
-  assert(eventCreatedModal.includes("Find my people"), "confirmation gives the user a discovery next step");
+  assert(eventCreatedModal.includes("experience.shortName"), "confirmation reads the active event name from shared configuration");
+  assert(eventCreatedModal.includes("Find your people"), "confirmation gives the user a discovery next step");
+  const eventConfig = readFileSync("src/config/socialEvents.ts", "utf8");
+  assert(eventConfig.includes('name: "MCM Comic Con London 2026"'), "active event configuration carries the MCM title");
+  assert(eventConfig.includes('dateLabel: "23–25 October 2026"'), "active event configuration carries the future MCM dates");
+  assert(eventConfig.includes('venue: "ExCeL London"'), "active event configuration carries the MCM venue");
   const eventPage = readFileSync("src/app/events/[slug]/page.tsx", "utf8");
   assert(eventPage.includes("card.id === searchParams.created"), "confirmation only opens for a card owned by the current account");
   assert(eventPage.indexOf("<EventCardCreatedModal") < eventPage.indexOf('className="relative left-1/2'), "mobile modal is outside the transformed full-width page container");

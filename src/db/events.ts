@@ -45,6 +45,11 @@ export async function findSocialEvent(slug: string): Promise<SocialEvent | null>
   return row ? toEvent(row) : null;
 }
 
+export async function findSocialEventById(id: string): Promise<SocialEvent | null> {
+  const row = await db.prepare("SELECT id, slug, title, venue, starts_at, ends_at, description FROM social_events WHERE id = ? AND is_published = 1").get(id) as EventRow | undefined;
+  return row ? toEvent(row) : null;
+}
+
 export async function findSocialEventForAdmin(slug: string): Promise<(SocialEvent & { isPublished: boolean }) | null> {
   const row = await db.prepare("SELECT id, slug, title, venue, starts_at, ends_at, description, is_published FROM social_events WHERE slug = ?").get(slug) as (EventRow & { is_published: number }) | undefined;
   return row ? { ...toEvent(row), isPublished: !!row.is_published } : null;

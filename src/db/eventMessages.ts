@@ -152,7 +152,7 @@ export async function getEventConversation(conversationId: string, eventId: stri
   return {
     id: conversation.id,
     otherUserId,
-    otherName: person?.display_name ?? "AnimeCon connection",
+    otherName: person?.display_name ?? "Event connection",
     otherPhotoUrl: person?.photo_url ?? "",
     messages: messages.map((m): EventMessage => ({ id: m.id, senderUserId: m.sender_user_id, body: m.body, createdAt: m.created_at })),
   };

@@ -109,7 +109,7 @@ export async function renderEventShareCard(params: {
 
   ctx.font = `800 ${params.format === "story" ? 52 : 40}px sans-serif`;
   ctx.fillStyle = "#fff";
-  ctx.fillText("Find me at AnimeCon London ’26", width / 2, nameY + (params.format === "story" ? 170 : 135));
+  ctx.fillText(`Find me at ${params.event.title}`, width / 2, nameY + (params.format === "story" ? 170 : 135), width - 100);
 
   ctx.font = `700 ${params.format === "story" ? 34 : 27}px sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.86)";

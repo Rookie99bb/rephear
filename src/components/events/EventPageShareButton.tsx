@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Dialog, DialogClose, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { getSocialEventExperience } from "@/config/socialEvents";
+
+const defaultEvent = getSocialEventExperience("animecon-london-2026");
 
 type EventPageShareButtonProps = {
   className?: string;
@@ -17,9 +20,9 @@ export default function EventPageShareButton({
   className = "",
   compact = false,
   eventPath = "/events/animecon-london-2026",
-  eventTitle = "AnimeCon London ’26",
-  shareText = "Find your AnimeCon people on RepHear.",
-  description = "Scan to open the AnimeCon community space.",
+  eventTitle = defaultEvent.name,
+  shareText = `Find your ${defaultEvent.shortName} people on RepHear.`,
+  description = `Scan to open the ${defaultEvent.communityLabel}.`,
 }: EventPageShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);

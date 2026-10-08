@@ -35,7 +35,7 @@ export function eventRecognitionEmail(params: EventRecognitionEmailParams): {
     ? "View their card"
     : "See who recognised you →";
   const signoff = params.mutual
-    ? "Keep discovering — your next AnimeCon connection may already be here."
+    ? `Keep discovering — your next ${eventTitle} connection may already be here.`
     : "Recognise them back to make it a mutual connection.";
 
   const body = `

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Dialog, DialogClose, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { getSocialEventExperience } from "@/config/socialEvents";
 
 export default function EventShareTools({ path, name, shareUrl, generateOnMount = false }: { path: string; name: string; shareUrl?: string; generateOnMount?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -10,9 +11,10 @@ export default function EventShareTools({ path, name, shareUrl, generateOnMount 
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const slug = path.split("/")[2];
+  const experience = getSocialEventExperience(slug);
   const resolvedShareUrl = shareUrl ?? `${origin}${path}`;
   const imageUrl = `${path}/share-card-v2?format=${format}`.replace("/events/", "/api/events/");
-  const text = `I’m going to AnimeCon London ’26 ✦ Find me, see what we have in common, and recognise me on RepHear.`;
+  const text = experience.shareText;
 
   useEffect(() => {
     if (!generateOnMount) return;
@@ -34,7 +36,7 @@ export default function EventShareTools({ path, name, shareUrl, generateOnMount 
   }
   async function more() {
     if (!navigator.share) return copyLink();
-    try { await navigator.share({ title: `${name} at AnimeCon London ’26`, text, url: resolvedShareUrl }); track("native"); } catch { /* dismissed */ }
+    try { await navigator.share({ title: `${name} at ${experience.name}`, text, url: resolvedShareUrl }); track("native"); } catch { /* dismissed */ }
   }
   const encodedUrl = encodeURIComponent(resolvedShareUrl);
   const encodedText = encodeURIComponent(text);
@@ -50,7 +52,7 @@ export default function EventShareTools({ path, name, shareUrl, generateOnMount 
         {(["square", "story"] as const).map((value) => <button key={value} type="button" onClick={() => setFormat(value)} className={`flex-1 rounded-full px-3 py-2 ${format === value ? "bg-white text-violet-800 shadow-sm" : "text-subtle"}`}>{value === "square" ? "Square" : "Story"}</button>)}
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={imageUrl} alt={`${name} AnimeCon share card preview`} className={`mx-auto mt-4 w-full rounded-2xl object-cover ${format === "story" ? "max-h-[48vh] object-contain" : "aspect-square"}`} />
+      <img src={imageUrl} alt={`${name} ${experience.shortName} share card preview`} className={`mx-auto mt-4 w-full rounded-2xl object-cover ${format === "story" ? "max-h-[48vh] object-contain" : "aspect-square"}`} />
       <div className="mt-4 grid grid-cols-2 gap-2 text-center text-sm font-semibold">
         <a href={imageUrl} download onClick={() => track("download")} className="rounded-xl bg-violet-700 px-3 py-3 text-white">{format === "square" ? "Download Square" : "Download Story"}</a>
         <button type="button" onClick={copyLink} className="rounded-xl border border-violet-200 px-3 py-3 text-violet-800">{copied ? "Copied ✓" : "Copy my card link"}</button>

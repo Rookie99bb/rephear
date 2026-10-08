@@ -8,10 +8,11 @@ import RecognitionButton from "@/components/events/RecognitionButton";
 import { findEventPerson, findEventPersonByUser, findSocialEvent, getEventPersonConnections } from "@/db/events";
 import { getCurrentUser } from "@/lib/session";
 import { getSiteUrl } from "@/lib/siteUrl";
+import { getSocialEventExperience } from "@/config/socialEvents";
 
 export async function generateMetadata({ params }: { params: { slug: string; id: string } }): Promise<Metadata> {
   const [event, person] = await Promise.all([findSocialEvent(params.slug), findEventPerson(params.id)]);
-  if (!event || !person || person.eventId !== event.id) return { title: "AnimeCon card" };
+  if (!event || !person || person.eventId !== event.id) return { title: "Event card" };
   const title = `${person.displayName} at ${event.title}`;
   const description = `Find ${person.displayName} at ${event.title}. Recognise and be recognised.`;
   const image = `${getSiteUrl()}/api/events/${event.slug}/people/${person.id}/share-card-v2?format=square`;
@@ -21,6 +22,7 @@ export async function generateMetadata({ params }: { params: { slug: string; id:
 export default async function EventPersonPage({ params, searchParams }: { params: { slug: string; id: string }; searchParams: { ref?: string; from?: string } }) {
   const [event, user] = await Promise.all([findSocialEvent(params.slug), getCurrentUser()]);
   if (!event) notFound();
+  const experience = getSocialEventExperience(event.slug);
   const person = await findEventPerson(params.id, user?.id);
   if (!person || person.eventId !== event.id) notFound();
   const own = person.userId === user?.id;
@@ -33,7 +35,7 @@ export default async function EventPersonPage({ params, searchParams }: { params
 
   return <main className="mx-auto max-w-2xl">
     <EventAnalyticsTracker slug={event.slug} name="event_profile_viewed" metadata={{ personId: person.id, ...(searchParams.ref ? { ref: searchParams.ref } : {}), ...(searchParams.from ? { from: searchParams.from } : {}) }} />
-    <Link href={`/events/${event.slug}#people`} className="text-sm text-subtle hover:text-ink">← Back to AnimeCon</Link>
+    <Link href={`/events/${event.slug}#people`} className="text-sm text-subtle hover:text-ink">← Back to {experience.shortName}</Link>
     <article className="mt-6 rounded-[32px] border border-border bg-gradient-to-b from-violet-50 to-white p-7 text-center shadow-sm sm:p-10">
       <div className="flex justify-center"><Avatar name={person.displayName} photoUrl={person.photoUrl} size={144} /></div>
       <h1 className="mt-5 text-3xl font-black tracking-tight text-ink">{person.displayName}</h1>

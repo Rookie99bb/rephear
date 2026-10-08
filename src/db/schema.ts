@@ -35,6 +35,7 @@ import { ensureDjCampaignLinks } from "./ensureDjCampaignLinks";
 import { updateWorldsBestDjLineup } from "./updateWorldsBestDjLineup";
 import { backfillProfileShareTokens } from "./profileShare";
 import { getCountryForCity, isValidLocation } from "@/lib/locations";
+import { getSocialEventExperience } from "@/config/socialEvents";
 
 // SQLite (and Turso/libSQL, which speaks the same dialect) has very
 // limited ALTER TABLE support, so the full table set for the MVP is
@@ -665,6 +666,19 @@ async function addRankingSlugAndCategoryColumnsIfMissing() {
   await rawClient.execute({
     sql: "CREATE INDEX IF NOT EXISTS idx_rankings_category ON rankings(category_id);",
     args: [],
+  });
+  const eventExperience = getSocialEventExperience("animecon-london-2026");
+  await rawClient.execute({
+    sql: `UPDATE social_events
+      SET title = ?, venue = ?, starts_at = ?, ends_at = ?
+      WHERE slug = ?`,
+    args: [
+      eventExperience.name,
+      eventExperience.venue,
+      eventExperience.startsAt,
+      eventExperience.endsAt,
+      eventExperience.slug,
+    ],
   });
 }
 

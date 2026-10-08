@@ -30,7 +30,7 @@ import IdentityBadges from "@/components/IdentityBadges";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
 import { listUserEventConversations } from "@/db/eventMessages";
-import { findEventPerson } from "@/db/events";
+import { findEventPerson, findSocialEventById } from "@/db/events";
 
 // Phase 2 (public identity): public profile at /u/[id] using the opaque
 // users.id (non-enumerable — no handle system in Phase 2).
@@ -104,6 +104,9 @@ export default async function UserProfilePage({
     : null;
   const eventIdentity = requestedEventIdentity?.userId === target.id
     ? requestedEventIdentity
+    : null;
+  const identityEvent = eventIdentity
+    ? await findSocialEventById(eventIdentity.eventId)
     : null;
   const publicName = eventIdentity?.displayName ?? target.name;
   const publicPhotoUrl = eventIdentity?.photoUrl || undefined;
@@ -195,7 +198,7 @@ export default async function UserProfilePage({
           </h1>
           {eventIdentity ? (
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-ink">
-              AnimeCon London ’26 identity
+              {identityEvent ? `${identityEvent.title} identity` : "Event identity"}
             </p>
           ) : target.location && (
             <p className="text-xs uppercase tracking-wide text-subtle">
