@@ -1912,6 +1912,75 @@ async function createEventSocialSpaceTablesIfMissing() {
       ],
     });
   }
+
+  await copyAnimeConCommunityToMcm();
+}
+
+// Carry the established AnimeCon community into the current MCM space without
+// erasing the original event history. Destination ids are deterministic, so
+// this is safe to run on every deploy and will also pick up any late AnimeCon
+// cards that were created after an earlier run.
+export async function copyAnimeConCommunityToMcm(): Promise<void> {
+  const sourceEventId = "event-animecon-london-2026";
+  const targetEventId = "event-mcm-london-2026";
+
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO event_people (
+      id, event_id, user_id, display_name, photo_url, identities,
+      fandom_tags, say_hi, instagram_url, tiktok_url, source,
+      nominated_by_user_id, is_hidden, created_at, updated_at
+    )
+    SELECT
+      'mcm26-person-' || id, ?, user_id, display_name, photo_url, identities,
+      fandom_tags, say_hi, instagram_url, tiktok_url, source,
+      nominated_by_user_id, is_hidden, created_at, updated_at
+    FROM event_people
+    WHERE event_id = ?`,
+    args: [targetEventId, sourceEventId],
+  });
+
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO event_recognitions (
+      id, event_id, recognizer_user_id, recognized_person_id, created_at
+    )
+    SELECT
+      'mcm26-recognition-' || id, ?, recognizer_user_id,
+      'mcm26-person-' || recognized_person_id, created_at
+    FROM event_recognitions
+    WHERE event_id = ?`,
+    args: [targetEventId, sourceEventId],
+  });
+
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO event_conversations (
+      id, event_id, user_a_id, user_b_id, created_at, updated_at
+    )
+    SELECT
+      'mcm26-conversation-' || id, ?, user_a_id, user_b_id, created_at, updated_at
+    FROM event_conversations
+    WHERE event_id = ?`,
+    args: [targetEventId, sourceEventId],
+  });
+
+  // Resolve the destination conversation by its participant pair instead of
+  // assuming our deterministic id won. This also preserves messages when an
+  // MCM conversation for the same pair already exists.
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO event_messages (
+      id, conversation_id, sender_user_id, body, created_at, read_at
+    )
+    SELECT
+      'mcm26-message-' || message.id, destination.id,
+      message.sender_user_id, message.body, message.created_at, message.read_at
+    FROM event_messages message
+    JOIN event_conversations source ON source.id = message.conversation_id
+    JOIN event_conversations destination
+      ON destination.event_id = ?
+      AND destination.user_a_id = source.user_a_id
+      AND destination.user_b_id = source.user_b_id
+    WHERE source.event_id = ?`,
+    args: [targetEventId, sourceEventId],
+  });
 }
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
