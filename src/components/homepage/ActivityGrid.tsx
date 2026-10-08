@@ -222,6 +222,7 @@ function RisingRow({
 const UPCOMING_EVENTS: {
   name: string;
   date: string;
+  endsAt: string;
   venue: string;
   // Ranking slug whose public page this event may link to (resolved via
   // eventHrefs). null → never linked; no dead links are invented.
@@ -231,6 +232,7 @@ const UPCOMING_EVENTS: {
   {
     name: "MCM London 2026",
     date: "23–25 Oct 2026",
+    endsAt: "2026-10-25T23:59:59Z",
     venue: "ExCeL London",
     hrefSlug: null, // no MCM ranking exists — plain card, no dead link
     featured: true,
@@ -238,6 +240,7 @@ const UPCOMING_EVENTS: {
   {
     name: "AnimeCon London 2026",
     date: "3–4 Oct 2026",
+    endsAt: "2026-10-04T23:59:59Z",
     venue: "Olympia London",
     // Resolved at render time from the ranking slug (public-only);
     // absent → the card stays unlinked.
@@ -246,28 +249,33 @@ const UPCOMING_EVENTS: {
   {
     name: "Japan Matsuri 2026",
     date: "4 Oct 2026",
+    endsAt: "2026-10-04T23:59:59Z",
     venue: "London",
     hrefSlug: null,
   },
   {
     name: "Noli TCG Card Show",
     date: "3 Oct 2026",
+    endsAt: "2026-10-03T23:59:59Z",
     venue: "London",
     hrefSlug: "tcg-traders-to-meet-at-noli-tcg-card-show",
   },
   {
     name: "Dragonmeet 2026",
     date: "28 Nov 2026",
+    endsAt: "2026-11-28T23:59:59Z",
     venue: "London",
     hrefSlug: null,
   },
 ];
 
 export function UpcomingEvents({ eventHrefs }: { eventHrefs: Record<string, string> }) {
-  const withHrefs = UPCOMING_EVENTS.map((event) => ({
+  const now = Date.now();
+  const withHrefs = UPCOMING_EVENTS.filter((event) => new Date(event.endsAt).getTime() >= now).map((event) => ({
     ...event,
     href: event.hrefSlug ? eventHrefs[event.hrefSlug] ?? null : null,
   }));
+  if (!withHrefs.length) return null;
   const [featured, ...rest] = withHrefs;
   const small = rest.slice(0, 3);
   const extra = rest.slice(3);
