@@ -29,7 +29,7 @@ export default function EventCardCreatedModal({ slug, personId }: { slug: string
       <h2 id="event-card-created-title" className="mt-2 pr-8 text-3xl font-black tracking-tight text-ink">Your AnimeCon card is live ✦</h2>
       <p className="mt-3 text-base leading-7 text-subtle">People can now discover and recognise you. Start finding your people, or share your card with friends.</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link href={`/events/${slug}#people`} className="rounded-xl bg-ink px-5 py-3.5 text-center text-sm font-bold text-white">Find my people →</Link>
+        <Link href={`/events/${slug}#people`} className="rounded-xl bg-ink px-5 py-3.5 text-center text-sm font-bold text-white">Find your people →</Link>
         <Link href={cardPath} className="rounded-xl border border-violet-200 bg-violet-50 px-5 py-3.5 text-center text-sm font-bold text-violet-800">View my card</Link>
       </div>
       <div className="mt-1"><EventShareTools path={cardPath} name="My AnimeCon card" generateOnMount /></div>
