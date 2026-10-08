@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { Dialog, DialogClose, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import { getSocialEventExperience } from "@/config/socialEvents";
 
-const defaultEvent = getSocialEventExperience("animecon-london-2026");
+const defaultEvent = getSocialEventExperience("mcm-london-2026");
 
 type EventPageShareButtonProps = {
   className?: string;
@@ -19,7 +19,7 @@ type EventPageShareButtonProps = {
 export default function EventPageShareButton({
   className = "",
   compact = false,
-  eventPath = "/events/animecon-london-2026",
+  eventPath = "/events/mcm-london-2026",
   eventTitle = defaultEvent.name,
   shareText = `Find your ${defaultEvent.shortName} people on RepHear.`,
   description = `Scan to open the ${defaultEvent.communityLabel}.`,

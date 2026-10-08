@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description: "Discover people, interests and official guides for RepHear events.",
 };
 
-const eventPath = "/events/animecon-london-2026";
-const event = getSocialEventExperience("animecon-london-2026");
+const eventPath = "/events/mcm-london-2026";
+const event = getSocialEventExperience("mcm-london-2026");
 
 const interests = [
   { label: "Cosplay", image: "/covers/rankings/best-female-cosplayer-cover.webp", href: `${eventPath}?identity=Cosplayer#people` },
@@ -42,7 +42,7 @@ export default function EventsPage() {
           <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-6xl">{event.name}</h1>
           <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold sm:text-base"><span>▣ &nbsp;{event.dateLabel}</span><span>⌖ &nbsp;{event.venue}</span></div>
           <p className="mt-4 text-lg text-white/90 sm:text-xl">{event.heroTitle}</p>
-          <div className="mt-7 flex flex-wrap gap-3"><Link href={`${eventPath}?action=join#join`} className="rounded-xl bg-white px-6 py-3 text-sm font-black text-violet-950 shadow-lg">Create My Event Card</Link><Link href={`${eventPath}#people`} className="rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur">Discover People</Link><EventPageShareButton className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20" /></div>
+          <div className="mt-7 flex flex-wrap gap-3"><Link href={`${eventPath}?action=join#join`} className="rounded-xl bg-white px-6 py-3 text-sm font-black text-violet-950 shadow-lg">Create My Event Card</Link><Link href={`${eventPath}#people`} className="rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur">Discover People</Link><EventPageShareButton eventPath={eventPath} eventTitle={event.name} shareText={event.shareText} description={`Scan to open the ${event.communityLabel}.`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/70 bg-white/10 px-6 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20" /></div>
         </div>
       </section>
 

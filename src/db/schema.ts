@@ -667,19 +667,6 @@ async function addRankingSlugAndCategoryColumnsIfMissing() {
     sql: "CREATE INDEX IF NOT EXISTS idx_rankings_category ON rankings(category_id);",
     args: [],
   });
-  const eventExperience = getSocialEventExperience("animecon-london-2026");
-  await rawClient.execute({
-    sql: `UPDATE social_events
-      SET title = ?, venue = ?, starts_at = ?, ends_at = ?
-      WHERE slug = ?`,
-    args: [
-      eventExperience.name,
-      eventExperience.venue,
-      eventExperience.startsAt,
-      eventExperience.endsAt,
-      eventExperience.slug,
-    ],
-  });
 }
 
 // Nominee share tokens (rephear.com/n/TOKEN): new column added after the
@@ -1895,6 +1882,36 @@ async function createEventSocialSpaceTablesIfMissing() {
       "See who's here. Discover people. Get recognised.",
     ],
   });
+  const mcm = getSocialEventExperience("mcm-london-2026");
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO social_events
+      (id, slug, title, venue, starts_at, ends_at, description, is_published)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+    args: [
+      "event-mcm-london-2026",
+      mcm.slug,
+      mcm.name,
+      mcm.venue,
+      mcm.startsAt,
+      mcm.endsAt,
+      "Find your MCM people. Recognise and be recognised.",
+    ],
+  });
+  for (const slug of ["animecon-london-2026", "mcm-london-2026"]) {
+    const eventExperience = getSocialEventExperience(slug);
+    await rawClient.execute({
+      sql: `UPDATE social_events
+        SET title = ?, venue = ?, starts_at = ?, ends_at = ?
+        WHERE slug = ?`,
+      args: [
+        eventExperience.name,
+        eventExperience.venue,
+        eventExperience.startsAt,
+        eventExperience.endsAt,
+        eventExperience.slug,
+      ],
+    });
+  }
 }
 // Runs once per server process, the first time any db/*.ts function is
 // actually called (see ensureReady() in ./client) — NOT eagerly at
