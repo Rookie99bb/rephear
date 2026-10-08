@@ -12,20 +12,6 @@ export type SocialEventExperience = {
   shareText: string;
 };
 
-const ANIMECON_LONDON_2026: SocialEventExperience = {
-  slug: "animecon-london-2026",
-  name: "AnimeCon London ’26",
-  shortName: "AnimeCon",
-  identityLabel: "AnimeCon London ’26",
-  dateLabel: "3–4 October 2026",
-  venue: "Olympia London",
-  startsAt: "2026-10-03T09:00:00+01:00",
-  endsAt: "2026-10-04T18:00:00+01:00",
-  heroTitle: "Meet your AnimeCon people",
-  communityLabel: "AnimeCon community",
-  shareText: "I’m at AnimeCon London ’26 ✦ Find me, see what we have in common, and recognise me on RepHear.",
-};
-
 const DEFAULT_EVENT: SocialEventExperience = {
   slug: "mcm-london-2026",
   name: "MCM Comic Con London 2026",
@@ -41,7 +27,9 @@ const DEFAULT_EVENT: SocialEventExperience = {
 };
 
 export const SOCIAL_EVENT_EXPERIENCES: Record<string, SocialEventExperience> = {
-  [ANIMECON_LONDON_2026.slug]: ANIMECON_LONDON_2026,
+  // Existing cards and shared links use this legacy slug. Keep the route and
+  // its data stable, but present the current MCM experience everywhere.
+  "animecon-london-2026": { ...DEFAULT_EVENT, slug: "animecon-london-2026" },
   [DEFAULT_EVENT.slug]: DEFAULT_EVENT,
 };
 

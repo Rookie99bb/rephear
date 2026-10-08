@@ -8,12 +8,19 @@ import { normalizeSocialProfileUrl } from "../src/lib/socialProfileUrl";
 import { eventRecognitionEmail } from "../src/emails/eventRecognition";
 import { eventMessageEmail } from "../src/emails/eventMessage";
 import { getEventConversation, getOrCreateEventConversation, listEventConversations, listUserEventConversations, sendEventMessage } from "../src/db/eventMessages";
+import { getSocialEventExperience } from "../src/config/socialEvents";
 
 async function run() {
   await ensureMigrated();
   await ensureMigrated();
   const event = await findSocialEvent("animecon-london-2026");
   assert(event, "published AnimeCon event is seeded idempotently");
+  const legacyExperience = getSocialEventExperience("animecon-london-2026");
+  const mcmExperience = getSocialEventExperience("mcm-london-2026");
+  assert.equal(legacyExperience.heroTitle, "Meet your MCM people", "legacy card links render the current MCM title");
+  assert.equal(legacyExperience.dateLabel, mcmExperience.dateLabel, "legacy and canonical MCM routes use the same dates");
+  assert.equal(legacyExperience.venue, mcmExperience.venue, "legacy and canonical MCM routes use the same venue");
+  assert.equal(legacyExperience.identityLabel, mcmExperience.identityLabel, "legacy cards use the MCM identity label");
   const a = await createUser({ email: "event-a@example.test", passwordHash: "x", name: "Alice" });
   const b = await createUser({ email: "event-b@example.test", passwordHash: "x", name: "Bob" });
   const c = await createUser({ email: "event-c@example.test", passwordHash: "x", name: "Cara" });
