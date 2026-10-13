@@ -18,19 +18,19 @@ export type GrowthActionResult = {
 
 export async function checkInAction(): Promise<GrowthActionResult> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Please log in to check in." };
+  if (!user) return { error: "Please log in to say I’m Here." };
   try {
     const result = await checkInBacker(user.id, londonCalendarDate());
     await awardEarnedStreakBadges(user.id, result);
     await calculateBackerGrowth(user.id);
     revalidatePath(`/u/${user.id}`);
     return {
-      success: result.created ? "Checked in for today." : "You already checked in today.",
+      success: result.created ? "You’re here." : "You’re already here today.",
       currentStreak: result.currentStreak,
     };
   } catch (error) {
     console.error("[backer-check-in]", error);
-    return { error: "We couldn't record today's check-in. Please try again." };
+    return { error: "We couldn't record that you’re here today. Please try again." };
   }
 }
 

@@ -121,19 +121,19 @@ export default function BackerPassport({
         </div>
       </PassportSection>
 
-      <PassportSection eyebrow="Today" title="Keep your place in the community">
+      <PassportSection eyebrow="Today" title="Daily Presence">
         <div className="grid gap-3 sm:grid-cols-2">
           <TodayCard
-            kicker="Daily check-in"
-            title={today.checkedIn ? "You’re checked in" : "Show up today"}
+            kicker="Today"
+            title={today.checkedIn ? "I’m Here ✦" : "A small daily moment with your community."}
             description={
               today.checkedIn
-                ? "Today counts toward your active-day record."
-                : "One check-in records today as an active day."
+                ? `I have been part of the community for ${record.currentStreak} days in a row.`
+                : "Take a moment to show up for your community."
             }
             state={today.checkedIn ? "Complete" : "Available"}
             href={!today.checkedIn ? today.checkInHref : null}
-            actionLabel="Check in"
+            actionLabel="I’m Here ✦"
             footer={!today.checkedIn ? checkInControl : null}
           />
           {today.questTitle ? (
