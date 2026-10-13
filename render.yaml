@@ -53,3 +53,17 @@ services:
       # "Authorization: Bearer <value>" to /api/cron/digest.
       - key: CRON_SECRET
         generateValue: true
+  - type: cron
+    name: rephear-raffles
+    runtime: node
+    plan: starter
+    schedule: "*/10 * * * *"
+    buildCommand: "true"
+    startCommand: >-
+      node -e "fetch('https://rephear.com/api/cron/raffles',{headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(async r=>{if(!r.ok)throw new Error('HTTP '+r.status+' '+await r.text());console.log(await r.text())}).catch(e=>{console.error(e);process.exit(1)})"
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          name: public-reputation
+          type: web
+          envVarKey: CRON_SECRET
