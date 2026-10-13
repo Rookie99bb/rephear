@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import HeaderAuth from "@/components/HeaderAuth";
+import BackerCheckInButton from "@/components/BackerCheckInButton";
 import SearchBox from "./SearchBox";
 
 // Site header restyle for the homepage redesign: logo left, nav with a
@@ -25,8 +26,6 @@ export default function SiteHeader({
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     if (href === "/rankings")
-      // Rankings stays active on detail pages, but never steals the
-      // highlight from "New Ranking".
       return pathname === "/rankings" || /^\/rankings\/[^/]+$/.test(pathname);
     return pathname === href;
   };
@@ -83,13 +82,7 @@ export default function SiteHeader({
             </Link>
           )}
           {isLoggedIn && (
-            <Link
-              href="/rankings/new"
-              aria-current={isActive("/rankings/new") ? "page" : undefined}
-              className={isActive("/rankings/new") ? activeCls : navLink}
-            >
-              New Ranking
-            </Link>
+            <BackerCheckInButton variant="navigation" />
           )}
           {isLoggedIn && (
             <Link
