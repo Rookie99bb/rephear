@@ -17,7 +17,10 @@ export default async function EventPage({ params, searchParams }: { params: { sl
   const mcmDraws = allDraws
     .filter((draw) => draw.campaignKey === "road-to-mcm-2026")
     .sort((a, b) => a.drawAt.localeCompare(b.drawAt));
-  const currentMcmDraw = mcmDraws.find((draw) => draw.status === "active" && new Date(draw.drawAt).getTime() > Date.now()) ?? mcmDraws.at(-1);
+  const mcmCampaignEndsAt = new Date("2026-10-25T20:00:00Z").getTime();
+  const currentMcmDraw = Date.now() <= mcmCampaignEndsAt
+    ? mcmDraws.find((draw) => draw.status === "active" && new Date(draw.drawAt).getTime() > Date.now()) ?? mcmDraws.at(-1)
+    : undefined;
   const ownCards = people.filter((p) => p.userId === user?.id);
   const createdCard = searchParams.created ? ownCards.find((card) => card.id === searchParams.created) : undefined;
   const identity = searchParams.identity?.trim();
