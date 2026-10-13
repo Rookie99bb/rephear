@@ -17,16 +17,18 @@ import {
 export default function PeopleIBackSection({
   rows,
   targetUserId,
+  embedded = false,
 }: {
   rows: PeopleIBackRow[];
   targetUserId: string;
+  embedded?: boolean;
 }) {
   if (rows.length === 0) return null;
   return (
-    <section className="mt-8">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
+    <section className={embedded ? "" : "mt-8"}>
+      {!embedded && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
         People I Back
-      </h2>
+      </h2>}
       <ul className="flex flex-col gap-2">
         {rows.map((row) => {
           const reason = resolveStoryReasonEcho(

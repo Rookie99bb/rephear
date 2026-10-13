@@ -7,6 +7,7 @@ import { shareCountForUser } from "@/db/shares";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getInviteBonusLikes } from "@/db/users";
 import { listActiveRafflesForRanking, addRaffleEntry } from "@/db/raffles";
+import { recordVerifiedCommunityAction } from "@/db/communityGrowth";
 
 // A user's first Like on a Nominee is always free. Every Like after that
 // requires having Shared that same Nominee first, one Share unlocks one
@@ -57,6 +58,13 @@ const activeRaffles = await listActiveRafflesForRanking(rankingId);
 for (const raffle of activeRaffles) {
 await addRaffleEntry({ raffleId: raffle.id, userId: user.id, source: "like" });
 }
+await recordVerifiedCommunityAction({
+  userId: user.id,
+  actionType: "vote",
+  sourceType: "organic_like",
+  sourceId: `${rankingId}:${profileId}:${currentCount + 1}`,
+  metadata: { rankingId, profileId },
+}).catch((error) => console.error("[vote-community-action]", error));
 
 revalidatePath(`/rankings/${rankingId}`);
 return { likeCount: currentCount + 1, allowedLikes };

@@ -2,25 +2,22 @@
 
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
-import { createUser, findUserByEmail, grantInviteBonusLikes } from "@/db/users";
+import { createUser, findUserByEmail } from "@/db/users";
 import { sendWelcomeEmail } from "@/lib/sendWelcomeEmail";
-import { getOrCreateInvitationForUser, findInvitationByCode, incrementSuccessfulInvites } from "@/db/invitations";
+import { getOrCreateInvitationForUser, findInvitationByCode } from "@/db/invitations";
 import { createReferral } from "@/db/referrals";
-import { listActiveSitewideRaffles, addRaffleEntry } from "@/db/raffles";
 import { attributeCampaignSignup, CAMPAIGN_COOKIE } from "@/db/campaignLinks";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getRequestContext } from "@/lib/requestContext";
 
 export interface ActionResult {
   error?: string;
-  // Set when this signup was credited as a successful referral — both
-  // this new account and the referrer received +5 Likes. Used by the
-  // signup page to show the "thanks for helping the community grow"
-  // moment immediately, before redirecting.
+  // Retained for the existing signup UI. Referral rewards are no longer
+  // granted at registration; they are granted after a first meaningful
+  // action by qualifySuccessfulInvite.
   bonusLikesEarned?: number;
 }
 
-const INVITE_REWARD_LIKES = 5;
 const REFERRAL_COOKIE = "rephear_ref";
 
 // Core referral-crediting logic, deliberately independent of
@@ -62,34 +59,10 @@ export async function applyReferral(
     return 0;
   }
 
-  await Promise.all([
-    grantInviteBonusLikes(referrerId, INVITE_REWARD_LIKES),
-    grantInviteBonusLikes(newUserId, INVITE_REWARD_LIKES),
-    incrementSuccessfulInvites(referrerId),
-    // Zero-cash-cost instant feedback for the referrer (PRD 推荐官快通道):
-    // drop a bonus entry into the first active site-wide prize draw so
-    // sharing pays off immediately, long before any Support converts.
-    // Best-effort and silent — no active draw, no entry, no error.
-    grantReferralRaffleEntry(referrerId),
-  ]);
-
-  return INVITE_REWARD_LIKES;
-}
-
-// Referrer fast-feedback: one bonus prize-draw entry per successful
-// referral. Never throws, never blocks signup.
-async function grantReferralRaffleEntry(referrerId: string): Promise<void> {
-  try {
-    const raffles = await listActiveSitewideRaffles();
-    if (raffles.length === 0) return;
-    await addRaffleEntry({
-      raffleId: raffles[0].id,
-      userId: referrerId,
-      source: "referral",
-    });
-  } catch (err) {
-    console.error("[auth] grantReferralRaffleEntry failed (non-blocking):", err);
-  }
+  // A signup creates only a pending referral relationship. It becomes a
+  // Successful Invite after the new Backer completes a verified Vote,
+  // Support, Recognition, or Daily Quest (qualifySuccessfulInvite).
+  return 0;
 }
 
 export async function signupAction(

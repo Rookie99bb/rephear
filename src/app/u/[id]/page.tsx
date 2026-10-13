@@ -7,7 +7,6 @@ import { isBlocked, isBlockedEither } from "@/db/userReports";
 import { likedItemsForUser, likedPublicItemsForUser } from "@/db/likes";
 import {
   getInterestTags,
-  getIdentityStats,
   getPeopleIBack,
   getTasteMatch,
   hasPublicActivity,
@@ -26,11 +25,23 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import TasteMatchPanel from "@/components/TasteMatchPanel";
 import { getIdentityAwards, visibleIdentityAwards } from "@/db/identityAwards";
 import StoryCardsPanel from "@/components/StoryCardsPanel";
-import IdentityBadges from "@/components/IdentityBadges";
 import ProfileReportBlock from "@/components/ProfileReportBlock";
 import NotificationBell from "@/components/NotificationBell";
 import { listUserEventConversations } from "@/db/eventMessages";
 import { findEventPerson, findSocialEventById } from "@/db/events";
+import BackerPassport from "@/components/BackerPassport";
+import BackerCheckInButton from "@/components/BackerCheckInButton";
+import {
+  calculateBackerGrowth,
+  getOrAssignDailyQuest,
+  getOrAssignCreatorQuest,
+  getPrimaryCommunity,
+  getRecognitionSummary,
+  listEarnedBadges,
+  listEarnedRewards,
+} from "@/db/communityGrowth";
+import { IDENTITY_RULES } from "@/lib/identityConfig";
+import CreatorQuestPanel from "@/components/CreatorQuestPanel";
 
 // Phase 2 (public identity): public profile at /u/[id] using the opaque
 // users.id (non-enumerable — no handle system in Phase 2).
@@ -112,10 +123,9 @@ export default async function UserProfilePage({
   const publicPhotoUrl = eventIdentity?.photoUrl || undefined;
 
   const includePrivate = isOwner;
-  const [tags, stats, likes, peopleIBack, publicActivity, backingStories, identityAwards, conversations] =
+  const [tags, likes, peopleIBack, publicActivity, backingStories, identityAwards, conversations] =
     await Promise.all([
       getInterestTags(target.id, includePrivate),
-      getIdentityStats(target.id, includePrivate),
       isOwner
         ? likedItemsForUser(target.id)
         : likedPublicItemsForUser(target.id),
@@ -171,24 +181,55 @@ export default async function UserProfilePage({
       })
     )
   ).filter((j): j is NonNullable<typeof j> => j !== null);
-
-  // Recognition: "Backed {name} before they reached the Top 10" — the
-  // early-backer set (judgement, never spend).
-  const earlyBacked = peopleIBack.filter(
-    (r) =>
-      r.rankAtFirstSupport != null &&
-      r.rankAtFirstSupport > 10 &&
-      r.currentRank != null &&
-      r.currentRank <= 10
-  );
+  const creatorQuest = isOwner && claimedProfiles.length > 0
+    ? await getOrAssignCreatorQuest(target.id)
+    : null;
 
   const fullyPrivate = !isOwner && !publicActivity;
   const viewerBlocked = viewerId
     ? await isBlocked(viewerId, target.id)
     : false;
+  const [growth, earnedBadges, earnedRewards, dailyQuest, recognition, primaryCommunity] =
+    fullyPrivate
+      ? [null, [], [], null, null, null]
+      : await Promise.all([
+          calculateBackerGrowth(target.id, isOwner),
+          listEarnedBadges(target.id),
+          listEarnedRewards(target.id),
+          isOwner ? getOrAssignDailyQuest(target.id) : Promise.resolve(null),
+          getRecognitionSummary(target.id),
+          getPrimaryCommunity(target.id),
+        ]);
+
+  const passportBadges = [
+    ...earnedBadges.map((badge) => ({
+      id: badge.id,
+      name: badge.name,
+      description: badge.description,
+      earnedAt: new Date(badge.awardedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      permanent: badge.permanent,
+      icon: "✦",
+    })),
+    ...visibleIdentities.map((award) => ({
+      id: award.id,
+      name: IDENTITY_RULES[award.identityKey].name,
+      description: award.evidenceSummary,
+      earnedAt: new Date(award.awardedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      permanent: true,
+      icon: IDENTITY_RULES[award.identityKey].emoji,
+    })),
+    ...earnedRewards.map((reward) => ({
+      id: reward.id,
+      name: reward.name,
+      description: reward.description,
+      earnedAt: new Date(reward.grantedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      permanent: reward.kind === "earned_reward",
+      icon: reward.kind === "elected_role" ? "♛" : "◇",
+    })),
+  ];
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-5xl">
       {/* Identity header */}
       <div className="flex items-center gap-4">
         <Avatar name={publicName} photoUrl={publicPhotoUrl} size={64} />
@@ -254,23 +295,53 @@ export default async function UserProfilePage({
         </>
       ) : (
         <>
-          {isOwner && (
-            <section className="mt-8 rounded-2xl border border-border bg-white p-5">
-              <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-ink">
-                    Your homepage
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-ink">Everything about you</h2>
-                </div>
-                <p className="text-xs text-subtle">Private to your account</p>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <ProfileSummary label="Supported" value={peopleIBack.length} />
-                <ProfileSummary label="Liked" value={likes.length} />
-                <ProfileSummary label="Messages" value={conversations.length} />
-              </div>
-            </section>
+          {growth && recognition && (
+            <BackerPassport
+              passport={{
+                name: publicName,
+                photoUrl: publicPhotoUrl,
+                location: target.location,
+                bio: eventIdentity?.sayHi || null,
+                level: growth.levelLabel,
+                primaryCommunity: primaryCommunity?.name ?? tags[0]?.name ?? null,
+                communityRole: primaryCommunity?.role ?? null,
+                record: {
+                  currentStreak: growth.currentStreak,
+                  longestStreak: growth.longestStreak,
+                  lifetimeActiveDays: growth.lifetimeActiveDays,
+                  votes: growth.votes,
+                  supportCredits: growth.supportCredits,
+                  successfulInvites: growth.successfulInvites,
+                },
+                today: {
+                  checkedIn: growth.checkedInToday,
+                  questTitle: dailyQuest?.title ?? null,
+                  questDescription: dailyQuest?.description ?? null,
+                  questCompleted: dailyQuest?.completed ?? false,
+                  questHref: "/rankings",
+                },
+                badges: passportBadges,
+                recognition,
+                community: primaryCommunity ? {
+                  name: primaryCommunity.name,
+                  href: `/rankings?category=${encodeURIComponent(primaryCommunity.slug)}`,
+                  role: primaryCommunity.role,
+                  goalName: primaryCommunity.goalName,
+                  goalProgress: primaryCommunity.goalProgress,
+                  goalTarget: primaryCommunity.goalTarget,
+                  memberContribution: primaryCommunity.memberContribution,
+                } : null,
+              }}
+              checkInControl={isOwner ? <BackerCheckInButton /> : null}
+              backing={<PeopleIBackSection rows={peopleIBack} targetUserId={target.id} embedded />}
+            />
+          )}
+          {creatorQuest && (
+            <CreatorQuestPanel
+              title={creatorQuest.title}
+              description={creatorQuest.description}
+              completed={creatorQuest.completed}
+            />
           )}
 
           {isOwner && (
@@ -321,31 +392,6 @@ export default async function UserProfilePage({
               )}
             </section>
           )}
-
-          {/* Identity stats — any chip with a 0 count is hidden */}
-          {(stats.backedCreators > 0 ||
-            stats.earlyBacker > 0 ||
-            stats.reachedTop10 > 0) && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {stats.backedCreators > 0 && (
-                <StatChip label={`Backed ${stats.backedCreators} creators`} />
-              )}
-              {stats.earlyBacker > 0 && (
-                <StatChip label={`Early Backer ×${stats.earlyBacker}`} />
-              )}
-              {stats.reachedTop10 > 0 && (
-                <StatChip
-                  label={`${stats.reachedTop10} ${stats.reachedTop10 === 1 ? "person" : "people"} I backed reached Top 10`}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Phase 5.7: evidence-based identities — viewer-gated above
-              (owner + public viewers). Summaries are counts-only. */}
-          <IdentityBadges awards={visibleIdentities} isOwner={isOwner} />
-
-          <PeopleIBackSection rows={peopleIBack} targetUserId={target.id} />
 
           <BackingStoriesSection stories={backingStories} isOwner={isOwner} />
 
@@ -401,54 +447,11 @@ export default async function UserProfilePage({
             </section>
           )}
 
-          {/* Recognition */}
-          {earlyBacked.length > 0 && (
-            <section className="mt-8">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-subtle">
-                Recognition
-              </h2>
-              <ul className="flex flex-col gap-2">
-                {earlyBacked.map((row) => (
-                  <li
-                    key={`rec:${row.rankingId}:${row.profileId}`}
-                    className="rounded-xl border border-border px-4 py-3 text-sm text-subtle"
-                  >
-                    Backed{" "}
-                    <Link
-                      href={`/profiles/${row.profileId}`}
-                      className="font-medium text-ink hover:underline"
-                    >
-                      {row.profileName}
-                    </Link>{" "}
-                    before they reached the Top 10
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
           {tasteMatch && (
             <TasteMatchPanel match={tasteMatch} targetName={target.name} />
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function StatChip({ label }: { label: string }) {
-  return (
-    <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-ink">
-      {label}
-    </span>
-  );
-}
-
-function ProfileSummary({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl bg-surface px-2 py-3">
-      <p className="text-xl font-bold text-ink">{value}</p>
-      <p className="mt-0.5 text-[11px] font-medium text-subtle">{label}</p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { createNotification } from "@/db/notifications";
 import { findUserById } from "@/db/users";
 import { sendEmail } from "@/lib/email";
 import { eventRecognitionEmail } from "@/emails/eventRecognition";
+import { recordVerifiedCommunityAction } from "@/db/communityGrowth";
 
 export type EventActionState = { error?: string; success?: string; personId?: string; personName?: string; mutual?: boolean; discoveryHref?: string };
 
@@ -93,6 +94,7 @@ export async function recognizeAtEventAction(slug: string, personId: string, sou
     if (result === "created" || result === "mutual") {
       const optionalWork: Promise<unknown>[] = [
         recordEventAnalytics({ eventId: ctx.event.id, eventName: source === "discovery" ? "recognition_discovery_recognized" : result === "mutual" ? "recognition_mutual_created" : "recognition_created", userId: ctx.user.id, metadata: { personId, source } }),
+        recordVerifiedCommunityAction({ userId: ctx.user.id, actionType: "recognition", sourceType: "event_recognition", sourceId: `${ctx.event.id}:${personId}`, metadata: { eventId: ctx.event.id, personId, mutual: result === "mutual" } }),
       ];
       if (target.userId) {
         optionalWork.push(createNotification({ userId: target.userId, type: "event_recognition", title: "Someone recognized you ✦", body: `${ctx.event.title} · View their event profile.`, link: `/events/${slug}` }));

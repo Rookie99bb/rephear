@@ -4,6 +4,7 @@ import {
   thankEarlyBackers,
   type ThankBackersDenial,
 } from "@/db/nomineeThanks";
+import { recordVerifiedCommunityAction } from "@/db/communityGrowth";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +36,12 @@ export async function POST(
   if (!result.ok) {
     return NextResponse.json(result, { status: DENIAL_STATUS[result.reason] });
   }
+  await recordVerifiedCommunityAction({
+    userId: user.id,
+    actionType: "creator_quest",
+    sourceType: "thank_early_backers",
+    sourceId: `${params.profileId}:${result.scope}`,
+    metadata: { profileId: params.profileId, questType: "thank_early_backer" },
+  }).catch((error) => console.error("[creator-quest-thank]", error));
   return NextResponse.json(result);
 }

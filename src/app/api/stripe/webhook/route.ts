@@ -15,6 +15,7 @@ import {
 import { getSupportedRankSnapshot } from "@/db/leaderboards";
 import { recordConviction } from "@/db/convictionRecords";
 import { recordBackingMoment } from "@/db/backingMoments";
+import { recordVerifiedCommunityAction } from "@/db/communityGrowth";
 import { effectiveVisibility } from "@/db/visibility";
 import {
   bookCommissionForPayment,
@@ -146,6 +147,13 @@ export async function POST(request: NextRequest) {
             err
           );
         }
+        await recordVerifiedCommunityAction({
+          userId: payment.userId,
+          actionType: "support",
+          sourceType: "completed_payment",
+          sourceId: payment.id,
+          metadata: { rankingId: payment.rankingId, profileId: payment.profileId },
+        }).catch((err) => console.error("[stripe webhook] community action failed (non-blocking):", err));
       }
       // Referrer commission ledger (PRD 推荐官返佣): books a pending
       // commission for the payer's referrer, if any. Idempotent via
@@ -265,4 +273,3 @@ async function sendThankYouSupportEmail(payment: Payment): Promise<void> {
 
   await sendEmail({ to: user.email, subject, html });
 }
-

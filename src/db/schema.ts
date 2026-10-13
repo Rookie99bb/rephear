@@ -1464,6 +1464,135 @@ async function createIdentityAwardsTableIfMissing() {
   });
 }
 
+async function createCommunityGrowthTablesIfMissing() {
+  await rawClient.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS community_action_events (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),community_id TEXT,action_type TEXT NOT NULL,source_type TEXT NOT NULL,source_id TEXT NOT NULL,occurred_at TEXT NOT NULL DEFAULT (datetime('now')),metadata_json TEXT NOT NULL DEFAULT '{}',rule_version TEXT NOT NULL,UNIQUE(user_id,action_type,source_type,source_id));
+    CREATE INDEX IF NOT EXISTS idx_community_actions_user_time ON community_action_events(user_id,occurred_at);
+    CREATE INDEX IF NOT EXISTS idx_community_actions_community_time ON community_action_events(community_id,occurred_at);
+    CREATE TRIGGER IF NOT EXISTS community_actions_no_update BEFORE UPDATE ON community_action_events BEGIN SELECT RAISE(ABORT,'community_action_events is append-only'); END;
+    CREATE TRIGGER IF NOT EXISTS community_actions_no_delete BEFORE DELETE ON community_action_events BEGIN SELECT RAISE(ABORT,'community_action_events is append-only'); END;
+    CREATE TABLE IF NOT EXISTS backer_checkins (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),checkin_date TEXT NOT NULL,checked_in_at TEXT NOT NULL DEFAULT (datetime('now')),current_streak INTEGER NOT NULL,longest_streak INTEGER NOT NULL,lifetime_active_days INTEGER NOT NULL,UNIQUE(user_id,checkin_date));
+    CREATE INDEX IF NOT EXISTS idx_backer_checkins_user_date ON backer_checkins(user_id,checkin_date);
+    CREATE TABLE IF NOT EXISTS badge_definitions (badge_key TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT NOT NULL,basis TEXT NOT NULL,threshold INTEGER,rule_version TEXT NOT NULL,is_permanent INTEGER NOT NULL DEFAULT 1);
+    CREATE TABLE IF NOT EXISTS user_badges (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),badge_key TEXT NOT NULL REFERENCES badge_definitions(badge_key),rule_version TEXT NOT NULL,evidence_json TEXT NOT NULL DEFAULT '{}',awarded_at TEXT NOT NULL DEFAULT (datetime('now')),UNIQUE(user_id,badge_key));
+    CREATE TABLE IF NOT EXISTS backer_level_rules (rule_version TEXT NOT NULL,level_key TEXT NOT NULL,ordinal INTEGER NOT NULL,minimums_json TEXT NOT NULL,capabilities_json TEXT NOT NULL,PRIMARY KEY(rule_version,level_key));
+    CREATE TABLE IF NOT EXISTS backer_progress_snapshots (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),rule_version TEXT NOT NULL,level_key TEXT NOT NULL,consistency_score INTEGER NOT NULL,participation_score INTEGER NOT NULL,support_score INTEGER NOT NULL,community_builder_score INTEGER NOT NULL,evidence_json TEXT NOT NULL DEFAULT '{}',calculated_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE INDEX IF NOT EXISTS idx_backer_progress_user_time ON backer_progress_snapshots(user_id,calculated_at);
+    CREATE TABLE IF NOT EXISTS backer_level_history (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),level_key TEXT NOT NULL,rule_version TEXT NOT NULL,evidence_snapshot TEXT NOT NULL,qualified_at TEXT NOT NULL DEFAULT (datetime('now')),UNIQUE(user_id,level_key,rule_version));
+    CREATE TABLE IF NOT EXISTS capability_definitions (capability_key TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS user_capabilities (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),capability_key TEXT NOT NULL REFERENCES capability_definitions(capability_key),source_type TEXT NOT NULL,source_id TEXT NOT NULL,granted_at TEXT NOT NULL DEFAULT (datetime('now')),revoked_at TEXT,UNIQUE(user_id,capability_key,source_type,source_id));
+    CREATE TABLE IF NOT EXISTS quest_definitions (id TEXT PRIMARY KEY,quest_kind TEXT NOT NULL,quest_type TEXT NOT NULL,title TEXT NOT NULL,description TEXT NOT NULL,condition_json TEXT NOT NULL,reward_json TEXT NOT NULL DEFAULT '{}',daily_limit INTEGER NOT NULL DEFAULT 1,is_paid_action INTEGER NOT NULL DEFAULT 0,rule_version TEXT NOT NULL,is_active INTEGER NOT NULL DEFAULT 1);
+    CREATE TABLE IF NOT EXISTS quest_assignments (id TEXT PRIMARY KEY,definition_id TEXT NOT NULL REFERENCES quest_definitions(id),user_id TEXT NOT NULL REFERENCES users(id),effective_date TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',assigned_at TEXT NOT NULL DEFAULT (datetime('now')),UNIQUE(definition_id,user_id,effective_date));
+    CREATE TABLE IF NOT EXISTS quest_completions (id TEXT PRIMARY KEY,assignment_id TEXT NOT NULL UNIQUE REFERENCES quest_assignments(id),user_id TEXT NOT NULL REFERENCES users(id),evidence_event_id TEXT NOT NULL REFERENCES community_action_events(id),completed_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE TABLE IF NOT EXISTS communities (id TEXT PRIMARY KEY,name TEXT NOT NULL,slug TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',category_id TEXT REFERENCES categories(id),created_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE TABLE IF NOT EXISTS community_memberships (id TEXT PRIMARY KEY,community_id TEXT NOT NULL REFERENCES communities(id),user_id TEXT NOT NULL REFERENCES users(id),is_primary INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'active',joined_at TEXT NOT NULL DEFAULT (datetime('now')),UNIQUE(community_id,user_id));
+    CREATE TABLE IF NOT EXISTS community_goals (id TEXT PRIMARY KEY,community_id TEXT NOT NULL REFERENCES communities(id),title TEXT NOT NULL,description TEXT NOT NULL,goal_tier TEXT NOT NULL,target_points INTEGER NOT NULL,starts_at TEXT NOT NULL,ends_at TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'draft',rule_version TEXT NOT NULL,weights_json TEXT NOT NULL,daily_caps_json TEXT NOT NULL,unlocks_json TEXT NOT NULL DEFAULT '{}');
+    CREATE TABLE IF NOT EXISTS community_goal_contributions (id TEXT PRIMARY KEY,goal_id TEXT NOT NULL REFERENCES community_goals(id),user_id TEXT NOT NULL REFERENCES users(id),action_event_id TEXT NOT NULL UNIQUE REFERENCES community_action_events(id),points INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'valid',contributed_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE TABLE IF NOT EXISTS governance_seasons (id TEXT PRIMARY KEY,community_id TEXT NOT NULL REFERENCES communities(id),name TEXT NOT NULL,rule_version TEXT NOT NULL,eligibility_json TEXT NOT NULL,nomination_opens_at TEXT NOT NULL,voting_opens_at TEXT NOT NULL,voting_closes_at TEXT NOT NULL,term_starts_at TEXT NOT NULL,term_ends_at TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'draft');
+    CREATE TABLE IF NOT EXISTS governance_candidates (id TEXT PRIMARY KEY,season_id TEXT NOT NULL REFERENCES governance_seasons(id),user_id TEXT NOT NULL REFERENCES users(id),evaluation_json TEXT NOT NULL,statement TEXT NOT NULL DEFAULT '',conflicts_json TEXT NOT NULL DEFAULT '[]',availability TEXT NOT NULL DEFAULT '',code_of_conduct_accepted_at TEXT,status TEXT NOT NULL DEFAULT 'pending',shortlist_rank INTEGER,created_at TEXT NOT NULL DEFAULT (datetime('now')),UNIQUE(season_id,user_id));
+    CREATE TABLE IF NOT EXISTS governance_votes (id TEXT PRIMARY KEY,season_id TEXT NOT NULL REFERENCES governance_seasons(id),voter_user_id TEXT NOT NULL REFERENCES users(id),candidate_id TEXT NOT NULL REFERENCES governance_candidates(id),cast_at TEXT NOT NULL DEFAULT (datetime('now')),UNIQUE(season_id,voter_user_id));
+    CREATE TABLE IF NOT EXISTS community_role_terms (id TEXT PRIMARY KEY,community_id TEXT NOT NULL REFERENCES communities(id),season_id TEXT REFERENCES governance_seasons(id),user_id TEXT NOT NULL REFERENCES users(id),role_key TEXT NOT NULL,starts_at TEXT NOT NULL,ends_at TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',appointed_by TEXT,ended_reason TEXT,created_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE TABLE IF NOT EXISTS quarterly_rewards (id TEXT PRIMARY KEY,season_id TEXT NOT NULL REFERENCES governance_seasons(id),reward_key TEXT NOT NULL,reward_kind TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,criteria_json TEXT NOT NULL,quantity INTEGER,rule_version TEXT NOT NULL,UNIQUE(season_id,reward_key));
+    CREATE TABLE IF NOT EXISTS reward_grants (id TEXT PRIMARY KEY,reward_id TEXT NOT NULL REFERENCES quarterly_rewards(id),user_id TEXT NOT NULL REFERENCES users(id),evidence_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'granted',granted_at TEXT NOT NULL DEFAULT (datetime('now')),claimed_at TEXT,UNIQUE(reward_id,user_id));
+    CREATE TABLE IF NOT EXISTS referral_qualifications (id TEXT PRIMARY KEY,referral_id TEXT NOT NULL UNIQUE REFERENCES referrals(id),referrer_user_id TEXT NOT NULL REFERENCES users(id),new_user_id TEXT NOT NULL UNIQUE REFERENCES users(id),qualifying_action TEXT NOT NULL,qualifying_source_id TEXT NOT NULL,qualified_at TEXT NOT NULL DEFAULT (datetime('now')));
+    CREATE INDEX IF NOT EXISTS idx_referral_qualifications_referrer ON referral_qualifications(referrer_user_id,qualified_at);
+  `);
+
+  await rawClient.executeMultiple(`
+    INSERT OR IGNORE INTO badge_definitions (badge_key,name,description,basis,threshold,rule_version,is_permanent) VALUES
+      ('seven_day_backer','7 Day Backer','Checked in for seven consecutive days.','current_streak',7,'backer-growth-v1',1),
+      ('thirty_day_backer','30 Day Backer','Active on thirty distinct days.','lifetime_active_days',30,'backer-growth-v1',1),
+      ('ninety_day_backer','90 Day Backer','Active on ninety distinct days.','lifetime_active_days',90,'backer-growth-v1',1),
+      ('year_one_backer','Year One Backer','Active on 365 distinct days.','lifetime_active_days',365,'backer-growth-v1',1);
+    INSERT OR IGNORE INTO backer_level_rules (rule_version,level_key,ordinal,minimums_json,capabilities_json) VALUES
+      ('backer-growth-v1','new_backer',0,'{"consistency":0,"participation":0,"support":0,"community_builder":0}','["vote","support","recognize","join","invite"]'),
+      ('backer-growth-v1','active_backer',1,'{"consistency":3,"participation":3,"support":0,"community_builder":1}','["nominate","create_list","join_community_goal"]'),
+      ('backer-growth-v1','established_backer',2,'{"consistency":14,"participation":10,"support":1,"community_builder":2}','["propose_rally","submit_topic","assist_event"]'),
+      ('backer-growth-v1','community_backer',3,'{"consistency":30,"participation":25,"support":2,"community_builder":5}','["coorganize_event","create_challenge","apply_captain"]'),
+      ('backer-growth-v1','core_backer',4,'{"consistency":90,"participation":60,"support":3,"community_builder":10}','["apply_host","apply_curator","apply_organiser","quarterly_candidate"]');
+    INSERT OR IGNORE INTO capability_definitions (capability_key,name,description) VALUES
+      ('vote','Vote','Express a choice in a Ranking.'),
+      ('support','Support','Support a person with Credits.'),
+      ('recognize','Recognize','Publicly recognize another community member.'),
+      ('join','Join','Join a community or event space.'),
+      ('invite','Invite','Invite someone into RepHear.'),
+      ('nominate','Nominate','Nominate a person where nominations are open.'),
+      ('create_list','Create lists','Create a community list.'),
+      ('join_community_goal','Join Community Goals','Contribute verified actions to shared goals.'),
+      ('propose_rally','Propose a Rally','Submit a Rally proposal for review.'),
+      ('submit_topic','Submit topics','Submit a community discussion topic.'),
+      ('assist_event','Assist events','Apply to help with a community event.'),
+      ('coorganize_event','Co-organize events','Co-organize an approved community event.'),
+      ('create_challenge','Create challenges','Propose a moderated community challenge.'),
+      ('apply_captain','Apply for Captain','Apply for a fixed-term Captain role.'),
+      ('apply_host','Apply for Host','Apply for a fixed-term Host role.'),
+      ('apply_curator','Apply for Curator','Apply for a fixed-term Curator role.'),
+      ('apply_organiser','Apply for Organiser','Apply for a fixed-term Organiser role.'),
+      ('quarterly_candidate','Governance candidate','Become eligible for quarterly candidate review.');
+    INSERT OR IGNORE INTO quest_definitions (id,quest_kind,quest_type,title,description,condition_json,reward_json,daily_limit,is_paid_action,rule_version) VALUES
+      ('daily-discovery-v1','daily','discovery','Discover someone new','Open a Creator profile you have not viewed before.','{"event":"profile_discovery","count":1}','{"track":"participation"}',1,0,'backer-growth-v1'),
+      ('daily-vote-v1','daily','vote','Use your voice','Cast one valid Vote in a community Ranking.','{"event":"vote","count":1}','{"track":"participation"}',1,0,'backer-growth-v1'),
+      ('daily-recognition-v1','daily','recognition','Recognize a community member','Recognize someone whose contribution you value.','{"event":"recognition","count":1}','{"track":"participation"}',1,0,'backer-growth-v1'),
+      ('daily-cross-community-v1','daily','cross_community_discovery','Explore another community','Discover a Creator outside your primary community.','{"event":"cross_community_discovery","count":1}','{"track":"participation"}',1,0,'backer-growth-v1'),
+      ('daily-community-v1','daily','community_building','Help the community grow','Invite someone who completes a first meaningful action.','{"event":"successful_invite","count":1}','{"track":"community_builder"}',1,0,'backer-growth-v1'),
+      ('daily-support-optional-v1','daily','support','Stand behind someone','Optionally support someone you genuinely believe in.','{"event":"support","count":1}','{"track":"support"}',1,1,'backer-growth-v1'),
+      ('creator-recognize-v1','creator','recognize_backers','Recognize three Backers','Recognize three people who have supported your work.','{"event":"recognition","count":3}','{"relationship":"backer_feedback"}',1,0,'backer-growth-v1'),
+      ('creator-thank-v1','creator','thank_early_backer','Thank an Early Backer','Thank one person who backed you before a verified milestone.','{"event":"thank_early_backer","count":1}','{"relationship":"long_term_memory"}',1,0,'backer-growth-v1'),
+      ('creator-welcome-v1','creator','welcome_new_backers','Welcome three new Backers','Welcome three people who recently started backing you.','{"event":"welcome_backer","count":3}','{"relationship":"onboarding"}',1,0,'backer-growth-v1'),
+      ('creator-discover-v1','creator','discover_creator','Discover another Creator','Visit and recognize another Creator in the community.','{"event":"creator_discovery","count":1}','{"relationship":"peer_discovery"}',1,0,'backer-growth-v1'),
+      ('creator-share-v1','creator','share_community_progress','Share community progress','Share an active Community Goal without changing its score.','{"event":"share_community_progress","count":1}','{"relationship":"community_awareness"}',1,0,'backer-growth-v1');
+  `);
+}
+
+async function seedCommunitiesFromCategories() {
+  await rawClient.execute({
+    sql: `INSERT OR IGNORE INTO communities (id,name,slug,description,category_id)
+      SELECT 'community-' || id,name,slug,description,id FROM categories`,
+    args: [],
+  });
+  const now = new Date();
+  const quarter = Math.floor(now.getUTCMonth() / 3);
+  const startsAt = new Date(Date.UTC(now.getUTCFullYear(), quarter * 3, 1)).toISOString();
+  const endsAt = new Date(Date.UTC(now.getUTCFullYear(), quarter * 3 + 3, 1)).toISOString();
+  const nominationOpensAt = startsAt;
+  const votingOpensAt = new Date(Date.parse(endsAt) - 14 * 86400000).toISOString();
+  const votingClosesAt = new Date(Date.parse(endsAt) - 7 * 86400000).toISOString();
+  const termStartsAt = endsAt;
+  const termEndsAt = new Date(Date.UTC(now.getUTCFullYear(), quarter * 3 + 6, 1)).toISOString();
+  const seasonKey = `${now.getUTCFullYear()}-q${quarter + 1}`;
+  const communities = (await rawClient.execute({ sql: "SELECT id,name FROM communities", args: [] })).rows;
+  for (const community of communities) {
+    const communityId = String(community.id);
+    const communityName = String(community.name);
+    const seasonId = `governance-${communityId}-${seasonKey}`;
+    await rawClient.execute({
+      sql: `INSERT OR IGNORE INTO community_goals
+        (id,community_id,title,description,goal_tier,target_points,starts_at,ends_at,status,rule_version,weights_json,daily_caps_json,unlocks_json)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      args: [`goal-${communityId}-${seasonKey}`, communityId, `${communityName} Community Goal`, "Build the community through verified, meaningful actions.", "foundation", 1000, startsAt, endsAt, "active", "backer-growth-v1", '{"vote":1,"support":2,"recognition":2,"daily_quest":2,"successful_invite":5,"community_contribution":3}', '{"vote":3,"support":2,"recognition":4,"daily_quest":2,"successful_invite":10,"community_contribution":6}', '{"badge":"quarterly_community_builder"}'],
+    });
+    await rawClient.execute({
+      sql: `INSERT OR IGNORE INTO governance_seasons
+        (id,community_id,name,rule_version,eligibility_json,nomination_opens_at,voting_opens_at,voting_closes_at,term_starts_at,term_ends_at,status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      args: [seasonId, communityId, `${communityName} ${seasonKey.toUpperCase()} Backer Election`, "governance-v1", '{"minimumAccountDays":30,"minimumActiveDays":7,"minimumVotes":3,"shortlistSize":10,"winners":3}', nominationOpensAt, votingOpensAt, votingClosesAt, termStartsAt, termEndsAt, "nominations"],
+    });
+    const rewards = [
+      ["quarter_badge", "earned_reward", `${seasonKey.toUpperCase()} Community Backer`, "A permanent badge for verified quarterly participation."],
+      ["profile_frame", "earned_reward", `${seasonKey.toUpperCase()} Profile Frame`, "A limited profile frame earned through sustained participation."],
+      ["community_roundtable", "earned_reward", "Community Roundtable", "An invitation to the quarterly community roundtable."],
+      ["administrator_term", "elected_role", "Community Administrator", "One of three fixed-term roles authorized by the community vote."],
+    ];
+    for (const [rewardKey, rewardKind, name, description] of rewards) {
+      await rawClient.execute({
+        sql: `INSERT OR IGNORE INTO quarterly_rewards (id,season_id,reward_key,reward_kind,name,description,criteria_json,quantity,rule_version)
+          VALUES (?,?,?,?,?,?,?,?,?)`,
+        args: [`reward-${seasonId}-${rewardKey}`, seasonId, rewardKey, rewardKind, name, description, rewardKind === "elected_role" ? '{"topVotes":3}' : '{"verifiedQuarterlyParticipation":true}', rewardKind === "elected_role" ? 3 : null, "governance-v1"],
+      });
+    }
+  }
+}
+
 // Phase 5.5 (thank my early backers): one row per (ranking, nominee,
 // milestone scope) — the "once per milestone" rate limit for the
 // claimed owner's thank-you action. The scope is the nominee's latest
@@ -2023,6 +2152,7 @@ export async function ensureMigrated(): Promise<void> {
     await createNomineeThanksTableIfMissing();
     await createEarlyBackerAwardsTableIfMissing();
     await createIdentityAwardsTableIfMissing();
+    await createCommunityGrowthTablesIfMissing();
     await createNotificationsTableIfMissing();
     // Admin homepage curation (manual Trending/Rising picks). Empty by
     // default — automatic logic fills every slot until an admin curates.
@@ -2088,6 +2218,7 @@ export async function ensureMigrated(): Promise<void> {
     // exist to be remapped) and before pruneLegacyRankings().
     await seedTaxonomy();
     await migrateTaxonomyToV2();
+    await seedCommunitiesFromCategories();
     // Taxonomy v2 content seeds (2026-09-30): the 134 required rankings
     // (Anime 30, Manga 30, Gaming 30, Cosplay 30, Creator Bridge 14) from
     // the canonical registry in requiredRankings.ts. Idempotent
