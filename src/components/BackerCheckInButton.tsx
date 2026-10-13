@@ -1,12 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { checkInAction } from "@/lib/actions/communityGrowth";
 
 export default function BackerCheckInButton() {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (streak == null) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setStreak(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [streak]);
 
   return (
     <div className="mt-auto pt-4">
@@ -16,7 +32,10 @@ export default function BackerCheckInButton() {
         onClick={() => startTransition(async () => {
           const result = await checkInAction();
           setError(result.error ?? null);
-          if (!result.error && result.currentStreak != null) setStreak(result.currentStreak);
+          if (!result.error && result.currentStreak != null) {
+            setStreak(result.currentStreak);
+            router.refresh();
+          }
         })}
         className="rounded-full bg-brand-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
       >
@@ -24,14 +43,24 @@ export default function BackerCheckInButton() {
       </button>
       {error && <p className="mt-2 text-xs text-red-600" role="status">{error}</p>}
       {streak != null && (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-5" role="dialog" aria-modal="true" aria-labelledby="daily-presence-title">
-          <div className="relative w-full max-w-md rounded-[28px] bg-white p-8 text-center shadow-2xl">
-            <button type="button" onClick={() => setStreak(null)} className="absolute right-4 top-4 grid size-9 place-items-center rounded-full bg-slate-100 text-lg text-slate-600" aria-label="Close">×</button>
-            <div aria-hidden className="mx-auto grid size-14 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-2xl text-white">✦</div>
-            <h2 id="daily-presence-title" className="mt-5 text-3xl font-black tracking-tight text-ink">Daily Presence</h2>
-            <p className="mt-3 text-sm text-subtle">A small daily moment with your community.</p>
-            <p className="mt-6 text-lg font-bold text-violet-700">I’m Here ✦</p>
-            <p className="mt-3 leading-7 text-subtle">I have been part of the community for {streak} days in a row.</p>
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/55 p-5 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="daily-presence-title"
+          aria-describedby="daily-presence-description daily-presence-streak"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setStreak(null);
+          }}
+        >
+          <div className="relative w-full max-w-md overflow-hidden rounded-[30px] border border-white/70 bg-white px-7 py-9 text-center shadow-[0_30px_90px_rgba(46,16,101,0.28)] sm:px-10 sm:py-11">
+            <div aria-hidden className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-rose-400" />
+            <button type="button" onClick={() => setStreak(null)} className="absolute right-4 top-4 grid size-9 place-items-center rounded-full bg-slate-100 text-lg text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2" aria-label="Close Daily Presence">×</button>
+            <div aria-hidden className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-400 text-2xl text-white shadow-lg shadow-fuchsia-200">✦</div>
+            <h2 id="daily-presence-title" className="mt-6 text-3xl font-black tracking-tight text-ink">Daily Presence</h2>
+            <p id="daily-presence-description" className="mt-3 text-sm leading-6 text-subtle">A small daily moment with your community.</p>
+            <p className="mt-7 text-lg font-bold text-violet-700">I’m Here ✦</p>
+            <p id="daily-presence-streak" className="mt-3 leading-7 text-subtle">I have been part of the community for {streak} days in a row.</p>
           </div>
         </div>
       )}
