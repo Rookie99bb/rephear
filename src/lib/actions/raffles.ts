@@ -7,7 +7,9 @@ import {
   drawRaffleWinners,
   cancelRaffle,
   findRaffleById,
+  checkInToRaffle,
 } from "@/db/raffles";
+import { getCurrentUser } from "@/lib/session";
 import { findRankingById } from "@/db/rankings";
 import { findUserById } from "@/db/users";
 import { recordAuditLog, AUDIT_ACTIONS } from "@/db/auditLog";
@@ -19,13 +21,45 @@ export interface RaffleActionResult {
   raffleId?: string;
 }
 
+export async function checkInToRaffleAction(
+  raffleId: string,
+  _prev: RaffleActionResult
+): Promise<RaffleActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Log in to complete Draw Check-in." };
+  try {
+    await checkInToRaffle({ raffleId, userId: user.id });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Draw Check-in failed.",
+    };
+  }
+  revalidatePath(`/draws/${raffleId}`);
+  return { success: true, raffleId };
+}
+
 function parseDateInput(raw: string): string | null {
-  // <input type="datetime-local"> gives "YYYY-MM-DDTHH:MM" (local time).
-  // Store as UTC ISO; SQLite datetime() comparisons in
-  // listActiveRafflesForRanking use UTC, so keep everything in UTC.
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
+  // Admin campaign times are explicitly UK time. Render runs in UTC, so a
+  // bare datetime-local value must not be interpreted in the server zone.
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(raw);
+  if (!match) return null;
+  const parts = match.slice(1).map(Number);
+  const wallUtc = Date.UTC(parts[0], parts[1] - 1, parts[2], parts[3], parts[4]);
+  const formatted = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(wallUtc));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(formatted.find((part) => part.type === type)?.value);
+  const representedUtc = Date.UTC(
+    value("year"), value("month") - 1, value("day"), value("hour"), value("minute")
+  );
+  return new Date(wallUtc - (representedUtc - wallUtc)).toISOString();
 }
 
 // Admin-only: create a new prize draw. Validates every field server-side;
@@ -43,15 +77,29 @@ export async function createRaffleAction(
   const prizeDescription = String(formData.get("prizeDescription") || "").trim();
   const sponsorName = String(formData.get("sponsorName") || "").trim();
   const endsAtRaw = String(formData.get("endsAt") || "").trim();
+  const startsAtRaw = String(formData.get("startsAt") || "").trim();
+  const drawAtRaw = String(formData.get("drawAt") || "").trim();
+  const rankingIds = formData
+    .getAll("rankingIds")
+    .map(String)
+    .map((value) => value.trim())
+    .filter(Boolean);
   const winnerCountRaw = String(formData.get("winnerCount") || "1").trim();
 
   if (!title) return { error: "Title is required." };
   if (!prizeDescription) return { error: "Prize description is required." };
   const endsAt = parseDateInput(endsAtRaw);
+  const startsAt = parseDateInput(startsAtRaw);
+  const drawAt = parseDateInput(drawAtRaw);
+  if (!startsAt) return { error: "Enter a valid voting close/check-in start time." };
   if (!endsAt) return { error: "Enter a valid end date and time." };
-  if (new Date(endsAt).getTime() <= Date.now()) {
-    return { error: "End time must be in the future." };
-  }
+  if (!drawAt) return { error: "Enter a valid draw time." };
+  if (new Date(startsAt).getTime() >= new Date(endsAt).getTime())
+    return { error: "Check-in must close after it opens." };
+  if (new Date(endsAt).getTime() >= new Date(drawAt).getTime())
+    return { error: "The draw must start after Check-in closes." };
+  if (rankingIds.length < 3)
+    return { error: "Select at least three campaign Rankings." };
   const winnerCount = Number.parseInt(winnerCountRaw, 10);
   if (!Number.isInteger(winnerCount) || winnerCount < 1 || winnerCount > 100) {
     return { error: "Winner count must be between 1 and 100." };
@@ -63,6 +111,11 @@ export async function createRaffleAction(
     if (!ranking) return { error: "Ranking not found." };
     rankingId = ranking.id;
   }
+  for (const selectedRankingId of rankingIds) {
+    if (!(await findRankingById(selectedRankingId))) {
+      return { error: "One of the selected Rankings no longer exists." };
+    }
+  }
 
   const raffle = await createRaffle({
     title,
@@ -70,7 +123,10 @@ export async function createRaffleAction(
     rankingId,
     prizeDescription,
     sponsorName,
+    startsAt,
     endsAt,
+    drawAt,
+    rankingIds,
     winnerCount,
     createdBy: admin.id,
   });
@@ -81,7 +137,7 @@ export async function createRaffleAction(
     action: AUDIT_ACTIONS.RAFFLE_CREATED,
     targetType: "raffle",
     targetId: raffle.id,
-    details: { title, rankingId, prizeDescription, winnerCount, endsAt },
+    details: { title, rankingId, rankingIds, prizeDescription, winnerCount, startsAt, endsAt, drawAt },
     ipAddress,
     userAgent,
   });

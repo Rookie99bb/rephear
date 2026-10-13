@@ -4,6 +4,7 @@ import {
   findRaffleById,
   countRaffleEntries,
   listRaffleWinners,
+  listRaffleRankingResults,
 } from "@/db/raffles";
 import { findRankingById } from "@/db/rankings";
 import { findUserById } from "@/db/users";
@@ -22,7 +23,8 @@ export default async function RaffleDetailPage({
   const ranking = raffle.rankingId
     ? await findRankingById(raffle.rankingId)
     : null;
-  const hasEnded = new Date(raffle.endsAt).getTime() <= Date.now();
+  const campaignRankings = await listRaffleRankingResults(raffle.id);
+  const hasEnded = new Date(raffle.drawAt).getTime() <= Date.now();
 
   const winnerRows = await Promise.all(
     winners.map(async (w) => {
@@ -56,7 +58,9 @@ export default async function RaffleDetailPage({
             <Detail
               label="Scope"
               value={
-                ranking ? `Ranking: ${ranking.title}` : "Site-wide"
+                campaignRankings.length > 0
+                  ? campaignRankings.map((item) => item.title).join(", ")
+                  : ranking ? `Ranking: ${ranking.title}` : "No Rankings selected"
               }
             />
             <Detail
@@ -66,6 +70,7 @@ export default async function RaffleDetailPage({
               ).toLocaleString()}`}
             />
             <Detail label="Winners to draw" value={String(raffle.winnerCount)} />
+            <Detail label="Draw time" value={new Date(raffle.drawAt).toLocaleString()} />
             <Detail label="Entries" value={String(entries)} />
             {raffle.description && (
               <Detail label="Description" value={raffle.description} />

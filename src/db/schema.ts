@@ -536,14 +536,11 @@ CREATE INDEX IF NOT EXISTS idx_credit_redemptions_profile ON credit_redemptions(
 CREATE INDEX IF NOT EXISTS idx_credit_redemptions_status ON credit_redemptions(status);
 CREATE INDEX IF NOT EXISTS idx_credit_redemptions_requested_by ON credit_redemptions(requested_by);
 
--- Vote-to-enter prize draws ("投票抽奖"). One row per draw, created and
--- managed from /admin/raffles. A raffle is scoped to a single Ranking
--- (ranking_id) or site-wide (ranking_id IS NULL). Entries are earned by
--- voting — currently free Likes only, deliberately: under UK law a prize
--- draw must offer free entry, and tying entry to paid Support Credits
--- could turn the draw into an illegal lottery (Gambling Act 2005). If a
--- paid-entry mechanic is ever wanted, it needs legal review first and a
--- separate free-entry route. Status starts 'active'; drawing winners
+-- Result-triggered prize draws. Campaign Rankings live in raffle_rankings.
+-- Voting establishes eligibility only; a qualified Backer must complete a
+-- free Draw Check-in during [starts_at, ends_at) to create an entry. Support
+-- Credits, vote quantity and invitations never create extra entries. Status
+-- starts 'active'; drawing winners
 -- flips it to 'drawn' (winners recorded in raffle_winners, never edited
 -- afterward); 'cancelled' is for draws that never ran.
 CREATE TABLE IF NOT EXISTS raffles (
@@ -553,28 +550,46 @@ description TEXT NOT NULL DEFAULT '',
 ranking_id TEXT REFERENCES rankings(id),
 prize_description TEXT NOT NULL,
 sponsor_name TEXT NOT NULL DEFAULT '',
+campaign_key TEXT NOT NULL DEFAULT '',
+eligibility_type TEXT NOT NULL DEFAULT 'manual',
+event_id TEXT REFERENCES social_events(id),
+min_streak INTEGER NOT NULL DEFAULT 0,
+max_reimbursement_pence INTEGER NOT NULL DEFAULT 0,
 starts_at TEXT NOT NULL DEFAULT (datetime('now')),
 ends_at TEXT NOT NULL,
+draw_at TEXT,
+results_email_sent_at TEXT,
 winner_count INTEGER NOT NULL DEFAULT 1,
-status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'drawn' | 'cancelled'
+status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'drawing' | 'drawn' | 'cancelled'
 created_by TEXT REFERENCES users(id),
 created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- One entry per user per raffle (UNIQUE(raffle_id, user_id)): every voter
--- gets exactly one equal chance, which keeps the draw fair, the messaging
--- simple ("vote to enter"), and removes any incentive to farm Likes for
--- extra entries. source records how the entry was earned ('like' today;
--- 'support' reserved for a future paid-Support entry path via the
--- checkout webhook).
+-- One entry per user per raffle. Only server-verified Draw Check-in writes
+-- here; voting itself never inserts a row.
 CREATE TABLE IF NOT EXISTS raffle_entries (
 id TEXT PRIMARY KEY,
 raffle_id TEXT NOT NULL REFERENCES raffles(id),
 user_id TEXT NOT NULL REFERENCES users(id),
-source TEXT NOT NULL DEFAULT 'like',
+source TEXT NOT NULL DEFAULT 'qualified_check_in',
 created_at TEXT NOT NULL DEFAULT (datetime('now')),
 UNIQUE(raffle_id, user_id)
 );
+
+-- Rankings participating in a result-triggered draw campaign. The final
+-- positions are frozen when voting closes. Only positions 1-3 confer
+-- check-in eligibility; every campaign ranking is retained so the same
+-- results email can be sent to every voter who participated.
+CREATE TABLE IF NOT EXISTS raffle_rankings (
+raffle_id TEXT NOT NULL REFERENCES raffles(id),
+ranking_id TEXT NOT NULL REFERENCES rankings(id),
+final_position INTEGER,
+final_score INTEGER,
+PRIMARY KEY (raffle_id, ranking_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_raffle_rankings_raffle ON raffle_rankings(raffle_id);
+CREATE INDEX IF NOT EXISTS idx_raffle_rankings_position ON raffle_rankings(raffle_id, final_position);
 
 -- Winners are append-only history: once drawn, a row is never updated or
 -- deleted (disputes are resolved by reading this table + the audit log).
@@ -686,6 +701,85 @@ async function addProfileShareTokenColumnIfMissing() {
     sql: "CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_share_token ON profiles(share_token) WHERE share_token IS NOT NULL;",
     args: [],
   });
+}
+
+async function addResultDrawColumnsIfMissing() {
+  const columns: [string, string][] = [
+    ["draw_at", "TEXT"],
+    ["results_email_sent_at", "TEXT"],
+    ["campaign_key", "TEXT NOT NULL DEFAULT ''"],
+    ["eligibility_type", "TEXT NOT NULL DEFAULT 'manual'"],
+    ["event_id", "TEXT"],
+    ["min_streak", "INTEGER NOT NULL DEFAULT 0"],
+    ["max_reimbursement_pence", "INTEGER NOT NULL DEFAULT 0"],
+  ];
+  for (const [name, type] of columns) {
+    try {
+      await rawClient.execute({
+        sql: `ALTER TABLE raffles ADD COLUMN ${name} ${type};`,
+        args: [],
+      });
+    } catch {
+      // Column already exists.
+    }
+  }
+  await rawClient.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS raffle_rankings (
+      raffle_id TEXT NOT NULL REFERENCES raffles(id),
+      ranking_id TEXT NOT NULL REFERENCES rankings(id),
+      final_position INTEGER,
+      final_score INTEGER,
+      PRIMARY KEY (raffle_id, ranking_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_raffle_rankings_raffle
+      ON raffle_rankings(raffle_id);
+    CREATE INDEX IF NOT EXISTS idx_raffle_rankings_position
+      ON raffle_rankings(raffle_id, final_position);
+    CREATE INDEX IF NOT EXISTS idx_raffles_campaign
+      ON raffles(campaign_key, draw_at);
+  `);
+
+}
+
+async function seedRoadToMcmDailyDraws() {
+  const dailyDraws = [
+    ["17", "2026-10-17T00:00:00+01:00", "2026-10-17T20:00:00+01:00"],
+    ["18", "2026-10-18T00:00:00+01:00", "2026-10-18T20:00:00+01:00"],
+    ["19", "2026-10-19T00:00:00+01:00", "2026-10-19T20:00:00+01:00"],
+    ["20", "2026-10-20T00:00:00+01:00", "2026-10-20T20:00:00+01:00"],
+    ["21", "2026-10-21T00:00:00+01:00", "2026-10-21T20:00:00+01:00"],
+    ["22", "2026-10-22T00:00:00+01:00", "2026-10-22T20:00:00+01:00"],
+    ["23", "2026-10-23T00:00:00+01:00", "2026-10-23T20:00:00+01:00"],
+    ["24", "2026-10-24T00:00:00+01:00", "2026-10-24T20:00:00+01:00"],
+    ["25", "2026-10-25T00:00:00+01:00", "2026-10-25T20:00:00Z"],
+  ] as const;
+  for (const [day, startsAt, drawAt] of dailyDraws) {
+    await rawClient.execute({
+      sql: `INSERT OR IGNORE INTO raffles
+        (id,title,description,ranking_id,prize_description,sponsor_name,
+         campaign_key,eligibility_type,event_id,min_streak,max_reimbursement_pence,
+         starts_at,ends_at,draw_at,winner_count,status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      args: [
+        `road-to-mcm-2026-10-${day}`,
+        `Road to MCM Daily Draw · 10/${day}`,
+        "Create your MCM Event Card and check in for three consecutive days to enter automatically.",
+        null,
+        "Reimbursement for an official MCM ticket purchase, up to £50",
+        "",
+        "road-to-mcm-2026",
+        "event_streak",
+        "event-animecon-london-2026",
+        3,
+        5000,
+        startsAt,
+        drawAt,
+        drawAt,
+        1,
+        "active",
+      ],
+    });
+  }
 }
 
 // Ranking cover image columns + is_global (see CREATE TABLE rankings
@@ -2121,6 +2215,7 @@ export async function ensureMigrated(): Promise<void> {
   try {
     await runMigrations();
     await addRankingSlugAndCategoryColumnsIfMissing();
+    await addResultDrawColumnsIfMissing();
     await addRankingPinAndOrderColumnsIfMissing();
     await addRankingCoverColumnsIfMissing();
     await createRankingCoverRefreshLogTableIfMissing();
@@ -2163,6 +2258,7 @@ export async function ensureMigrated(): Promise<void> {
     await createUserReportsAndBlocksIfMissing();
     await addUserIsHiddenColumnIfMissing();
     await createEventSocialSpaceTablesIfMissing();
+    await seedRoadToMcmDailyDraws();
     await addProfileShareTokenColumnIfMissing();
     await backfillProfileShareTokens();
     await seedReferralCommissionRuleV1();

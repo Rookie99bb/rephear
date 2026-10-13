@@ -11,10 +11,10 @@ export default async function NewRafflePage() {
         New Prize Draw
       </h2>
       <p className="mb-6 max-w-2xl text-sm text-subtle">
-        Once created, every Like on the scoped Ranking (or site-wide, if no
-        Ranking is chosen) automatically earns the voter one entry. The draw
-        can only be run after its end time, and winners are recorded
-        permanently with an audit-log entry.
+        Select every Ranking in the campaign. Voting closes when Draw Check-in
+        opens; the final Top 3 are frozen automatically. Their eligible Backers
+        must then check in before the deadline. Voting alone never creates an
+        entry. Winners are recorded permanently with an audit-log entry.
       </p>
       <RaffleCreateForm
         rankings={rankings.map((r) => ({

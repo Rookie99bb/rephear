@@ -6,7 +6,7 @@ import { likeCountForUser, incrementLike } from "@/db/likes";
 import { shareCountForUser } from "@/db/shares";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { getInviteBonusLikes } from "@/db/users";
-import { listActiveRafflesForRanking, addRaffleEntry } from "@/db/raffles";
+import { isRankingVotingClosedForDraw } from "@/db/raffles";
 import { recordVerifiedCommunityAction } from "@/db/communityGrowth";
 
 // A user's first Like on a Nominee is always free. Every Like after that
@@ -33,6 +33,10 @@ if (!checkRateLimit(`like:${user.id}`, RATE_LIMITS.like)) {
 return { error: "Too many Likes, please slow down and try again shortly." };
 }
 
+if (await isRankingVotingClosedForDraw(rankingId)) {
+return { error: "Voting has closed for this campaign." };
+}
+
 const currentCount = await likeCountForUser(rankingId, profileId, user.id);
 const shares = await shareCountForUser(rankingId, profileId, user.id);
 const inviteBonusLikes = await getInviteBonusLikes(user.id);
@@ -47,17 +51,6 @@ allowedLikes,
 }
 
 await incrementLike({ rankingId, profileId, userId: user.id });
-
-// Vote-to-enter: every successful Like earns the voter one entry into
-// each currently-active prize draw covering this ranking (site-wide
-// draws included). addRaffleEntry is idempotent — one entry per user
-// per raffle, no matter how many Likes they cast — so this hook stays
-// cheap and fair. Deliberately likes-only (never paid Support): UK
-// prize draws must offer free entry.
-const activeRaffles = await listActiveRafflesForRanking(rankingId);
-for (const raffle of activeRaffles) {
-await addRaffleEntry({ raffleId: raffle.id, userId: user.id, source: "like" });
-}
 await recordVerifiedCommunityAction({
   userId: user.id,
   actionType: "vote",

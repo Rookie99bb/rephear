@@ -23,9 +23,9 @@ export default async function AdminRafflesPage() {
             Prize Draws
           </h2>
           <p className="max-w-2xl text-sm text-subtle">
-            Vote-to-enter draws: every Like cast on a covered Ranking earns
-            the voter one entry. Draws are free to enter by design — never
-            gate entry behind paid Support Credits (UK prize-draw law).
+            Result-triggered draws: voting establishes eligibility, but a
+            qualified Backer only enters after completing free Draw Check-in.
+            Votes, Support Credits and invitations never multiply entries.
           </p>
         </div>
         <Link
@@ -91,6 +91,7 @@ export default async function AdminRafflesPage() {
 function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
     active: "bg-emerald-100 text-emerald-800",
+    drawing: "bg-amber-100 text-amber-800",
     drawn: "bg-slate-200 text-slate-700",
     cancelled: "bg-red-100 text-red-700",
   };

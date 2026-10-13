@@ -10,13 +10,11 @@ import {
 
 const initialState: RaffleActionResult = {};
 
-// Default end time: 14 days from now, formatted for datetime-local.
-function defaultEndsAt(): string {
-  const d = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+function dateTimeLocal(days: number, hour: number, minute = 0): string {
+  const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  d.setHours(hour, minute, 0, 0);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function RaffleCreateForm({
@@ -48,19 +46,22 @@ export default function RaffleCreateForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-ink">
-          Scope — leave empty for a site-wide draw
-        </span>
-        <select name="rankingId" className={inputClass} defaultValue="">
-          <option value="">Site-wide (every Ranking feeds entries)</option>
+      <fieldset className="rounded-xl border border-border p-4">
+        <legend className="px-1 text-xs font-medium text-ink">
+          Campaign Rankings (select all participating Rankings)
+        </legend>
+        <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
           {rankings.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.title} — {r.city}
-            </option>
+            <label key={r.id} className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="rankingIds" value={r.id} className="mt-1" />
+              <span>{r.title} — {r.city}</span>
+            </label>
           ))}
-        </select>
-      </label>
+        </div>
+        <p className="mt-3 text-xs text-subtle">
+          Results are frozen when Check-in opens. Only voters in the final Top 3 qualify.
+        </p>
+      </fieldset>
 
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-ink">Prize *</span>
@@ -93,17 +94,27 @@ export default function RaffleCreateForm({
         />
       </label>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-ink">Ends at *</span>
+          <span className="text-xs font-medium text-ink">Voting closes / Check-in opens *</span>
+          <input name="startsAt" type="datetime-local" required defaultValue={dateTimeLocal(12, 20)} className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink">Check-in closes *</span>
           <input
             name="endsAt"
             type="datetime-local"
             required
-            defaultValue={defaultEndsAt()}
+            defaultValue={dateTimeLocal(13, 19, 30)}
             className={inputClass}
           />
         </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink">Draw starts *</span>
+          <input name="drawAt" type="datetime-local" required defaultValue={dateTimeLocal(13, 20)} className={inputClass} />
+        </label>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-ink">Winners *</span>
           <input
@@ -111,7 +122,7 @@ export default function RaffleCreateForm({
             type="number"
             min={1}
             max={100}
-            defaultValue={1}
+          defaultValue={5}
             required
             className={inputClass}
           />
