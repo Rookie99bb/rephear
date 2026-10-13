@@ -4,6 +4,8 @@ import RankingCover from "./RankingCover";
 import { compact } from "./format";
 import type { CloseBattle } from "@/db/homepage";
 import type { Ranking } from "@/lib/types";
+import type { Raffle } from "@/db/raffles";
+import { isSpecialRaffle } from "@/lib/raffleSchedule";
 
 export interface RisingItem {
   ranking: Ranking;
@@ -27,12 +29,14 @@ export default function ActivityGrid({
   battle,
   rising,
   eventHrefs = {},
+  featuredDraw,
 }: {
   battle: CloseBattle | null;
   rising: RisingItem[];
   // Resolved public ranking deep-links for event-adjacent rankings,
   // keyed by ranking slug. Events without a resolved link stay unlinked.
   eventHrefs?: Record<string, string>;
+  featuredDraw: Raffle | null;
 }) {
   const showRising = rising.length > 0;
   if (!battle && !showRising) return null;
@@ -43,7 +47,7 @@ export default function ActivityGrid({
     <div className={`grid grid-cols-1 gap-6 ${gridCols}`}>
       {battle && <CloseBattles battle={battle} />}
       {showRising && <RisingNow items={rising} />}
-      <UpcomingEvents eventHrefs={eventHrefs} />
+      <UpcomingEvents eventHrefs={eventHrefs} featuredDraw={featuredDraw} />
     </div>
   );
 }
@@ -269,7 +273,13 @@ const UPCOMING_EVENTS: {
   },
 ];
 
-export function UpcomingEvents({ eventHrefs }: { eventHrefs: Record<string, string> }) {
+export function UpcomingEvents({
+  eventHrefs,
+  featuredDraw = null,
+}: {
+  eventHrefs: Record<string, string>;
+  featuredDraw?: Raffle | null;
+}) {
   const now = Date.now();
   const withHrefs = UPCOMING_EVENTS.filter((event) => new Date(event.endsAt).getTime() >= now).map((event) => ({
     ...event,
@@ -303,7 +313,52 @@ export function UpcomingEvents({ eventHrefs }: { eventHrefs: Record<string, stri
           <span className="shrink-0 text-xs text-subtle">{event.date}</span>
         </div>
       ))}
+      {featuredDraw && <HomepageDrawCard draw={featuredDraw} />}
     </section>
+  );
+}
+
+function HomepageDrawCard({ draw }: { draw: Raffle }) {
+  const special = isSpecialRaffle(draw);
+  const isOpen = new Date(draw.startsAt).getTime() <= Date.now();
+  const format = (iso: string) => new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+
+  return (
+    <Link
+      href={`/draws/${draw.id}`}
+      className="group mt-4 block overflow-hidden rounded-2xl bg-gradient-to-br from-violet-700 via-fuchsia-600 to-rose-400 p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/75">
+            {special ? "Special Event Draw" : "Weekly Backer Draw"}
+          </p>
+          <h3 className="mt-2 text-xl font-black tracking-tight">{draw.title}</h3>
+        </div>
+        <span className="shrink-0 rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold backdrop-blur">
+          {isOpen ? "Draw Check-in open" : "Coming up"}
+        </span>
+      </div>
+      <p className="mt-3 line-clamp-2 text-sm text-white/90">{draw.prizeDescription}</p>
+      <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/20 pt-4">
+        <div className="text-xs text-white/80">
+          <span className="block">{isOpen ? "Closes" : "Opens"}: {format(isOpen ? draw.endsAt : draw.startsAt)}</span>
+          <span className="mt-1 block font-semibold text-white">Draw: {format(draw.drawAt)} UK time</span>
+        </div>
+        <span className="shrink-0 text-sm font-bold">View draw →</span>
+      </div>
+      {special && (
+        <p className="mt-4 text-[11px] leading-4 text-white/70">
+          This special event replaces the overlapping Weekly Draw. Weekly draws resume afterwards.
+        </p>
+      )}
+    </Link>
   );
 }
 

@@ -1,5 +1,6 @@
 import { db } from "./client";
 import { newId } from "@/lib/id";
+import { overlappingWeeklyRaffleIds } from "@/lib/raffleSchedule";
 
 export type RaffleStatus = "active" | "drawing" | "drawn" | "cancelled";
 
@@ -505,6 +506,14 @@ export async function listRafflesReadyForResults(): Promise<Raffle[]> {
     )
     .all()) as unknown as RaffleRow[];
   return rows.map(toRaffle);
+}
+
+// Special campaigns own their whole activity window. Cancel overlapping
+// weekly draws before the cron can notify entrants or select a winner.
+export async function cancelWeeklyRafflesOverlappingSpecials(): Promise<string[]> {
+  const ids = overlappingWeeklyRaffleIds(await listRaffles());
+  for (const id of ids) await cancelRaffle(id);
+  return ids;
 }
 
 export async function listRafflesReadyToDraw(): Promise<Raffle[]> {

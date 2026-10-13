@@ -26,6 +26,8 @@ import {
   prioritizeForHomepage,
 } from "@/lib/homepageMerchandising";
 import AnimeConHomeCard from "@/components/events/AnimeConHomeCard";
+import { listRaffles } from "@/db/raffles";
+import { selectHomepageRaffle } from "@/lib/raffleSchedule";
 
 export default async function HomePage({
   searchParams,
@@ -33,6 +35,7 @@ export default async function HomePage({
   searchParams: { category?: string; city?: string; sort?: string };
 }) {
   const categories = await listCategories();
+  const homepageRaffle = selectHomepageRaffle(await listRaffles());
 
   // "🔥 Trending in London": manual-first (admin curation, see
   // src/db/curation.ts). Curated picks occupy the first slots in admin
@@ -200,7 +203,12 @@ export default async function HomePage({
         <div className="flex flex-col gap-10 py-10 md:gap-12">
           <AnimeConHomeCard />
           <TrendingSection cards={trendingCards} mode={trendingMode} />
-          <ActivityGrid battle={battle} rising={rising} eventHrefs={eventHrefs} />
+          <ActivityGrid
+            battle={battle}
+            rising={rising}
+            eventHrefs={eventHrefs}
+            featuredDraw={homepageRaffle}
+          />
           <ExploreRankings
             items={explore}
             activeCategory={activeCategory}

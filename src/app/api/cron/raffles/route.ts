@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  cancelWeeklyRafflesOverlappingSpecials,
   drawRaffleWinners,
   finalizeRaffleResults,
   countRaffleEntries,
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
   if (request.headers.get("authorization") !== `Bearer ${secret}`)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const cancelledWeeklyDraws = await cancelWeeklyRafflesOverlappingSpecials();
   const resultSummary: unknown[] = [];
   for (const raffle of await listRafflesReadyForResults()) {
     await finalizeRaffleResults(raffle.id);
@@ -127,5 +129,5 @@ export async function GET(request: NextRequest) {
     outcomeSummary.push({ raffleId: raffle.id, winners: winnerNames, sent, failed });
   }
 
-  return NextResponse.json({ eligibilityNotices: resultSummary, draws: drawSummary, outcomes: outcomeSummary });
+  return NextResponse.json({ cancelledWeeklyDraws, eligibilityNotices: resultSummary, draws: drawSummary, outcomes: outcomeSummary });
 }
