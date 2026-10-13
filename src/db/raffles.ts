@@ -19,6 +19,7 @@ export interface Raffle {
   endsAt: string;
   drawAt: string;
   resultsEmailSentAt: string | null;
+  outcomeEmailSentAt: string | null;
   winnerCount: number;
   status: RaffleStatus;
   createdBy: string | null;
@@ -49,6 +50,7 @@ interface RaffleRow {
   ends_at: string;
   draw_at: string | null;
   results_email_sent_at: string | null;
+  outcome_email_sent_at: string | null;
   winner_count: number;
   status: RaffleStatus;
   created_by: string | null;
@@ -72,6 +74,7 @@ function toRaffle(row: RaffleRow): Raffle {
     endsAt: row.ends_at,
     drawAt: row.draw_at ?? row.ends_at,
     resultsEmailSentAt: row.results_email_sent_at,
+    outcomeEmailSentAt: row.outcome_email_sent_at,
     winnerCount: row.winner_count,
     status: row.status,
     createdBy: row.created_by,
@@ -544,6 +547,63 @@ export async function listRaffleParticipantEmails(
     )
     .all(raffleId)) as unknown as { user_id: string; email: string }[];
   return rows.map((row) => ({ userId: row.user_id, email: row.email }));
+}
+
+// Only the final Top 3's genuine voters receive the 24-hour notice. Merely
+// receiving this message does not create an entry: the Backer must still
+// complete Draw Check-in before the published deadline.
+export async function listEligibleRaffleEmails(
+  raffleId: string
+): Promise<{ userId: string; email: string }[]> {
+  const rows = (await db.prepare(`
+    SELECT DISTINCT u.id AS user_id, u.email
+    FROM users u
+    JOIN likes l ON l.user_id=u.id AND l.like_source='organic'
+    JOIN raffle_rankings rr ON rr.raffle_id=? AND rr.ranking_id=l.ranking_id
+      AND rr.final_position BETWEEN 1 AND 3
+    JOIN raffles ra ON ra.id=rr.raffle_id
+    WHERE datetime(l.created_at)<=datetime(ra.starts_at)
+      AND TRIM(u.email)!='' AND u.id NOT LIKE 'seed\_%' ESCAPE '\\'
+    ORDER BY u.id`).all(raffleId)) as unknown as { user_id: string; email: string }[];
+  return rows.map((row) => ({ userId: row.user_id, email: row.email }));
+}
+
+export async function listAllBackerEmails(): Promise<{ userId: string; email: string }[]> {
+  const rows = (await db.prepare(`
+    SELECT id AS user_id,email FROM users
+    WHERE TRIM(email)!='' AND id NOT LIKE 'seed\_%' ESCAPE '\\'
+    ORDER BY id`).all()) as unknown as { user_id: string; email: string }[];
+  return rows.map((row) => ({ userId: row.user_id, email: row.email }));
+}
+
+export async function listRafflesReadyForOutcomeEmail(): Promise<Raffle[]> {
+  const rows = (await db.prepare(`
+    SELECT * FROM raffles
+    WHERE status='drawn' AND eligibility_type='manual'
+      AND outcome_email_sent_at IS NULL
+    ORDER BY draw_at ASC`).all()) as unknown as RaffleRow[];
+  return rows.map(toRaffle);
+}
+
+export async function markRaffleOutcomeEmailSent(raffleId: string, sentAt: string): Promise<void> {
+  await db.prepare(`UPDATE raffles SET outcome_email_sent_at=?
+    WHERE id=? AND outcome_email_sent_at IS NULL`).run(sentAt, raffleId);
+}
+
+export async function recordRaffleEmailDelivery(params: {
+  raffleId: string;
+  userId: string;
+  emailType: "eligibility" | "outcome";
+  emailAddress: string;
+  sent: boolean;
+  failureReason?: string;
+}): Promise<void> {
+  await db.prepare(`INSERT OR IGNORE INTO raffle_email_deliveries
+    (id,raffle_id,user_id,email_type,email_address,status,failure_reason)
+    VALUES (?,?,?,?,?,?,?)`).run(
+      newId(), params.raffleId, params.userId, params.emailType,
+      params.emailAddress, params.sent ? "sent" : "failed", params.failureReason ?? ""
+    );
 }
 
 export async function cancelRaffle(raffleId: string): Promise<void> {

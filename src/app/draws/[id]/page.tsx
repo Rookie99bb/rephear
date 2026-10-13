@@ -9,6 +9,7 @@ import {
 } from "@/db/raffles";
 import { findUserById } from "@/db/users";
 import { getCurrentUser } from "@/lib/session";
+import RaffleCheckInForm from "@/components/RaffleCheckInForm";
 
 const londonTime = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", {
@@ -97,10 +98,18 @@ export default async function DrawPage({ params }: { params: { id: string } }) {
         <Notice title="Keep your streak going" body={`Create your MCM Event Card and check in for ${raffle.minStreak} consecutive days. Eligible Backers enter automatically—no purchase or extra entry button required.`} />
       ) : !isEligible ? (
         <Notice title="You are not eligible for this draw" body="Only Backers who cast a valid vote for one of the final Top 3 Rankings before voting closed can check in." />
-      ) : null}
+      ) : (
+        <section className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+          <h2 className="text-lg font-semibold text-ink">You’re eligible ✦</h2>
+          <p className="mt-2 text-sm text-subtle">Eligibility alone does not create an entry. Complete Draw Check-in before {londonTime(raffle.endsAt)} UK time.</p>
+          <div className="mt-4"><RaffleCheckInForm raffleId={raffle.id} /></div>
+        </section>
+      )}
 
-      <p className="mt-6 text-xs leading-5 text-subtle">One eligible Backer is selected at random. The winner purchases through the official MCM ticketing channel and may claim the actual ticket cost up to £{(raffle.maxReimbursementPence / 100).toFixed(0)}. One win per person across the campaign. Travel, accommodation and other costs are excluded. Free entry; <Link className="font-semibold underline" href="/events/animecon-london-2026/road-to-mcm-terms">full terms apply</Link>.</p>
-      <p className="mt-3 text-xs leading-5 text-subtle">This is an independent RepHear community campaign and is not affiliated with or endorsed by MCM Comic Con.</p>
+      {isAutomatic ? <>
+        <p className="mt-6 text-xs leading-5 text-subtle">One eligible Backer is selected at random. The winner purchases through the official MCM ticketing channel and may claim the actual ticket cost up to £{(raffle.maxReimbursementPence / 100).toFixed(0)}. One win per person across the campaign. Travel, accommodation and other costs are excluded. Free entry; <Link className="font-semibold underline" href="/events/mcm-london-2026/road-to-mcm-terms">full terms apply</Link>.</p>
+        <p className="mt-3 text-xs leading-5 text-subtle">This is an independent RepHear community campaign and is not affiliated with or endorsed by MCM Comic Con.</p>
+      </> : <p className="mt-6 text-xs leading-5 text-subtle">Only completed Draw Check-ins enter the final pool. Each eligible Backer receives one entry; extra Votes, Support Credits and invitations do not improve the chance of winning.</p>}
     </div>
   );
 }

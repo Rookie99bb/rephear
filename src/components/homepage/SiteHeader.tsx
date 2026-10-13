@@ -72,6 +72,13 @@ export default function SiteHeader({
           >
             Rankings
           </Link>
+          <Link
+            href="/draws"
+            aria-current={pathname.startsWith("/draws") ? "page" : undefined}
+            className={pathname.startsWith("/draws") ? activeCls : navLink}
+          >
+            Draws
+          </Link>
           {isLoggedIn && (
             <Link
               href={`/u/${userId}`}

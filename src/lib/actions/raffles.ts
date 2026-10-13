@@ -98,6 +98,9 @@ export async function createRaffleAction(
     return { error: "Check-in must close after it opens." };
   if (new Date(endsAt).getTime() >= new Date(drawAt).getTime())
     return { error: "The draw must start after Check-in closes." };
+  const noticeWindow = new Date(drawAt).getTime() - new Date(startsAt).getTime();
+  if (noticeWindow !== 24 * 60 * 60 * 1000)
+    return { error: "Draw Check-in must open exactly 24 hours before the draw." };
   if (rankingIds.length < 3)
     return { error: "Select at least three campaign Rankings." };
   const winnerCount = Number.parseInt(winnerCountRaw, 10);

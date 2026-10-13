@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   drawRaffleWinners,
   finalizeRaffleResults,
-  listRaffleParticipantEmails,
+  countRaffleEntries,
+  listAllBackerEmails,
+  listEligibleRaffleEmails,
   listRaffleRankingResults,
+  listRaffles,
+  listRafflesReadyForOutcomeEmail,
   listRafflesReadyForResults,
   listRafflesReadyToDraw,
+  listRaffleWinners,
+  markRaffleOutcomeEmailSent,
   markRaffleResultsEmailSent,
+  recordRaffleEmailDelivery,
 } from "@/db/raffles";
-import { rankingDrawResultsEmail } from "@/emails/rankingDrawResults";
+import { rankingDrawResultsEmail, weeklyDrawOutcomeEmail } from "@/emails/rankingDrawResults";
 import { sendEmail } from "@/lib/email";
 import { getSiteUrl } from "@/lib/siteUrl";
+import { findUserById } from "@/db/users";
 
 const londonTime = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", {
@@ -41,7 +49,7 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    const recipients = await listRaffleParticipantEmails(raffle.id);
+    const recipients = await listEligibleRaffleEmails(raffle.id);
     const message = rankingDrawResultsEmail({
       campaignTitle: raffle.title,
       rankingTitles: [topThree[0].title, topThree[1].title, topThree[2].title],
@@ -56,6 +64,14 @@ export async function GET(request: NextRequest) {
     let failed = 0;
     for (const recipient of recipients) {
       const email = await sendEmail({ to: recipient.email, ...message });
+      await recordRaffleEmailDelivery({
+        raffleId: raffle.id,
+        userId: recipient.userId,
+        emailType: "eligibility",
+        emailAddress: recipient.email,
+        sent: email.sent,
+        failureReason: email.reason,
+      });
       email.sent ? sent++ : failed++;
     }
     await markRaffleResultsEmailSent(raffle.id, new Date().toISOString());
@@ -72,5 +88,44 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ results: resultSummary, draws: drawSummary });
+  const outcomeSummary: unknown[] = [];
+  for (const raffle of await listRafflesReadyForOutcomeEmail()) {
+    const winners = await listRaffleWinners(raffle.id);
+    const winnerNames = await Promise.all(winners.map(async (winner) => {
+      const user = await findUserById(winner.userId);
+      return user?.name || "Backer";
+    }));
+    const allDraws = await listRaffles();
+    const nextDraw = allDraws
+      .filter((candidate) => candidate.status === "active" && new Date(candidate.drawAt) > new Date(raffle.drawAt))
+      .sort((a, b) => a.drawAt.localeCompare(b.drawAt))[0];
+    const message = weeklyDrawOutcomeEmail({
+      drawTitle: raffle.title,
+      prizeName: raffle.prizeDescription,
+      winnerNames,
+      participantCount: await countRaffleEntries(raffle.id),
+      drawnAt: londonTime(raffle.drawAt),
+      drawUrl: `${getSiteUrl()}/draws/${raffle.id}`,
+      nextDrawAt: nextDraw ? londonTime(nextDraw.drawAt) : null,
+      nextDrawUrl: nextDraw ? `${getSiteUrl()}/draws/${nextDraw.id}` : null,
+    });
+    let sent = 0;
+    let failed = 0;
+    for (const recipient of await listAllBackerEmails()) {
+      const email = await sendEmail({ to: recipient.email, ...message });
+      await recordRaffleEmailDelivery({
+        raffleId: raffle.id,
+        userId: recipient.userId,
+        emailType: "outcome",
+        emailAddress: recipient.email,
+        sent: email.sent,
+        failureReason: email.reason,
+      });
+      email.sent ? sent++ : failed++;
+    }
+    await markRaffleOutcomeEmailSent(raffle.id, new Date().toISOString());
+    outcomeSummary.push({ raffleId: raffle.id, winners: winnerNames, sent, failed });
+  }
+
+  return NextResponse.json({ eligibilityNotices: resultSummary, draws: drawSummary, outcomes: outcomeSummary });
 }

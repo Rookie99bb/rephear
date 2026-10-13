@@ -59,7 +59,7 @@ export default function RaffleCreateForm({
           ))}
         </div>
         <p className="mt-3 text-xs text-subtle">
-          Results are frozen when Check-in opens. Only voters in the final Top 3 qualify.
+          Results are frozen 24 hours before the draw. Only voters in the final Top 3 qualify, and they must still complete Draw Check-in.
         </p>
       </fieldset>
 

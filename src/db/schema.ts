@@ -559,6 +559,7 @@ starts_at TEXT NOT NULL DEFAULT (datetime('now')),
 ends_at TEXT NOT NULL,
 draw_at TEXT,
 results_email_sent_at TEXT,
+outcome_email_sent_at TEXT,
 winner_count INTEGER NOT NULL DEFAULT 1,
 status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'drawing' | 'drawn' | 'cancelled'
 created_by TEXT REFERENCES users(id),
@@ -608,6 +609,23 @@ CREATE INDEX IF NOT EXISTS idx_raffles_ranking ON raffles(ranking_id);
 CREATE INDEX IF NOT EXISTS idx_raffle_entries_raffle ON raffle_entries(raffle_id);
 CREATE INDEX IF NOT EXISTS idx_raffle_entries_user ON raffle_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_raffle_winners_raffle ON raffle_winners(raffle_id);
+
+-- One immutable delivery record per recipient and message stage. This makes
+-- the 24-hour eligibility notice and post-draw result announcement auditable
+-- without storing email bodies or provider credentials.
+CREATE TABLE IF NOT EXISTS raffle_email_deliveries (
+id TEXT PRIMARY KEY,
+raffle_id TEXT NOT NULL REFERENCES raffles(id),
+user_id TEXT NOT NULL REFERENCES users(id),
+email_type TEXT NOT NULL, -- 'eligibility' | 'outcome'
+email_address TEXT NOT NULL,
+status TEXT NOT NULL, -- 'sent' | 'failed'
+failure_reason TEXT NOT NULL DEFAULT '',
+created_at TEXT NOT NULL DEFAULT (datetime('now')),
+UNIQUE(raffle_id, user_id, email_type)
+);
+CREATE INDEX IF NOT EXISTS idx_raffle_email_deliveries_raffle
+ON raffle_email_deliveries(raffle_id, email_type);
 
 -- Campaign ("support") short links: rephear.com/s/<slug>, one per nominee
 -- per campaign (e.g. /s/luna2026). The route logs each visit, drops an
@@ -704,6 +722,21 @@ async function addProfileShareTokenColumnIfMissing() {
 }
 
 async function addResultDrawColumnsIfMissing() {
+  // When this column is first introduced, mark historical completed draws as
+  // already announced so deployment cannot email the entire user base about
+  // old campaigns. New draws keep NULL until the outcome job sends them.
+  try {
+    await rawClient.execute({
+      sql: "ALTER TABLE raffles ADD COLUMN outcome_email_sent_at TEXT;",
+      args: [],
+    });
+    await rawClient.execute({
+      sql: "UPDATE raffles SET outcome_email_sent_at=datetime('now') WHERE status='drawn';",
+      args: [],
+    });
+  } catch {
+    // Column already exists.
+  }
   const columns: [string, string][] = [
     ["draw_at", "TEXT"],
     ["results_email_sent_at", "TEXT"],
@@ -737,6 +770,19 @@ async function addResultDrawColumnsIfMissing() {
       ON raffle_rankings(raffle_id, final_position);
     CREATE INDEX IF NOT EXISTS idx_raffles_campaign
       ON raffles(campaign_key, draw_at);
+    CREATE TABLE IF NOT EXISTS raffle_email_deliveries (
+      id TEXT PRIMARY KEY,
+      raffle_id TEXT NOT NULL REFERENCES raffles(id),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      email_type TEXT NOT NULL,
+      email_address TEXT NOT NULL,
+      status TEXT NOT NULL,
+      failure_reason TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(raffle_id, user_id, email_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_raffle_email_deliveries_raffle
+      ON raffle_email_deliveries(raffle_id, email_type);
   `);
 
 }

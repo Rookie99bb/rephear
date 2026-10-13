@@ -6,7 +6,7 @@ async function main() {
   const { db } = await import("../src/db/client");
   const { createRaffle, finalizeRaffleResults, isUserEligibleForRaffle, checkInToRaffle, countRaffleEntries, drawRaffleWinners } = await import("../src/db/raffles");
   const { newId } = await import("../src/lib/id");
-  const { rankingDrawResultsEmail } = await import("../src/emails/rankingDrawResults");
+  const { rankingDrawResultsEmail, weeklyDrawOutcomeEmail } = await import("../src/emails/rankingDrawResults");
 
   const now = Date.now();
   const seededDailyDraws = await db.prepare(
@@ -58,7 +58,20 @@ async function main() {
   });
   assert.match(email.html, /Ranking: <strong>Cosplay Central<\/strong>/);
   assert.match(email.html, /Only Backers who complete Draw Check-in/);
-  assert.doesNotMatch(email.html, /you are eligible/i);
+  assert.match(email.html, /You are eligible/i);
+  const outcomeEmail = weeklyDrawOutcomeEmail({
+    drawTitle: "Weekly Backer Draw",
+    prizeName: "Creator merchandise",
+    winnerNames: ["Luna"],
+    participantCount: 42,
+    drawnAt: "25 October · 20:00 UK time",
+    drawUrl: "https://rephear.com/draws/test",
+    nextDrawAt: "1 November · 20:00 UK time",
+    nextDrawUrl: "https://rephear.com/draws/next",
+  });
+  assert.match(outcomeEmail.html, /Luna/);
+  assert.match(outcomeEmail.html, /Completed Draw Check-ins:<\/strong> 42/);
+  assert.match(outcomeEmail.html, /View the next draw/);
 
   const eventId = "event-animecon-london-2026";
   const campaignKey = `daily-streak-${newId()}`;
