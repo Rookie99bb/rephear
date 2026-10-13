@@ -1,18 +1,25 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
-import { safeNextPath } from "@/lib/safeNextPath";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = safeNextPath(searchParams.get("next"));
+  const { status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Login is an entry point, not a destination. This also repairs stale or
+  // nested OAuth callback URLs by taking an already authenticated user home.
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/");
+      router.refresh();
+    }
+  }, [router, status]);
 
   async function handleSubmit(formData: FormData) {
     setSubmitting(true);
@@ -29,8 +36,16 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
-    router.push(nextPath);
+    router.replace("/");
     router.refresh();
+  }
+
+  if (status === "authenticated") {
+    return (
+      <div className="mx-auto max-w-sm py-12 text-center text-sm text-subtle">
+        Taking you home…
+      </div>
+    );
   }
 
   return (
@@ -38,7 +53,7 @@ export default function LoginPage() {
       <h1 className="mb-6 text-xl font-semibold tracking-tight text-ink">
         Log in
       </h1>
-      <GoogleSignInButton callbackUrl={nextPath} />
+      <GoogleSignInButton callbackUrl="/" />
       <form action={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium text-ink">Email</span>
@@ -77,7 +92,7 @@ export default function LoginPage() {
       </form>
       <p className="mt-6 text-sm text-subtle">
         Don&apos;t have an account?{" "}
-        <Link href={`/signup?next=${encodeURIComponent(nextPath)}`} className="font-medium text-ink hover:underline">
+        <Link href="/signup" className="font-medium text-ink hover:underline">
           Sign up
         </Link>
       </p>
