@@ -9,6 +9,22 @@ import {
 
 type Step = "request" | "reset" | "done";
 
+const SUBMISSION_TIMEOUT_MS = 60_000;
+
+async function waitForSubmission<T>(action: Promise<T>): Promise<T> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race([
+            action,
+            new Promise<never>((_, reject) => {
+                timeout = setTimeout(() => reject(new Error("Timed out")), SUBMISSION_TIMEOUT_MS);
+            }),
+        ]);
+    } finally {
+        if (timeout !== undefined) clearTimeout(timeout);
+    }
+}
+
 export default function ForgotPasswordPage() {
     const [step, setStep] = useState<Step>("request");
     const [email, setEmail] = useState("");
@@ -19,26 +35,36 @@ export default function ForgotPasswordPage() {
         setSubmitting(true);
         setError(null);
         const submittedEmail = String(formData.get("email") || "").trim();
-        const result = await requestPasswordResetAction({}, formData);
-        setSubmitting(false);
-        if (result.error) {
-            setError(result.error);
-            return;
+        try {
+            const result = await waitForSubmission(requestPasswordResetAction({}, formData));
+            if (result.error) {
+                setError(result.error);
+                return;
+            }
+            setEmail(submittedEmail);
+            setStep("reset");
+        } catch {
+            setError("We couldn't confirm your request. Check your email for a code before trying again.");
+        } finally {
+            setSubmitting(false);
         }
-        setEmail(submittedEmail);
-        setStep("reset");
     }
 
     async function handleReset(formData: FormData) {
         setSubmitting(true);
         setError(null);
-        const result = await resetPasswordAction({}, formData);
-        setSubmitting(false);
-        if (result.error) {
-            setError(result.error);
-            return;
+        try {
+            const result = await waitForSubmission(resetPasswordAction({}, formData));
+            if (result.error) {
+                setError(result.error);
+                return;
+            }
+            setStep("done");
+        } catch {
+            setError("We couldn't confirm the password reset. Try logging in with your new password first. If that doesn't work, request a fresh code and try again.");
+        } finally {
+            setSubmitting(false);
         }
-        setStep("done");
     }
 
     if (step === "done") {
@@ -91,7 +117,7 @@ export default function ForgotPasswordPage() {
                         type="password"
                         autoComplete="new-password"
                     />
-                    {error && <p className="text-sm text-red-600">{error}</p>}
+                    {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
                     <button
                         type="submit"
                         disabled={submitting}
@@ -102,6 +128,7 @@ export default function ForgotPasswordPage() {
                 </form>
                 <button
                     type="button"
+                    disabled={submitting}
                     onClick={() => {
                         setError(null);
                         setStep("request");
@@ -125,7 +152,7 @@ export default function ForgotPasswordPage() {
             </p>
             <form action={handleRequest} className="flex flex-col gap-4">
                 <Field label="Email" name="email" type="email" autoComplete="email" />
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
                 <button
                     type="submit"
                     disabled={submitting}

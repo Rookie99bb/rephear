@@ -90,6 +90,10 @@ function toArgs(args: SqlValue[]): SqlValue[] {
 // shape (async instead of sync) so migrating every db/*.ts file off
 // node:sqlite only meant adding `await`, not rewriting every query.
 export const db = {
+  async transaction() {
+    await ensureReady();
+    return rawClient.transaction("write");
+  },
   prepare(sql: string) {
     return {
       async get<T = unknown>(...args: SqlValue[]): Promise<T | undefined> {

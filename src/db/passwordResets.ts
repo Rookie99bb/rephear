@@ -57,3 +57,31 @@ export async function consumePasswordResetCode(userId: string, code: string): Pr
 
   return true;
 }
+
+// Consuming the code and saving the password must succeed or roll back together.
+// The write transaction also prevents two requests from using the same code.
+export async function resetPasswordWithCode(userId: string, code: string, passwordHash: string): Promise<boolean> {
+  const transaction = await db.transaction();
+  try {
+    const codes = await transaction.execute({
+      sql: "SELECT id FROM password_reset_codes WHERE user_id = ? AND code = ? AND consumed_at IS NULL AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1",
+      args: [userId, code],
+    });
+    if (!codes.rows.length) return false;
+    const updated = await transaction.execute({
+      sql: "UPDATE users SET password_hash = ? WHERE id = ?",
+      args: [passwordHash, userId],
+    });
+    if (updated.rowsAffected !== 1) return false;
+    await transaction.execute({
+      sql: "UPDATE password_reset_codes SET consumed_at = datetime('now') WHERE id = ?",
+      args: [codes.rows[0].id],
+    });
+    await transaction.commit();
+    return true;
+  } finally {
+    if (!transaction.closed) {
+      try { await transaction.rollback(); } finally { transaction.close(); }
+    }
+  }
+}

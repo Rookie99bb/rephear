@@ -1,6 +1,34 @@
 # RepHear 项目交接
 
-最后更新：2026-10-13（Europe/London）
+最后更新：2026-10-14（Europe/London）
+
+## 2026-10-14：抽奖任务 502 与密码重置反馈（检查阶段）
+
+- 已读取 Render 抽奖任务 05:08–05:12 英国时间日志：05:10:10 请求 /api/cron/raffles 返回 Cloudflare HTTP 502 Bad Gateway，05:10:14 任务以状态 1 退出。网站同时段无应用日志，尚不能确定源站不可用的具体原因。
+- 最近 30 次抽奖任务列表显示成功，最近一次为 10:40，说明任务已恢复。当前命令对任何非 2xx 立即退出，没有重试。不能以此推断抽奖/邮件业务均已逐项验证。
+- 用户提供密码重置第二步截图，填写验证码和两个密码，但没有显示错误信息。具体点击后的表现已向用户询问，尚未确认。不得使用截图中的验证码替用户更改密码。
+- 代码确认：验证码先 consumed，再 bcrypt.hash 和 UPDATE users；这些步骤没有事务，保存失败可能消耗验证码。验证码验证本身 SELECT/UPDATE 分离，也存在并发消费风险。
+- 前端两个提交处理函数没有 catch/finally；意外异常不会正常清除 submitting 或显示可恢复错误。邮件发送未 await 且 sent:false 被忽略，发送失败也会进入验证码页。
+- 已查看网站 10:20–10:45 的应用日志，未看到能归属于该密码重置的错误。截图不能证明上述代码缺陷就是用户本次失败原因。
+- 下一步：确认用户点击后的表现和请求时间；非生产环境验证异常反馈、验证码与密码原子更新、发送失败处理。为定时任务重试设计先检查接口幂等，避免重复发送通知。
+- 此次未修改业务代码、未执行密码重置、未触发抽奖、未部署。
+
+## 2026-10-14：密码重置无响应修复（本地已验证）
+
+- 用户补充：点击 Reset password 后没有反应或一直等待。旧前端没有 catch/finally 或等待上限，可在请求异常/停滞时卡住；历史请求的具体服务端原因仍无日志可确认。
+- 修改 src/app/forgot-password/page.tsx：请求和重置提交均增加 catch/finally、60 秒等待上限和可访问的错误提示，确保按钮恢复；提交中禁用返回重发入口。超时不取消后台请求，因此提示先尝试新密码登录，再申请新验证码。
+- 修改 src/lib/actions/passwordReset.ts、src/db/passwordResets.ts、src/db/client.ts：验证码验证、密码更新、验证码消费在一个 write transaction 内完成，异常回滚；服务端返回可恢复错误。未降低验证码、密码长度或限流要求。
+- 验证通过：全项目 TypeScript、四个改动文件 ESLint、git diff --check；隔离本地数据库测试成功/错误/过期/重放以及保存失败后回滚并使用原码重试；实际表单处理函数测试请求异常、60 秒超时、计时器清理和成功界面。
+- 未更改真实用户密码，未发送邮件，未执行生产重置。修复尚未提交、推送或部署。
+- 抽奖任务的 Cloudflare 502 已恢复，但任务未改动；重试前仍须核实幂等。邮件发送未 await、未检查 sent 的问题尚未改动。Recognise 多弹窗问题仍未修复。
+
+## 最新部署记录
+
+- 2026-10-14：用户名主页链接上线，生产版本 e7ae802。
+- Render 部署： https://dashboard.render.com/web/srv-d97gamd7vvec73c5p3q0/deploys/dep-db7kosij9qps73cqfj7g （成功并 Live，耗时 2m21s）。
+- GitHub 已包含两个导航组件及 AGENTS.md、PROJECT_HANDOFF.md；这份上线后的记录目前为本地更新。
+- git fetch 已确认部署前本地 HEAD 和 origin/main 均为 d083bee，此次仅发布一个新提交；原先领先 16 的显示是远程记录过期。
+- 原有 tsconfig.tsbuildinfo 修改保留，Recognise 多弹窗问题仍未修复。
 
 ## 开始工作时
 
@@ -11,7 +39,7 @@
 - 用户要求点击右上角用户名（例如 Conan）直接进入该登录用户的主页。
 - 已修改 src/components/HeaderAuth.tsx 和 src/components/homepage/SiteHeader.tsx，传入 userId，将用户名链接到与 My Profile 相同的 /u/{userId} 路由，增加悬停和键盘焦点提示。
 - 保留无 userId 时的文字回退，避免生成无效主页地址。
-- 状态：本地实现完成；TypeScript 全项目检查、两个组件 ESLint 和 git diff --check 均通过。未执行登录浏览器点击验证，未提交、未推送、未部署。
+- 状态：本地实现完成；TypeScript 全项目检查、两个组件 ESLint 和 git diff --check 均通过。已提交并推送 e7ae8029d3cb79d1a4fc9dded5eed4b4469f6e2a，并于 2026-10-14 正式部署；Render 显示 Deploy succeeded | Live。生产 /api/health 返回 status: ok，线上 layout-1192791fdd9a1a66.js 已核实包含用户名主页链接。未执行登录账户点击验证。
 - Recognise 多弹窗问题仍未修复。
 
 ## 实际仓库检查结果

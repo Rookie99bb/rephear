@@ -1,10 +1,10 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { findUserByEmail, updateUserPassword } from "@/db/users";
+import { findUserByEmail } from "@/db/users";
 import {
     createPasswordResetCode,
-    consumePasswordResetCode,
+    resetPasswordWithCode,
 } from "@/db/passwordResets";
 import { sendEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/emails/passwordReset";
@@ -86,13 +86,16 @@ export async function resetPasswordAction(
         return { error: "Too many attempts. Please try again later." };
     }
 
-    const user = await findUserByEmail(email);
-    if (!user || !(await consumePasswordResetCode(user.id, code))) {
-        return { error: "That code is invalid or has expired." };
+    try {
+        const user = await findUserByEmail(email);
+        if (!user) return { error: "That code is invalid or has expired." };
+        const passwordHash = await bcrypt.hash(password, 10);
+        if (!(await resetPasswordWithCode(user.id, code, passwordHash))) {
+            return { error: "That code is invalid or has expired." };
+        }
+        return {};
+    } catch (error) {
+        console.error("[password-reset-save]", error);
+        return { error: "We couldn't update your password. Please try again." };
     }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    await updateUserPassword(user.id, passwordHash);
-
-    return {};
 }
