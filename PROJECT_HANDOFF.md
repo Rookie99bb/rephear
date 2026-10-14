@@ -2,11 +2,13 @@
 
 最后更新：2026-10-14（Europe/London）
 
-## 2026-10-14：中英文公众版白皮书 v1.3（待验证发布）
+## 2026-10-14：中英文公众版白皮书 v1.3（已上线）
 
 - 用户要求面向大众、中英文公开版本。重写为公众版，去除代码/数据库/构建说明，保留愿景、身份、徽章、邀请奖励、治理、MCM 和发展方向。
 - English /whitepaper；中文 /whitepaper/zh。共享排版组件、语言切换、article lang、canonical/hreflang 与 sitemap。两版规则一致；3/10/20 和七天角色评估仍为未来计划，实际支付/权限/选举不变。
-- 本地验证及部署待完成。
+- 本地双语页面、中文版排版和语言切换已验证；TypeScript（预览生成文件稳定后重跑）和 diff 检查通过。初次类型检查与预览启动并发导致 .next/types 文件变化，重跑已通过。
+- 已推送 95c41adfa9c42ab3cac7b6e444189fb444fafb2a。Render https://dashboard.render.com/web/srv-d97gamd7vvec73c5p3q0/deploys/dep-db7oaoid0e5s73eiul0g Deploy succeeded | Live，14:38:51 英国时间 service live。
+- 线上 /whitepaper 与 /whitepaper/zh 均返回 200；验证公众版 v1.3、对应语言、180 天及 5% 内容，网站 health 返回 ok。已保存中文页面截图。
 
 ## 2026-10-14：白皮书 v1.2（已上线并验证）
 
