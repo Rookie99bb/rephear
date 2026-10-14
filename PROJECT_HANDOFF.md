@@ -22,6 +22,12 @@
 - 未更改真实用户密码，未发送邮件，未执行生产重置。修复尚未提交、推送或部署。
 - 抽奖任务的 Cloudflare 502 已恢复，但任务未改动；重试前仍须核实幂等。邮件发送未 await、未检查 sent 的问题尚未改动。Recognise 多弹窗问题仍未修复。
 
+## 2026-10-14：密码修复已部署，访客导航准备发布
+
+- 密码重置修复提交 77f897e8d702af3c81199bfd2dd0bcb73abea659 已推送并正式上线。Render： https://dashboard.render.com/web/srv-d97gamd7vvec73c5p3q0/deploys/dep-db7l3nk9v7es73cen50g ，Deploy succeeded | Live，10:59:09 英国时间显示 service live。
+- 用户要求未登录也展示 My Profile、I’m Here ✦。已修改 SiteHeader.tsx：访客看到两个链接，均进入 /login；登录后个人主页仍进入 /u/{userId}，签到仍使用原签到按钮，不会替访客执行签到。
+- 导航修改 ESLint 和 diff 检查通过，纳入当前发布。未操作真实账户密码。
+
 ## 最新部署记录
 
 - 2026-10-14：用户名主页链接上线，生产版本 e7ae802。

@@ -79,17 +79,22 @@ export default function SiteHeader({
           >
             Draws
           </Link>
-          {isLoggedIn && (
             <Link
-              href={`/u/${userId}`}
+              href={isLoggedIn && userId ? `/u/${userId}` : "/login"}
               aria-current={pathname === `/u/${userId}` ? "page" : undefined}
               className={pathname === `/u/${userId}` ? activeCls : navLink}
             >
               My Profile
             </Link>
-          )}
-          {isLoggedIn && (
+          {isLoggedIn ? (
             <BackerCheckInButton variant="navigation" />
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-full bg-violet-50 px-3.5 py-1.5 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+            >
+              I’m Here ✦
+            </Link>
           )}
           {isLoggedIn && (
             <Link
