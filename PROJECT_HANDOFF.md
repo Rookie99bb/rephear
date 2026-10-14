@@ -2,6 +2,12 @@
 
 最后更新：2026-10-14（Europe/London）
 
+## 2026-10-14：中英文公众版白皮书 v1.3（待验证发布）
+
+- 用户要求面向大众、中英文公开版本。重写为公众版，去除代码/数据库/构建说明，保留愿景、身份、徽章、邀请奖励、治理、MCM 和发展方向。
+- English /whitepaper；中文 /whitepaper/zh。共享排版组件、语言切换、article lang、canonical/hreflang 与 sitemap。两版规则一致；3/10/20 和七天角色评估仍为未来计划，实际支付/权限/选举不变。
+- 本地验证及部署待完成。
+
 ## 2026-10-14：白皮书 v1.2（已上线并验证）
 
 - 用户提供 Product and Community Governance Whitepaper v1.1，要求加入邀请奖励和权限策略并部署。新增 /whitepaper 公共页面，内容保存在 src/content/whitepaper.json；页脚入口和 sitemap 已接入。
