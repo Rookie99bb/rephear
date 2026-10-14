@@ -2,6 +2,23 @@
 
 最后更新：2026-10-14（Europe/London）
 
+## 2026-10-14：白皮书 v1.2（本地验证完成，准备部署）
+
+- 用户提供 Product and Community Governance Whitepaper v1.1，要求加入邀请奖励和权限策略并部署。新增 /whitepaper 公共页面，内容保存在 src/content/whitepaper.json；页脚入口和 sitemap 已接入。
+- 保留原有 15 章、早期凭证、季度治理、MCM 活动及术语表，升级 v1.2。明确直接邀请、注册起 180 天、符合条件的支付总额 5%、14 天冻结、当前 USD $25 提现门槛及月度人工审核。
+- 3/10/20 邀请门槛及七天角色评估标记为待实现试行政策；不自动授予权限，不改变现有佣金、选举或支付逻辑。实际代码按支付总额而非扣除手续费后的实收额计算，白皮书据此澄清。
+- 验证：全项目 TypeScript --noEmit --incremental false、diff 检查通过；隔离 DATA_DIR 的 Next dev /whitepaper 返回 200，浏览器确认内容和排版，目录及页脚入口存在。生产 build 编译及类型/内置 lint 通过，但在收集既有 share-card-v2 路由时因本机 canvas.node 缺失失败；需以 Render 构建及线上检查确认部署。
+- 尚未推送或确认线上。原有 tsconfig.tsbuildinfo 修改保留，不纳入提交。
+
+## 最新线上状态（2026-10-14）
+
+- 密码重置修复已上线：77f897e；后续导航版本 dd9c723a184c7da68ecd9a10d0e934ab1643ebc4 包含此修复，现为生产版本。
+- 最新 Render 部署 https://dashboard.render.com/web/srv-d97gamd7vvec73c5p3q0/deploys/dep-db7l5brbc2fs73fjmhs0 ，Deploy succeeded | Live，11:03:01 英国时间显示 service live。
+- 已验证未登录 /draws 实际显示 My Profile 和 I’m Here ✦，两个入口指向 /login；登录后保持原主页链接及签到功能。
+- 生产 /api/health 返回 ok；线上 forgot-password 页面脚本已确认包含新的异常处理。未替真实账户修改密码。
+- 重置限流规则未改动：同一邮箱每小时最多 10 次验证尝试；部署涉及进程重启，内存计数可能重置，但不能承诺用户已解锁。请勿连续点击，使用最新验证码。
+- 本记录为部署后的本地更新；此前功能和交接文档已推送 GitHub。历史检查章节保留为当时状态，以本节为准。
+
 ## 2026-10-14：抽奖任务 502 与密码重置反馈（检查阶段）
 
 - 已读取 Render 抽奖任务 05:08–05:12 英国时间日志：05:10:10 请求 /api/cron/raffles 返回 Cloudflare HTTP 502 Bad Gateway，05:10:14 任务以状态 1 退出。网站同时段无应用日志，尚不能确定源站不可用的具体原因。

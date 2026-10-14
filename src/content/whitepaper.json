@@ -1,0 +1,972 @@
+{
+  "title": "RepHear Product and Community Governance Whitepaper",
+  "version": "1.2",
+  "date": "October 2026",
+  "updated": "14 October 2026",
+  "scope": "This document defines RepHear’s product principles, terminology, Backer identity system, growth mechanics, community capabilities, quarterly governance, invitation rewards, and the Road to MCM campaign. Historical proposals, expired campaigns, and superseded rules are outside its scope. Proposed additions and implementation limits are identified explicitly.",
+  "conclusion": "RepHear’s core asset is verifiable community identity. People express choices through Vote, commit Credits through Support, build public person-to-person relationships through Recognize, and develop standing through Daily Presence, qualified invitations, and community organisation. Direct invitation rewards recognise growth without purchasing votes or administrative power.",
+  "changes": [
+    "Adds a 5% single-level reward for qualified direct-invitee Support during 180 days from registration.",
+    "Clarifies payment totals, holds, refunds, monthly withdrawal review, and private financial records.",
+    "Introduces proposed 3 / 10 / 20 reviewed-invite role milestones with seven-day assessment, explicit permission scope, and approval.",
+    "Preserves quarterly election requirements and separates current code from proposed policy."
+  ],
+  "sections": [
+    {
+      "title": "1 Product Positioning and Principles",
+      "paragraphs": [
+        "RepHear helps people discover individuals worth supporting and build identity through sustained, public, explainable participation. It serves both the people being chosen and the people making those choices, without reducing anyone’s value to a single popularity number.",
+        "Identity must be explainable: distinguish Daily Presence, Vote, Support, invitations, and Community Roles. Identity cannot simply be purchased: high spending cannot replace participation and trust. Higher standing primarily unlocks expression, organisation, proposals, and collaboration, without multiplying votes.",
+        "Counts, Recognition, invitations, badges, and activity records must come from verified behaviour. Levels and roles are separate: a level can confer eligibility; operational permissions require review or election. Referral earnings remain separate from standing, voting power, and role selection."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Action",
+            "Meaning to the user",
+            "System record"
+          ],
+          "rows": [
+            [
+              "Vote",
+              "Express one choice",
+              "Valid Vote and its Ranking"
+            ],
+            [
+              "Support",
+              "Commit Credits to someone",
+              "Support Credits and recipient"
+            ],
+            [
+              "Recognize",
+              "Publicly acknowledge and see someone",
+              "Directional Recognition relationship"
+            ],
+            [
+              "Invite",
+              "Bring a new member into the community",
+              "Successful Invite after a verified action"
+            ],
+            [
+              "Daily Presence",
+              "Maintain long-term participation",
+              "Current Streak and Lifetime Active Days"
+            ]
+          ]
+        }
+      ],
+      "subsections": []
+    },
+    {
+      "title": "2 Terminology",
+      "paragraphs": [
+        "Use consistent language across pages, notifications, campaign rules, administration, and analytics. Backer is an identity; Vote, Support, Recognize, and Invite are distinct actions."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Product term",
+            "Definition"
+          ],
+          "rows": [
+            [
+              "Backer",
+              "A registered person’s long-term community identity"
+            ],
+            [
+              "Vote",
+              "One valid free choice in a Ranking"
+            ],
+            [
+              "Support",
+              "A Credits commitment; never call it Back Credits"
+            ],
+            [
+              "Recognize",
+              "Public, directional interpersonal acknowledgement"
+            ],
+            [
+              "Mutual Recognition",
+              "Computed state when both genuine Recognition directions exist"
+            ],
+            [
+              "Backing",
+              "The people a user chooses to stand behind over time"
+            ],
+            [
+              "Successful Invite",
+              "An invitee registers and completes at least one valid action"
+            ],
+            [
+              "Current Streak",
+              "Consecutive Daily Presence days; may restart after a break"
+            ],
+            [
+              "Lifetime Active Days",
+              "Historical activity total that never resets"
+            ],
+            [
+              "Community Role",
+              "Operational permission gained through application, review, or election"
+            ],
+            [
+              "Referrer",
+              "A Backer with a directly attributed invited member; this label grants no moderation power"
+            ],
+            [
+              "Qualified Support",
+              "Completed, eligible, non-refunded and non-disputed paid Support used for referral commission"
+            ]
+          ]
+        }
+      ],
+      "subsections": []
+    },
+    {
+      "title": "3 Backer Identity Model",
+      "paragraphs": [
+        "RepHear Identity has five layers describing choices, relationships, contribution, and trusted responsibilities. A Profile should become an accurate account of a person rather than an abstract level chase."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Layer",
+            "Question answered",
+            "Primary content"
+          ],
+          "rows": [
+            [
+              "Taste",
+              "What do I care about?",
+              "Communities, fields, people, and preferences"
+            ],
+            [
+              "Backing",
+              "Whom do I stand behind?",
+              "Ongoing backing and Early Backer records"
+            ],
+            [
+              "Contribution",
+              "What have I done?",
+              "Daily Presence, Vote, Support, Successful Invites"
+            ],
+            [
+              "Recognition",
+              "Who sees me and whom do I see?",
+              "Recognized By, People I Recognized, Mutual"
+            ],
+            [
+              "Community Role",
+              "What does the community trust me to do?",
+              "Host, Curator, Organiser, Admin, and related roles"
+            ]
+          ]
+        }
+      ],
+      "subsections": []
+    },
+    {
+      "title": "4 Backer Profile",
+      "paragraphs": [
+        "The Backer Profile is an identity passport. Establish who a person is before showing contribution, relationships, and roles."
+      ],
+      "tables": [],
+      "subsections": [
+        {
+          "title": "4.1 Information hierarchy",
+          "paragraphs": [
+            "Identity header: photo, name, Backer Level, primary community, Community Role, biography.",
+            "Backer Record: Current Streak, Lifetime Active Days, Votes, Support Credits, Successful Invites.",
+            "Badges: permanent historical achievements, conditions, award dates.",
+            "Backing: current backing, historical Support, Early Backer relationships.",
+            "Recognition: People I Recognized, Recognized By, Mutual Recognition.",
+            "Community: memberships, active goals, current roles."
+          ],
+          "tables": []
+        },
+        {
+          "title": "4.2 Keep core records separate",
+          "paragraphs": [],
+          "tables": [
+            {
+              "headers": [
+                "Record",
+                "Example display",
+                "Identity meaning"
+              ],
+              "rows": [
+                [
+                  "Daily Presence",
+                  "12-day streak · 87 lifetime days",
+                  "Consistency"
+                ],
+                [
+                  "Vote",
+                  "126 Votes",
+                  "Participation"
+                ],
+                [
+                  "Support",
+                  "2,480 Support Credits",
+                  "Commitment"
+                ],
+                [
+                  "Invite",
+                  "18 Successful Invites",
+                  "Community Building"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "title": "4.3 Recognition and earnings privacy",
+          "paragraphs": [
+            "Profiles show both People I Recognized and Recognized By. Mutual Recognition exists only when both directional records exist; it never creates a fictitious third relationship.",
+            "Referral balances, individual payments, payout contacts, and invitee spending belong in the private Referral Hub. Public invitation counts must not reveal who paid or how much."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "5 Growth Tracks and Levels",
+      "paragraphs": [
+        "Four tracks measure consistency, participation, support, and community building. Raw records remain visible; the primary level is only a summary."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Track",
+            "Core measures",
+            "Identity examples"
+          ],
+          "rows": [
+            [
+              "Consistency",
+              "Current Streak; Lifetime Active Days",
+              "7 Day Backer; 30 Day Backer"
+            ],
+            [
+              "Participation",
+              "Votes; valid quests",
+              "Active Voice; Community Voice"
+            ],
+            [
+              "Support",
+              "People supported; continuity",
+              "Early Backer; Long Term Backer"
+            ],
+            [
+              "Community Builder",
+              "Successful Invites; organisational contributions",
+              "Connector; Community Builder"
+            ]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "title": "5.1 Level calculation",
+          "paragraphs": [
+            "Do not combine contribution into purchasable XP. Use multidimensional minimum thresholds so spending and mechanical repetition cannot replace meaningful participation. Support Credits alone cannot determine Backer Level. Recalibrate thresholds against real distributions with versioned rules. Referral earnings are excluded from level and governance scoring."
+          ],
+          "tables": [
+            {
+              "headers": [
+                "Level",
+                "Positioning",
+                "Capability direction"
+              ],
+              "rows": [
+                [
+                  "New Backer",
+                  "Begins establishing identity",
+                  "Vote, Support, Recognize, Join, Invite"
+                ],
+                [
+                  "Active Backer",
+                  "Builds stable participation",
+                  "Nominate, create lists, join Community Goals"
+                ],
+                [
+                  "Established Backer",
+                  "Earns community trust",
+                  "Propose a Rally, submit topics, assist events"
+                ],
+                [
+                  "Community Backer",
+                  "Takes organisational responsibility",
+                  "Co-organise events, create challenges, apply for Captain"
+                ],
+                [
+                  "Core Backer",
+                  "Qualifies for leadership consideration",
+                  "Apply for Host, Curator, Organiser, or election"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "6 Daily Presence Badges and Periodic Rewards",
+      "paragraphs": [],
+      "tables": [],
+      "subsections": [
+        {
+          "title": "6.1 Dual record model",
+          "paragraphs": [
+            "A missed day may reset Current Streak, but never erases Lifetime Active Days or valid historical badges."
+          ],
+          "tables": []
+        },
+        {
+          "title": "6.2 Badge system",
+          "paragraphs": [
+            "Growth badges record sustained participation. Early credentials prove a verifiable building, Vote, or Support record while a community relationship formed. Both are permanent; early credentials appear separately and survive level changes and interrupted participation."
+          ],
+          "tables": [
+            {
+              "headers": [
+                "Type",
+                "Label",
+                "Condition",
+                "Credential detail"
+              ],
+              "rows": [
+                [
+                  "Growth",
+                  "7 Day Backer",
+                  "7 consecutive participation days",
+                  "Weekly draw eligibility"
+                ],
+                [
+                  "Growth",
+                  "30 Day Backer",
+                  "30 lifetime participation days",
+                  "Identity card style unlock"
+                ],
+                [
+                  "Growth",
+                  "90 Day Backer",
+                  "90 lifetime participation days",
+                  "Community proposal eligibility review"
+                ],
+                [
+                  "Growth",
+                  "Year One Backer",
+                  "365 lifetime participation days",
+                  "Annual identity and leadership consideration"
+                ],
+                [
+                  "Early",
+                  "Founding Community Backer · community or event",
+                  "First 100 Backers with a valid building action for that object",
+                  "Community or event, first action time, credential number"
+                ],
+                [
+                  "Early",
+                  "Early Voter · event or Ranking · person",
+                  "First 100 valid voters for each event or Ranking",
+                  "Object, selected person, Vote time, credential number"
+                ],
+                [
+                  "Early",
+                  "Early Supporter · person",
+                  "First 100 valid Support Backers for each person; amount does not affect eligibility",
+                  "Person, event or community, first Support time, credential number"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "title": "6.2.1 Evidence, privacy, and revocation",
+          "paragraphs": [
+            "Credentials are object-specific, never one global award per identity type. Every credential binds object type, object ID, public name snapshot, first valid action time, unique credential number, rule version, and evidence. Renames preserve the award-time snapshot and link to the current page.",
+            "The initial first-100 threshold is calculated independently for each object. Later rule changes cannot retroactively remove valid credentials. Qualification follows deduplicated real accounts and first valid action order. Private Votes or Support may establish owner-visible eligibility; a public card shows the person and action only with permission. Never display Support amount on a credential.",
+            "Bots, duplicate accounts, refunded or invalidated Support, withdrawn Votes, and confirmed abuse do not qualify. Revocations retain an auditable reason."
+          ],
+          "tables": []
+        },
+        {
+          "title": "6.3 Weekly and quarterly rewards",
+          "paragraphs": [
+            "Weekly draws may include event admission, Creator merchandise, Credits, or partner gifts. Quarterly rewards favour seasonal badges, limited Profile Frames, role candidacy, early access, roundtables, and organising opportunities. Publish each reward’s rules; badges do not guarantee an active prize. Identity, Recognition, and responsibility are the long-term incentives."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "7 Daily Quest and Unlocks",
+      "paragraphs": [
+        "Daily Presence proves a return; Daily Quest turns that return into a meaningful community action. Quests take seconds to a few minutes and rotate across action types."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Quest",
+            "Example",
+            "Reward direction"
+          ],
+          "rows": [
+            [
+              "Discover",
+              "View a new Creator",
+              "Discovery and badge progress"
+            ],
+            [
+              "Choose",
+              "Complete one valid Vote",
+              "Participation record"
+            ],
+            [
+              "Support",
+              "Support someone you believe in",
+              "Support Track record"
+            ],
+            [
+              "Recognize",
+              "Recognize a new member",
+              "Recognition Graph"
+            ],
+            [
+              "Cross-community",
+              "Discover an Illustrator from Gaming",
+              "Cross Community Discovery"
+            ],
+            [
+              "Build",
+              "Invite a member who completes a first action",
+              "Successful Invite"
+            ]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "title": "7.1 Unlocks",
+          "paragraphs": [
+            "Unlocks never multiply votes. Identity unlocks include share cards, Profile Frames, archives, and limited badge display. Expression unlocks include nominations, lists, topics, and Spotlight recommendations. Organisation unlocks include Rally proposals, Event Circle assistance, and Community Challenges. Governance unlocks are eligibility to apply or stand as a candidate."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "8 Community Goal",
+      "paragraphs": [
+        "Community Goal combines individual actions into shared progress. People can support specific individuals and build their community together; competition must not become hostile expression.",
+        "Eligible actions include valid Vote, Support, Recognize, Daily Quest, Successful Invite, and verified participation attributable to sharing. Use reasonable weights and daily caps to resist farming."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Stage",
+            "May unlock",
+            "Must not unlock"
+          ],
+          "rows": [
+            [
+              "Foundation",
+              "Limited community badge",
+              "Multiplied votes"
+            ],
+            [
+              "Growth",
+              "Community theme and Spotlight",
+              "Automatic administrative power"
+            ],
+            [
+              "Advanced",
+              "Dedicated Event Space or activity",
+              "Purchasable community status"
+            ]
+          ]
+        }
+      ],
+      "subsections": []
+    },
+    {
+      "title": "9 Creator Participation",
+      "paragraphs": [
+        "Creators participate in relationship building. The intended loop is: a Backer supports a Creator; the Creator recognizes the Backer; identity feedback encourages return; invitations and sharing build new relationships."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Creator Quest",
+            "Purpose"
+          ],
+          "rows": [
+            [
+              "Recognize 3 Backers",
+              "Visible feedback to supporters"
+            ],
+            [
+              "Thank an Early Backer",
+              "Early relationships and long-term memory"
+            ],
+            [
+              "Welcome 3 new Backers",
+              "Reduce cold-start friction"
+            ],
+            [
+              "Discover another Creator",
+              "Relationships beyond competition"
+            ],
+            [
+              "Share community progress",
+              "Bring external audiences into sustained participation"
+            ]
+          ]
+        }
+      ],
+      "subsections": []
+    },
+    {
+      "title": "10 Community Organisation and Invitation Programme",
+      "paragraphs": [
+        "Community Power represents responsibility. The invitation programme rewards genuine community building through role eligibility and a separate, single-level referral commission."
+      ],
+      "tables": [],
+      "subsections": [
+        {
+          "title": "10.1 Organisational capabilities",
+          "paragraphs": [
+            "Propose a Rally or Community Goal; assist online or in-person Event Circles; create compliant Challenges; recommend Spotlight members and Creators; welcome newcomers, maintain event information, and assist basic operations."
+          ],
+          "tables": []
+        },
+        {
+          "title": "10.2 Separate levels, earnings, and roles",
+          "paragraphs": [
+            "Backer Level and invitation milestones only confer eligibility. Actual roles require behavioural review, community voting, or platform approval, with defined scope, terms, audit logs, reporting, appeal, and removal. Commission and spending confer no extra votes, election advantage, or automatic authority."
+          ],
+          "tables": []
+        },
+        {
+          "title": "10.3 Attribution and successful invitations",
+          "paragraphs": [
+            "A new Backer registers through a personal invite link and is attributed to one direct referrer. Do not overwrite attribution when the member later visits another link. Existing accounts, self-invites, bots, duplicate accounts, and confirmed abuse do not qualify.",
+            "A Successful Invite requires registration plus at least one verified meaningful action. For the proposed role milestones, the invitee must also remain in the community for at least seven days and pass authenticity review. Registration alone grants neither contribution credit nor role eligibility.",
+            "The seven-day role assessment does not delay or restart the commission window. Record registration time, first qualifying action, assessment outcome, and rule version separately. No reward is paid simply for recruiting a member."
+          ],
+          "tables": []
+        },
+        {
+          "title": "10.4 Direct referral reward: 5% for 180 days",
+          "paragraphs": [
+            "A referrer earns 5% of the total eligible paid Support made by their directly attributed invitees during the 180 days beginning at each invitee’s registration timestamp. Each member has their own window. Payments completed after that window earn no commission; joining again, returning, or revisiting a link does not restart it.",
+            "“Total Support” means the eligible Support payment amounts of directly invited members, not all community revenue, Support Credits counts, or the payments of members they invite in turn. There is one referral level only. Free or promotional Credits and Votes do not generate commission.",
+            "The calculation uses the completed payment total recorded for each qualified Support before payment-processor fees, matching the current Referral Hub terms and booking logic. Calculate 5% per payment and round down to the smallest currency unit. Do not describe this as 5% of net receipts.",
+            "RepHear funds the reward from its own allocated revenue; the invitee pays no additional referral surcharge. The programme must not reduce a separately promised Creator payout without disclosed terms and agreement. Any future change to the calculation basis requires an explicit rule version and updated terms.",
+            "Example: a directly invited Backer makes one eligible $200 Support payment within their 180-day window. The referrer earns $10. A payment after the window, a refund, or Support from an indirect invitee does not qualify."
+          ],
+          "tables": []
+        },
+        {
+          "title": "10.5 Holds, withdrawals, and adjustments",
+          "paragraphs": [
+            "New commission is held for 14 days after payment completion. Withdrawals require acceptance of the current Referrer Terms, an active account, no blocking risk review, and at least $25 available under the current USD rule. Requests are reviewed and paid manually once a month; this is not an automatic monthly transfer.",
+            "Refunded, cancelled, disputed, or invalidated payments earn no commission. Reverse pending amounts; recover or offset amounts already paid through auditable adjustments. Preserve payment, attribution, rule-version, hold, review, payout, and reversal records. Do not silently delete the ledger.",
+            "Referrers must disclose that they may earn commission when sharing a link, avoid misleading promotion or impersonation, and provide the payout contact required for review. They are responsible for applicable taxes. Earnings depend on qualified payments and are never guaranteed."
+          ],
+          "tables": []
+        },
+        {
+          "title": "10.6 Pilot invitation milestones and permission scope",
+          "paragraphs": [
+            "The following thresholds are a proposed pilot policy, not automatically enabled production permissions. Count reviewed direct Successful Invites meeting the seven-day role assessment, together with sustained participation and good conduct. Review thresholds against retention and community health."
+          ],
+          "tables": [
+            {
+              "headers": [
+                "Milestone",
+                "Eligibility",
+                "Permitted scope after approval"
+              ],
+              "rows": [
+                [
+                  "3 reviewed invites",
+                  "Community Referrer recognition",
+                  "Submit activity ideas and welcome newcomers; no moderation access"
+                ],
+                [
+                  "10 reviewed invites",
+                  "Community Helper application",
+                  "Assist approved events and designated channels within an explicit scope"
+                ],
+                [
+                  "20 reviewed invites",
+                  "Leadership or administrator candidacy application",
+                  "Training, behavioural review, trial responsibilities, and applicable quarterly election; no automatic appointment"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "title": "10.7 High-risk permissions and role lifecycle",
+          "paragraphs": [
+            "Deleting members, banning users, changing permissions, accessing personal information, and viewing financial records require separate approval and least privilege. A community title never grants platform-wide access.",
+            "Each approved operational role records its community, granted capabilities, approver, start date, review or expiry date, and conduct requirements. Begin with supervised duties. Serious breaches may suspend access; provide an appeal route and retain audit evidence. An invitation milestone cannot bypass the election of quarterly administrators."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "11 Quarterly Governance and Administrator Elections",
+      "paragraphs": [
+        "Each quarter, contribution eligibility and public voting select three community administrators. Governance scores screen candidates; votes provide the mandate; platform review maintains safety boundaries."
+      ],
+      "tables": [],
+      "subsections": [
+        {
+          "title": "11.1 Candidate eligibility",
+          "paragraphs": [
+            "Evaluate Daily Presence, Votes, Support, and Successful Invites with minimum account age, sufficient participation, no serious violations, and no manipulation record. The ten highest qualifying scores enter the slate. Cap each dimension; Support amount and invitation volume cannot dominate.",
+            "The 20-invite pilot milestone allows application for review, not a guaranteed Top 10 place. Referral earnings are excluded from candidacy scoring. Publish measurement periods, thresholds, caps, tie-breaks, and the rule version before each cycle."
+          ],
+          "tables": []
+        },
+        {
+          "title": "11.2 Candidate information",
+          "paragraphs": [
+            "Publish the four contribution records and periods; historical badges, Recognition, and Community Roles; the candidate’s statement and intended improvements; conflicts, conduct acceptance, and available time. Disclose relevant referral interests without exposing private payment details."
+          ],
+          "tables": []
+        },
+        {
+          "title": "11.3 Voting and term",
+          "paragraphs": [
+            "Each eligible Backer has one vote. Candidates cannot vote for themselves. Apply anti-bulk-registration, anti-coordination, and audit controls.",
+            "The three highest vote recipients enter appointment review and orientation before permissions are granted. Resolve ties under pre-published rules. Administrators serve quarterly terms, may be re-elected, and never hold permanent power. Serious breaches allow suspension or removal with an appeal route.",
+            "Referral rewards cannot be used to buy votes, promise appointments, or condition access to a community on paid Support. Referrers must recuse themselves from payout or abuse decisions affecting their own commission."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "12 Road to MCM Daily Free Draw",
+      "paragraphs": [
+        "Road to MCM is a limited free draw in the MCM Event Social Space, encouraging Daily Presence, genuine participation, and offline connection. Eligibility is independent of purchases, Support Credits, paid actions, and invitation volume."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Area",
+            "Scope",
+            "Campaign question"
+          ],
+          "rows": [
+            [
+              "Cosplay Central",
+              "Cosplayers and related Creators",
+              "Can expression and mobilisation remain balanced?"
+            ],
+            [
+              "Gaming",
+              "Streamers, content, player communities",
+              "Can online entertainment relationships become durable?"
+            ],
+            [
+              "Pop Culture Creators",
+              "Anime, Manga, K-pop, J-pop",
+              "How effectively can fandom mobilise and share?"
+            ],
+            [
+              "Artists and Illustrators",
+              "Artists, illustrators, fan artists",
+              "Can work-led Creators be discovered and retained?"
+            ]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "title": "12.1 Campaign period and eligibility",
+          "paragraphs": [
+            "The campaign runs 17–25 October 2026, with one random winner at 20:00 UK local time each day: nine draws. Use Europe/London so the end-of-campaign clock change is handled correctly.",
+            "A Backer must create their own MCM Event Card and maintain a current three-day Daily Presence streak including the draw date. Every genuine qualifying account enters automatically, without payment or an extra entry action. Each has one daily chance and may win no more than once during the campaign.",
+            "Each winner buys through an official MCM sales channel and submits valid official purchase proof for reimbursement of the actual ticket price up to £50. Travel, accommodation, food, and personal costs are excluded. Tickets may not be resold or transferred. This independent RepHear promotion is not affiliated with or endorsed by MCM Comic Con, ReedPop, or the organiser."
+          ],
+          "tables": []
+        },
+        {
+          "title": "12.2 Draw and claim rules",
+          "paragraphs": [
+            "The server builds each pool from MCM Event Card ownership, Daily Presence records, and streak length. Use auditable computer randomness; if unavailable, an independent observer supervises the draw. Winners confirm and submit proof within the published claim period or an alternate may be selected.",
+            "Streaks beyond three days, Support, spending, and invitations never create extra entries or improve odds. Campaign-specific published terms govern claim deadlines and operational details; the invitation programme does not modify them."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "13 Metrics and Experiment Design",
+      "paragraphs": [
+        "Assess community potential using normalised efficiency, sharing, second actions, and retention. Analyse by area and Creator audience size; separate registration, Vote, Support, Recognize, invitations, and return behaviour. Never declare success from one aggregate total."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Metric",
+            "Definition",
+            "Question"
+          ],
+          "rows": [
+            [
+              "Creator Activation Rate",
+              "Participating ÷ invited Creators",
+              "Will Creators join?"
+            ],
+            [
+              "Fan Conversion Rate",
+              "Valid-action visitors ÷ Creator-referred visitors",
+              "Will audiences act?"
+            ],
+            [
+              "Votes per 1,000 Followers",
+              "Votes ÷ followers × 1,000",
+              "Audience-adjusted mobilisation"
+            ],
+            [
+              "Share Rate",
+              "Sharing users ÷ valid participants",
+              "Willingness to express identity"
+            ],
+            [
+              "Second Action Rate",
+              "Second-action users ÷ first-action users",
+              "Conversion to continued participation"
+            ],
+            [
+              "Invite Conversion",
+              "Successful Invites ÷ invitation clicks",
+              "Quality of acquisition"
+            ],
+            [
+              "D1 and D7 Return",
+              "Next-day and seven-day return",
+              "Retention"
+            ],
+            [
+              "Cross Community Discovery",
+              "Share of valid discovery across areas",
+              "Genuine community connections"
+            ],
+            [
+              "Invitation quality",
+              "Invitee D7/D30 return; reviewed valid invitations",
+              "Durable growth rather than signups"
+            ],
+            [
+              "Referral sustainability",
+              "Booked and paid commission; refunds; payout cost",
+              "Can rewards be sustained?"
+            ],
+            [
+              "Role quality",
+              "Reviewed appointments; resolved issues; complaints; removals",
+              "Do responsibilities improve community health?"
+            ]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "title": "13.1 Pilot evaluation",
+          "paragraphs": [
+            "Version milestone rules, record assessment outcomes, and compare invited members with appropriate non-invited cohorts. Do not make causal claims from an uncontrolled comparison. Review fraud, retention, complaint rates, and costs before expanding thresholds or permissions."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "14 Fairness, Safety and Risk Controls",
+      "paragraphs": [
+        "Record Vote, Support, Invite, Daily Presence, and Recognition independently; never disguise or automatically convert one into another. Verify a meaningful action before counting a Successful Invite; assess the seven-day condition separately for role milestones.",
+        "Detect device, payment, account, and behavioural anomalies. No self-referrals, duplicate accounts, misleading promotion, coercion, vote buying, or multi-level referral commission. Apply proportionate review with an appeal route, rather than treating a shared device alone as proof of abuse.",
+        "Cap candidacy contribution dimensions. Keep commission amounts outside identity and governance scores. Apply least privilege, explicit role terms, audits, reporting, appeals, expiry, and removal. Separate referral payout review from the referrer’s community duties.",
+        "Maintain policies for minors, harassment, impersonation, hate, manipulation, and conflicts. Higher-risk roles and cash payouts need published eligibility and appropriate review; invitation counts alone do not establish eligibility.",
+        "Reward campaigns disclose eligibility, timing, allocation, randomness, claim requirements, force majeure, and non-affiliation. Protect private invitation, payment, and payout data. Version rule changes and communicate their effective date without erasing earned valid historical records."
+      ],
+      "tables": [],
+      "subsections": []
+    },
+    {
+      "title": "15 Implementation Roadmap",
+      "paragraphs": [
+        "This whitepaper describes product principles and the programme’s target policy. Publishing it does not itself implement a feature, grant a role, appoint an administrator, or transfer funds. Operational terms and campaign pages remain the source for active transaction and campaign rules."
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Stage",
+            "Primary delivery",
+            "Acceptance focus"
+          ],
+          "rows": [
+            [
+              "1 Identity foundation",
+              "Profile, four records, badges, Recognition",
+              "Real data, privacy, clarity, performance"
+            ],
+            [
+              "2 Sustained participation",
+              "Presence, lifetime days, Quest, Unlocks",
+              "Break rules, abuse resistance, completion"
+            ],
+            [
+              "3 Community growth",
+              "Successful Invite, Goals, Creator Quests, referral rewards",
+              "Attribution, 180-day window, payment ledger, retention"
+            ],
+            [
+              "4 Governance",
+              "Top 10 slate, voting, three administrators, reviewed role milestones",
+              "Anti-abuse, scopes, orientation, terms, appeals"
+            ],
+            [
+              "5 Ecosystem and scale",
+              "Cross-community discovery, Creator tools, community health",
+              "Retention, safety, sustainability"
+            ]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "title": "15.1 Current priorities",
+          "paragraphs": [
+            "Unify terminology and definitions. Complete real Profile records. Build sustained participation through Presence, badges, Quest, and Goals. Introduce higher-risk permissions only through review and governance.",
+            "Keep the existing 5% / 180-day referral payment rule and Referral Hub aligned. Add the proposed seven-day role assessment and 3 / 10 / 20 milestones only after verified counting, approval workflow, permission scopes, audit, expiry, and appeals are ready."
+          ],
+          "tables": []
+        },
+        {
+          "title": "15.2 Implementation status at publication",
+          "paragraphs": [
+            "Repository verification confirms existing referral attribution, first-action invitation qualification, a commission booking path, a 14-day hold, withdrawal review surfaces, and quarterly governance code. The seeded referral rule is 5%, 180 days, $25 minimum, USD. This is code verification, not evidence that every production payout or governance path has been exercised.",
+            "The seven-day role assessment and 3 / 10 / 20 permission milestones are proposed additions. This release publishes their policy; it does not enable automatic roles or change payment calculations. Early credential requirements and other roadmap items require their own implementation and acceptance checks."
+          ],
+          "tables": []
+        }
+      ]
+    },
+    {
+      "title": "Appendix Product Glossary",
+      "paragraphs": [],
+      "tables": [
+        {
+          "headers": [
+            "Product term",
+            "Usage"
+          ],
+          "rows": [
+            [
+              "Backer",
+              "Registered identity in Profiles, levels, elections"
+            ],
+            [
+              "Vote",
+              "One free choice"
+            ],
+            [
+              "Support",
+              "Credits commitment"
+            ],
+            [
+              "Backing",
+              "Whom I stand behind over time"
+            ],
+            [
+              "Recognize",
+              "Public interpersonal acknowledgement"
+            ],
+            [
+              "Mutual Recognition",
+              "Opposite directional records produce this state"
+            ],
+            [
+              "Successful Invite",
+              "Registration plus one valid action"
+            ],
+            [
+              "Reviewed Invite",
+              "Successful Invite meeting seven-day role assessment and authenticity review"
+            ],
+            [
+              "Referrer",
+              "Direct invitation attribution; no automatic operational power"
+            ],
+            [
+              "Referral Commission",
+              "5% of eligible direct-invitee paid Support in the 180-day registration window"
+            ],
+            [
+              "Qualified Support",
+              "Eligible completed, non-refunded, non-disputed paid Support"
+            ],
+            [
+              "Current Streak",
+              "Current consecutive presence days"
+            ],
+            [
+              "Lifetime Active Days",
+              "Historical activity total that never resets"
+            ],
+            [
+              "Backer Level",
+              "Summary identity, not a replacement for records"
+            ],
+            [
+              "Badges",
+              "Permanently retained valid historical milestones"
+            ],
+            [
+              "Community Role",
+              "Real permissions requiring review or election"
+            ],
+            [
+              "Daily Quest",
+              "Return behaviour becomes a valid action"
+            ],
+            [
+              "Community Goal",
+              "Shared accumulation of genuine action"
+            ],
+            [
+              "Community Power",
+              "Organisational capabilities advanced Backers may apply for"
+            ],
+            [
+              "Top Backers",
+              "Ten qualifying quarterly candidates"
+            ],
+            [
+              "Backer Election",
+              "One vote per eligible Backer to select three administrators"
+            ]
+          ]
+        }
+      ],
+      "subsections": []
+    },
+    {
+      "title": "Conclusion",
+      "paragraphs": [
+        "RepHear’s long-term value comes from cumulative identity, genuine support relationships, and contributions the community can understand. Make choices, commitment, consistency, and building independently visible. Reward direct invitations transparently while ensuring money and recruitment cannot purchase, farm, or obscure community authority."
+      ],
+      "tables": [],
+      "subsections": []
+    }
+  ]
+}
