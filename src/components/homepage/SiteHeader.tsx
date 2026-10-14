@@ -124,7 +124,7 @@ export default function SiteHeader({
           <div className="hidden md:block">
             <SearchBox />
           </div>
-          <HeaderAuth userName={userName} />
+          <HeaderAuth userName={userName} userId={userId} />
         </div>
 
         <div className="basis-full md:hidden">

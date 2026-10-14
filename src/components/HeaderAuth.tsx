@@ -5,8 +5,10 @@ import Link from "next/link";
 
 export default function HeaderAuth({
   userName,
+  userId,
 }: {
   userName: string | null;
+  userId: string | null;
 }) {
   if (!userName) {
     return (
@@ -26,7 +28,17 @@ export default function HeaderAuth({
 
   return (
     <div className="flex items-center gap-4">
-      <span className="max-w-24 truncate text-ink" title={userName}>{userName}</span>
+      {userId ? (
+        <Link
+          href={`/u/${userId}`}
+          className="max-w-24 truncate rounded text-ink hover:text-brand-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
+          title={userName}
+        >
+          {userName}
+        </Link>
+      ) : (
+        <span className="max-w-24 truncate text-ink" title={userName}>{userName}</span>
+      )}
       <button
         onClick={() => signOut({ callbackUrl: "/" })}
         className="hover:text-ink"
