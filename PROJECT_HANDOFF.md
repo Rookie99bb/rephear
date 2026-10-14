@@ -2,13 +2,15 @@
 
 最后更新：2026-10-14（Europe/London）
 
-## 2026-10-14：白皮书 v1.2（本地验证完成，准备部署）
+## 2026-10-14：白皮书 v1.2（已上线并验证）
 
 - 用户提供 Product and Community Governance Whitepaper v1.1，要求加入邀请奖励和权限策略并部署。新增 /whitepaper 公共页面，内容保存在 src/content/whitepaper.json；页脚入口和 sitemap 已接入。
 - 保留原有 15 章、早期凭证、季度治理、MCM 活动及术语表，升级 v1.2。明确直接邀请、注册起 180 天、符合条件的支付总额 5%、14 天冻结、当前 USD $25 提现门槛及月度人工审核。
 - 3/10/20 邀请门槛及七天角色评估标记为待实现试行政策；不自动授予权限，不改变现有佣金、选举或支付逻辑。实际代码按支付总额而非扣除手续费后的实收额计算，白皮书据此澄清。
 - 验证：全项目 TypeScript --noEmit --incremental false、diff 检查通过；隔离 DATA_DIR 的 Next dev /whitepaper 返回 200，浏览器确认内容和排版，目录及页脚入口存在。生产 build 编译及类型/内置 lint 通过，但在收集既有 share-card-v2 路由时因本机 canvas.node 缺失失败；需以 Render 构建及线上检查确认部署。
-- 尚未推送或确认线上。原有 tsconfig.tsbuildinfo 修改保留，不纳入提交。
+- 生产提交 849aa650599f9e88271c522df1f939e274343e0c 已推送 GitHub。Render 手动部署 https://dashboard.render.com/web/srv-d97gamd7vvec73c5p3q0/deploys/dep-db7o4iuk1f9s738eiac0 显示 Deploy succeeded | Live；14:25:38 英国时间 service live。服务器构建成功，无本机 canvas 缺失问题。
+- https://rephear.com/whitepaper 返回 200，已核对 v1.2、180 天、5%、3/10/20 试行门槛和待实现提示，浏览器确认完整页面；/api/health 返回 ok。页脚可进入白皮书。
+- 本次发布仅更新白皮书页面及入口，不启用权限阶梯、不改变支付/选举、不发送邮件或操作真实账户。原有 tsconfig.tsbuildinfo 修改保留，不纳入提交。
 
 ## 最新线上状态（2026-10-14）
 
